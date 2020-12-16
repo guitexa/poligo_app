@@ -17,6 +17,8 @@ import convertDate from '../../utils/convertDate';
 import formatValue from '../../utils/formatValue';
 import { useSearch } from '../../hooks/search';
 import { useOverlap } from '../../hooks/overlap';
+import { useAuth, User } from '../../hooks/auth';
+import { useToast } from '../../hooks/toast';
 
 import Order from '../Order';
 import api from '../../services/api';
@@ -34,8 +36,6 @@ import {
   Status,
   LoadMore,
 } from './styles';
-import { useAuth } from '../../hooks/auth';
-import { useToast } from '../../hooks/toast';
 
 // Interface do client
 export interface ClientData {
@@ -49,12 +49,6 @@ export interface ClientData {
   formatted_phone: string;
   mobile?: string;
   formatted_mobile?: string;
-}
-
-// Interface do usuário
-interface UserData {
-  id: string | null;
-  name: string;
 }
 
 // Interface do produto
@@ -103,8 +97,8 @@ export interface OrderData {
   status_payment?: '' | 'Aguardando' | 'Pago' | 'Vencido' | unknown;
   created_at: string;
   client: ClientData;
-  seller: UserData;
-  technical?: UserData;
+  seller: User;
+  technical?: User;
   total_value?: string;
   orders_products?: OrderProductData[];
 }
@@ -117,7 +111,7 @@ export interface UpdateSearchResultsData {
   status_billing?: string | unknown;
   status_payment?: string | unknown;
   delivery_date?: string | undefined;
-  technical?: string;
+  technical?: User | null;
   order_product_add?: OrderProductData;
   order_product_update?: OrderProductData;
   order_product_delete?: string;
@@ -219,18 +213,13 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
         }
 
         // Verifica se recebeu technical para ser atualizado
-        if (updateSearchResults.technical?.length === 0) {
+        if (updateSearchResults.technical === null) {
           // Se não houver nenhum valor vai limpar o estado
           searchResults[getOrderIndex].technical = undefined;
-        } else if (
-          updateSearchResults.technical &&
-          updateSearchResults.technical.length > 0
-        ) {
+        } else if (updateSearchResults.technical) {
           // Se houver valor armazena no estado
-          searchResults[getOrderIndex].technical = {
-            name: updateSearchResults.technical,
-            id: null,
-          };
+          searchResults[getOrderIndex].technical =
+            updateSearchResults.technical;
         }
 
         // Verifica se recebeu order_product_add para adicionar um novo produto

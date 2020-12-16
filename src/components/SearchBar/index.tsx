@@ -35,6 +35,8 @@ import { useSearch } from '../../hooks/search';
 import { useAuth, User } from '../../hooks/auth';
 import { useToast } from '../../hooks/toast';
 
+import { OrderData } from '../SearchResults';
+
 import {
   Container,
   Date,
@@ -56,7 +58,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
   // Armazena os vendedores cadastrados no banco de dados
   const [sellers, setSellers] = useState<User[]>([]);
   // Armazena os técnicos cadastrados no banco de dados
-  const [technicals, setTechnicals] = useState<User[]>([]);
+  const [technicals, setTechnicals] = useState<(User | null | undefined)[]>([]);
 
   const {
     approved_at,
@@ -87,19 +89,28 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
 
   const { checkToken } = useAuth();
 
-  // Busca na API os vendedores e técnicos cadastrados
+  // Busca na API os vendedores e técnicos cadastrados nos pedidos
   useEffect(() => {
     try {
       checkToken();
-      api.get<User[]>('/users').then((response) => {
+      api.get<OrderData[]>('/orders/').then((response) => {
         setSellers(
-          response.data.filter(
-            (user) =>
-              user.permissions === 'Comercial' || user.permissions === 'Admin'
-          )
+          response.data
+            .map((e) => e.seller)
+            .filter(
+              (value, index, self) =>
+                value !== null &&
+                index === self.findIndex((t) => t.name === value.name)
+            )
         );
         setTechnicals(
-          response.data.filter((user) => user.permissions === 'TechnicalArea')
+          response.data
+            .map((e) => e.technical)
+            .filter(
+              (value, index, self) =>
+                value !== null &&
+                index === self.findIndex((t) => t?.name === value?.name)
+            )
         );
       });
     } catch (err) {
@@ -386,19 +397,17 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
                 clearOnBlur={false}
                 id="input-technical"
                 options={technicals || []}
-                getOptionLabel={({ name }) => name}
+                getOptionLabel={(e) => e?.name || ''}
                 onChange={(event, selectedTechnical) => {
-                  searchTechnical(
-                    selectedTechnical !== null ? selectedTechnical.name : ''
-                  );
+                  searchTechnical(selectedTechnical?.name || '');
                 }}
                 noOptionsText=""
                 renderInput={(params) => (
                   <TextField {...params} label="Executante" value={technical} />
                 )}
-                renderOption={({ name }, { inputValue }) => {
-                  const matches = match(name, inputValue);
-                  const parts = parse(name, matches);
+                renderOption={(val, { inputValue }) => {
+                  const matches = match(val?.name || '', inputValue);
+                  const parts = parse(val?.name || '', matches);
 
                   return (
                     <div>
