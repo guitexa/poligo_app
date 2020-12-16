@@ -4,8 +4,10 @@
 
 <br />
 
-<p align="center" href="https://youtu.be/pnWwL9wWrgg" target="_blank">
-  <img alt="Project working" src="https://i.imgur.com/LR8G3K7.png" width="70%" />
+<p align="center">
+  <a href="https://youtu.be/pnWwL9wWrgg" target="_blank">
+    <img alt="Project working" src="https://i.imgur.com/LR8G3K7.png" width="70%" />
+  </a>
 </p>
 
 <p align="center">
