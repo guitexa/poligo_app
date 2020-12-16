@@ -4,8 +4,8 @@
 
 <br />
 
-<p align="center">
-<img alt="Project working" src="https://i.imgur.com/LR8G3K7.png" width="70%" />
+<p align="center" href="https://youtu.be/pnWwL9wWrgg" target="_blank">
+  <img alt="Project working" src="https://i.imgur.com/LR8G3K7.png" width="70%" />
 </p>
 
 <p align="center">
