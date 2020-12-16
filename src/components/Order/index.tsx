@@ -489,7 +489,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         toUpdateSearchResults({
           order_id,
           status_delivery: e.target.value,
-          technical: user.name,
+          technical: user,
         });
 
         // Define que o banco de dados deve ser atualizado
@@ -501,13 +501,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
 
         // Armazena o valor recebido no estado
         orderData.status_delivery = '';
-        orderData.technical.id = null;
+        orderData.technical = undefined;
 
         // Envia atualização para o component searchResults
         toUpdateSearchResults({
           order_id,
           status_delivery: '',
-          technical: '',
+          technical: null,
         });
 
         // Define que o banco de dados deve ser atualizado
@@ -775,20 +775,6 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         // Limpa os erros
         deliveryDateRef.current?.setErrors({});
         setCounterErrors((state) => state.filter((e) => e !== 'deliveryDate'));
-      }
-
-      // Verifica se não possui data de entrega e possui status da área técnica
-      if (!orderData?.delivery_date && !!orderData?.status_delivery) {
-        // Define um erro
-        deliveryDateRef.current?.setErrors({
-          deliveryDateData: 'Digite uma data',
-        });
-
-        // Define que possui erros na edição do pedido
-
-        if (!counterErrors.find((e) => e === 'deliveryDate')) {
-          setCounterErrors((state) => [...state, 'deliveryDate']);
-        }
       }
     },
     [addToast, counterErrors, orderData, order_id, toUpdateSearchResults]
@@ -1346,7 +1332,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         status_order: orderData?.status_order,
         approved_at: orderData?.approved_at,
         status_delivery: orderData?.status_delivery,
-        technical_id: orderData?.technical?.id,
+        technical_id: orderData.technical?.id || null,
         status_billing: orderData?.status_billing,
         status_payment: orderData?.status_payment,
         delivery_conditions: orderData?.delivery_conditions,
