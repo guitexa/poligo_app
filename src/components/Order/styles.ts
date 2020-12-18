@@ -151,7 +151,11 @@ export const DataForm = styled.div`
       font-size: 13px;
     }
 
-    .faCheck {
+    .faGrayCheck {
+      color: #555;
+    }
+
+    .faGreenCheck {
       color: #1b914f;
     }
 
