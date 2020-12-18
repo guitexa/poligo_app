@@ -1544,8 +1544,11 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   }, [
     from,
     newOrderOpen,
-    counterErrors.length,
-    orderData,
+    counterErrors,
+    orderData?.delivery_date,
+    orderData.status_delivery,
+    orderData.client?.cnpj_cpf,
+    orderData?.status_order,
     addToast,
     overlapNewOrderOpen,
     orderUpdated,
