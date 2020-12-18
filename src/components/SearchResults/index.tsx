@@ -138,7 +138,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
   // Armazena se está realizando uma pesquisa com filtro ou não
   const [changeResults, setChangeResults] = useState('');
   // Atualiza os resultados
-  // const [updateResults, setUpdateResults] = useState(0);
+  const [updateResults, setUpdateResults] = useState(0);
 
   const {
     approved_at,
@@ -355,7 +355,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
   }, [changeResults]);
 
   // Função que atualiza os resultados a cada hora
-  // setInterval(() => setUpdateResults(updateResults + 1), 60000);
+  setInterval(() => setUpdateResults(updateResults + 1), 3600000);
 
   // Função para realizar a pesquisa padrão ou então pesquisa com filtro
   useEffect(() => {
@@ -455,7 +455,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
     newOrderOpen,
     take,
     from,
-    // updateResults,
+    updateResults,
   ]);
 
   // Função para exibir os ícones de status conforme valor recebido
