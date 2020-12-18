@@ -4,6 +4,7 @@ import { RiDraftFill } from 'react-icons/ri';
 import {
   FaCalendarTimes,
   FaCheckCircle,
+  FaRegCheckCircle,
   FaRegClock,
   FaTimes,
 } from 'react-icons/fa';
@@ -41,7 +42,7 @@ import {
 export interface ClientData {
   id: string;
   name: string;
-  cnpj_cpf: string;
+  cnpj_cpf?: string;
   formatted_cnpj_cpf?: string;
   contact_name: string;
   email?: string;
@@ -89,6 +90,7 @@ export interface OrderData {
     | 'Agendado'
     | 'Execução'
     | 'Concluído'
+    | 'Entregue'
     | 'Cancelado'
     | unknown;
   payment_way?: string;
@@ -135,6 +137,8 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
   const [take, setTake] = useState(30);
   // Armazena se está realizando uma pesquisa com filtro ou não
   const [changeResults, setChangeResults] = useState('');
+  // Atualiza os resultados
+  const [updateResults, setUpdateResults] = useState(0);
 
   const {
     approved_at,
@@ -345,10 +349,13 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
     [searchResults, updateSearchResults]
   );
 
-  // Cada vez que altera entre pesquisa e filtro redefine o limite de pesquisa
+  // Função que redefine o limite de resultados da pesquisa
   useEffect(() => {
     setTake(30);
   }, [changeResults]);
+
+  // Função que atualiza os resultados a cada hora
+  setInterval(() => setUpdateResults(updateResults + 1), 60000);
 
   // Função para realizar a pesquisa padrão ou então pesquisa com filtro
   useEffect(() => {
@@ -448,6 +455,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
     newOrderOpen,
     take,
     from,
+    updateResults,
   ]);
 
   // Função para exibir os ícones de status conforme valor recebido
@@ -466,13 +474,16 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
     if (element === 'Reprovado') {
       return <IoMdThumbsDown className="ioThumbsDown" />;
     }
+    if (element === 'Concluído') {
+      return <FaRegCheckCircle className="faGrayCheck" />;
+    }
     if (
       element === 'Aprovado' ||
       element === 'Pago' ||
-      element === 'Concluído' ||
+      element === 'Entregue' ||
       element === 'Faturado'
     ) {
-      return <FaCheckCircle className="faCheck" />;
+      return <FaCheckCircle className="faGreenCheck" />;
     }
     if (element === 'Vencido') {
       return <FaCalendarTimes className="faCalendarTimes" />;

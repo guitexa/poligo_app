@@ -19,6 +19,7 @@ import {
 } from '@material-ui/core';
 import {
   FaPlus,
+  FaRegCheckCircle,
   FaCheckCircle,
   FaRegClock,
   FaTimes,
@@ -173,7 +174,11 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       formControl: {
         margin: theme.spacing(1),
       },
-      faCheck: {
+      faGrayCheck: {
+        color: '#555',
+        margin: '0 4px 0 0',
+      },
+      faGreenCheck: {
         color: '#1b914f',
         margin: '0 4px 0 0',
       },
@@ -208,7 +213,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
 
   const {
     formControl,
-    faCheck,
+    faGrayCheck,
+    faGreenCheck,
     faRegClock,
     riDraftFill,
     faTimes,
@@ -363,10 +369,11 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
               : '',
             client: {
               ...client,
-              formatted_cnpj_cpf:
-                client.cnpj_cpf.length > 11
+              formatted_cnpj_cpf: client.cnpj_cpf
+                ? client.cnpj_cpf.length > 11
                   ? formatToCNPJ(client.cnpj_cpf)
-                  : formatToCPF(client.cnpj_cpf),
+                  : formatToCPF(client.cnpj_cpf)
+                : '',
               formatted_phone: formatToPhone(client.phone),
               formatted_mobile: client.mobile
                 ? formatToPhone(client.mobile)
@@ -892,8 +899,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       if (orderData?.client.cnpj_cpf !== clearClientCnpjCpfData) {
         // Verifica se o valor recebido é um CNPJ ou CPF válido
         if (
-          !clearClientCnpjCpfData ||
-          (!isCNPJ(clearClientCnpjCpfData) && !isCPF(clearClientCnpjCpfData))
+          (!clearClientCnpjCpfData && orderData?.status_order === 'Aprovado') ||
+          (clearClientCnpjCpfData &&
+            !isCNPJ(clearClientCnpjCpfData) &&
+            !isCPF(clearClientCnpjCpfData))
         ) {
           // Define um erro
           clientCnpjCpfRef.current?.setErrors({
@@ -921,6 +930,24 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             clearClientCnpjCpfData.length > 11
               ? formatToCNPJ(clearClientCnpjCpfData)
               : formatToCPF(clearClientCnpjCpfData);
+
+          // Define que o banco de dados deve ser atualizado
+          setClientUpdated(true);
+
+          // Limpa os erros
+          clientCnpjCpfRef.current?.setErrors({});
+          setCounterErrors((state) =>
+            state.filter((e) => e !== 'clientCnpjCpf')
+          );
+        }
+        // Verifica se não possui valor recebido e se o status do pedido é diferente de Aprovado
+        else if (
+          !clearClientCnpjCpfData &&
+          orderData?.status_order !== 'Aprovado'
+        ) {
+          // Armazena o valor recebido no estado
+          orderData.client.cnpj_cpf = '';
+          orderData.client.formatted_cnpj_cpf = '';
 
           // Define que o banco de dados deve ser atualizado
           setClientUpdated(true);
@@ -1378,19 +1405,79 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   const handleCloseOrder = useCallback(() => {
     // Verifica o módulo que o usuário está acessando esse pedido
     if (from === 'TechnicalArea') {
-      if (!orderData?.delivery_date && !!orderData?.status_delivery) {
-        // Se possui não data de entrega e possui status da área técnica define um erro
-        submitDeliveryDate({
-          deliveryDateData: '',
-        } as InputData);
+      // Verifica se o pedido possui data de entrega e status de entrega
+      if (
+        !orderData?.delivery_date &&
+        !!orderData?.status_delivery &&
+        orderData?.status_delivery !== 'Cancelado'
+      ) {
+        if (orderData.status_delivery === 'Concluído') {
+          // Se não possui data e possui status define um erro
+          addToast({
+            type: 'error',
+            description: 'Favor preencher a data de conclusão',
+          });
 
+          deliveryDateRef.current?.setErrors({
+            deliveryDateData: 'Data inválida',
+          });
+
+          return;
+        }
+        if (orderData.status_delivery === 'Entregue') {
+          // Se não possui data e possui status define um erro
+          addToast({
+            type: 'error',
+            description: 'Favor preencher a data de entrega',
+          });
+
+          deliveryDateRef.current?.setErrors({
+            deliveryDateData: 'Data inválida',
+          });
+
+          return;
+        }
+        // Se não possui data e possui status define um erro
         addToast({
           type: 'error',
-          description: 'Favor preencher a data de entrega',
+          description: 'Favor preencher a data de entrega prevista',
+        });
+
+        deliveryDateRef.current?.setErrors({
+          deliveryDateData: 'Data inválida',
         });
 
         return;
       }
+
+      // Limpa os erros
+      deliveryDateRef.current?.setErrors({});
+      setCounterErrors((state) => state.filter((e) => e !== 'deliveryDate'));
+    }
+
+    // Verifica o módulo que o usuário está acessando esse pedido
+    if (from === 'Comercial') {
+      // Verifica se o pedido possui CNPJ/CPF e status do pedido
+      if (
+        !orderData.client?.cnpj_cpf &&
+        orderData?.status_order === 'Aprovado'
+      ) {
+        // Se não possui CNPJ/CPF e possui status Aprovado define um erro
+        addToast({
+          type: 'error',
+          description: 'Favor preencher um CNPJ ou CPF',
+        });
+
+        clientCnpjCpfRef.current?.setErrors({
+          clientCnpjCpfData: 'CNPJ/CPF inválido',
+        });
+
+        return;
+      }
+
+      // Limpa os erros
+      clientCnpjCpfRef.current?.setErrors({});
+      setCounterErrors((state) => state.filter((e) => e !== 'clientCnpjCpf'));
     }
 
     if (newOrderOpen) {
@@ -1398,7 +1485,11 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     }
 
     // Verifica se não existe erros nos campos
-    if (counterErrors.length === 0) {
+    if (
+      counterErrors.length === 0 ||
+      counterErrors.includes('clientCnpjCpf') ||
+      counterErrors.includes('deliveryDate')
+    ) {
       try {
         checkToken();
         // Se houve alteração no pedido vai atualizar
@@ -1455,7 +1546,6 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     newOrderOpen,
     counterErrors.length,
     orderData,
-    submitDeliveryDate,
     addToast,
     overlapNewOrderOpen,
     orderUpdated,
@@ -1514,10 +1604,14 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                 <ClientContainer>
                   <TitlesForm>
                     <p>Razão social:</p>
-                    {orderData.client.cnpj_cpf.length > 11 ? (
-                      <p>CNPJ:</p>
+                    {orderData.client.cnpj_cpf ? (
+                      orderData.client.cnpj_cpf.length > 11 ? (
+                        <p>CNPJ:</p>
+                      ) : (
+                        <p>CPF:</p>
+                      )
                     ) : (
-                      <p>CPF:</p>
+                      <p>CNPJ/CPF:</p>
                     )}
                     <p>Contato:</p>
                     <p>E-mail:</p>
@@ -1538,19 +1632,22 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                           ref={clientCnpjCpfRef}
                           onSubmit={submitClientCnpjCpf}
                         >
-                          {orderData.client.cnpj_cpf.length > 11 ? (
+                          {orderData.client.cnpj_cpf &&
+                          orderData.client.cnpj_cpf.length > 11 ? (
                             <InputAsText
                               name="clientCnpjCpfData"
                               onBlur={onClientCnpjCpfSubmit}
                               defaultValue={orderData.client.formatted_cnpj_cpf}
                               styled={{ width: '10em' }}
+                              maxLength={18}
                             />
                           ) : (
                             <InputAsText
                               name="clientCnpjCpfData"
                               onBlur={onClientCnpjCpfSubmit}
                               defaultValue={orderData.client.formatted_cnpj_cpf}
-                              styled={{ width: '8em' }}
+                              styled={{ width: '10em' }}
+                              maxLength={18}
                             />
                           )}
                         </Form>
@@ -1649,7 +1746,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                     {from !== 'Comercial' &&
                       orderData.status_order === 'Aprovado' && (
                         <div className="status">
-                          <FaCheckCircle className={`faCheck ${faCheck}`} />
+                          <FaCheckCircle
+                            className={`faGreenCheck ${faGreenCheck}`}
+                          />
                           <span>Aprovado</span>
                         </div>
                       )}
@@ -1713,7 +1812,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                                 user.permissions !== 'Admin'
                               }
                             >
-                              <FaCheckCircle className={faCheck} />
+                              <FaCheckCircle className={faGreenCheck} />
                               Aprovado
                             </MenuItem>
                             <MenuItem
@@ -1766,8 +1865,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                     <p>Condições de entrega:</p>
                     <p>Data de entrega solicitada:</p>
                     <p>
-                      {orderData.status_delivery === 'Concluído'
+                      {orderData.status_delivery === 'Entregue'
                         ? 'Data da entrega:'
+                        : orderData.status_delivery === 'Concluído'
+                        ? 'Data da conclusão:'
                         : 'Data de entrega prevista:'}
                     </p>
                     <p>Status área técnica:</p>
@@ -1884,8 +1985,19 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                     {from !== 'TechnicalArea' &&
                       orderData.status_delivery === 'Concluído' && (
                         <div className="status">
-                          <FaCheckCircle className={`faCheck ${faCheck}`} />
+                          <FaRegCheckCircle
+                            className={`faGrayCheck ${faGrayCheck}`}
+                          />
                           <span>Concluído</span>
+                        </div>
+                      )}
+                    {from !== 'TechnicalArea' &&
+                      orderData.status_delivery === 'Entregue' && (
+                        <div className="status">
+                          <FaCheckCircle
+                            className={`faGreenCheck ${faGreenCheck}`}
+                          />
+                          <span>Entregue</span>
                         </div>
                       )}
                     {from !== 'TechnicalArea' &&
@@ -1949,8 +2061,26 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                                 user.permissions !== 'Admin'
                               }
                             >
-                              <FaCheckCircle className={`faCheck ${faCheck}`} />
+                              <FaRegCheckCircle
+                                className={`faGrayCheck ${faGrayCheck}`}
+                              />
                               Concluído
+                            </MenuItem>
+                            <MenuItem
+                              value="Entregue"
+                              disabled={
+                                !!orderData.status_delivery &&
+                                orderData.status_delivery !== 'Agendado' &&
+                                orderData.status_delivery !== 'Execução' &&
+                                orderData.status_delivery !== 'Concluído' &&
+                                orderData.status_delivery !== 'Entregue' &&
+                                user.permissions !== 'Admin'
+                              }
+                            >
+                              <FaCheckCircle
+                                className={`faGreenCheck ${faGreenCheck}`}
+                              />
+                              Entregue
                             </MenuItem>
                             <MenuItem
                               value="Cancelado"
@@ -1960,6 +2090,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                                 orderData.status_delivery !== 'Execução' &&
                                 orderData.status_delivery !== 'Concluído' &&
                                 orderData.status_delivery !== 'Cancelado' &&
+                                orderData.status_delivery !== 'Entregue' &&
                                 user.permissions !== 'Admin'
                               }
                             >
@@ -2023,7 +2154,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                     {from !== 'Billing' &&
                       orderData.status_billing === 'Faturado' && (
                         <div className="status">
-                          <FaCheckCircle className={`faCheck ${faCheck}`} />
+                          <FaCheckCircle
+                            className={`faGreenCheck ${faGreenCheck}`}
+                          />
                           <span>Faturado</span>
                         </div>
                       )}
@@ -2073,7 +2206,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                                 user.permissions !== 'Admin'
                               }
                             >
-                              <FaCheckCircle className={`faCheck ${faCheck}`} />
+                              <FaCheckCircle
+                                className={`faGreenCheck ${faGreenCheck}`}
+                              />
                               Faturado
                             </MenuItem>
                             <MenuItem
@@ -2103,7 +2238,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                       )}
                     {from !== 'Billing' && orderData.status_payment === 'Pago' && (
                       <div className="status">
-                        <FaCheckCircle className={`faCheck ${faCheck}`} />
+                        <FaCheckCircle
+                          className={`faGreenCheck ${faGreenCheck}`}
+                        />
                         <span>Pago</span>
                       </div>
                     )}
@@ -2163,7 +2300,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                                 user.permissions !== 'Admin'
                               }
                             >
-                              <FaCheckCircle className={`faCheck ${faCheck}`} />
+                              <FaCheckCircle
+                                className={`faGreenCheck ${faGreenCheck}`}
+                              />
                               Pago
                             </MenuItem>
                             {orderData.status_payment !== 'Pago' && (

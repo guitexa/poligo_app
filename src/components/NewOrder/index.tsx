@@ -249,8 +249,6 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
 
     if (
       confirmDataHasOpened &&
-      (counterAnswers.includes('clientCnpj') ||
-        counterAnswers.includes('clientCpf')) &&
       counterAnswers.includes('clientNameContact') &&
       counterAnswers.includes('clientEmail') &&
       (counterAnswers.includes('clientPhone') ||
@@ -312,6 +310,9 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
         setClientCpfOpen(!clientCpfOpen); // Fecha o component que está aberto
 
         setClientCnpj(''); // Limpa o estado
+
+        clientCnpjRef.current?.setErrors({}); // Remove os erros do campo
+
         // Remove esse item na contagem de respostas
         setCounterAnswers((state) => state.filter((e) => e !== 'clientCnpj'));
       }
@@ -363,13 +364,15 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
           });
         }
       }
-      // Se o usuário não informar um CPF, então define um erro para o campo
-      // Ou ele informa um CPF ou volta e informa um CNPJ
+      // Se o usuário não informar um CPF, pode continuar
       else {
-        clientCpfRef.current?.setErrors({
-          clientCpfData: 'Favor preencher um CPF. Ou volte e informe um CNPJ.',
-        });
+        setClientCpfOpen(!clientCpfOpen); // Fecha o component que está aberto
+        setClientNameContactOpen(!clientNameContactOpen); // Abre o próximo component
+
         setClientCpf(''); // Limpa o estado
+
+        clientCpfRef.current?.setErrors({}); // Remove os erros do campo
+
         // Remove esse item na contagem de respostas
         setCounterAnswers((state) => state.filter((e) => e !== 'clientCpf'));
       }
@@ -408,8 +411,6 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
         if (
           confirmDataHasOpened &&
           counterAnswers.includes('clientName') &&
-          (counterAnswers.includes('clientCnpj') ||
-            counterAnswers.includes('clientCpf')) &&
           counterAnswers.includes('clientEmail') &&
           (counterAnswers.includes('clientPhone') ||
             counterAnswers.includes('clientMobilePhone'))
@@ -455,8 +456,6 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
           if (
             confirmDataHasOpened &&
             counterAnswers.includes('clientName') &&
-            (counterAnswers.includes('clientCnpj') ||
-              counterAnswers.includes('clientCpf')) &&
             counterAnswers.includes('clientNameContact') &&
             (counterAnswers.includes('clientPhone') ||
               counterAnswers.includes('clientMobilePhone'))
@@ -510,8 +509,6 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
           if (
             confirmDataHasOpened &&
             counterAnswers.includes('clientName') &&
-            (counterAnswers.includes('clientCnpj') ||
-              counterAnswers.includes('clientCpf')) &&
             counterAnswers.includes('clientNameContact') &&
             counterAnswers.includes('clientEmail')
           ) {
@@ -540,8 +537,6 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
         if (
           confirmDataHasOpened &&
           counterAnswers.includes('clientName') &&
-          (counterAnswers.includes('clientCnpj') ||
-            counterAnswers.includes('clientCpf')) &&
           counterAnswers.includes('clientNameContact') &&
           counterAnswers.includes('clientEmail')
         ) {
@@ -593,8 +588,6 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
           if (
             confirmDataHasOpened &&
             counterAnswers.includes('clientName') &&
-            (counterAnswers.includes('clientCnpj') ||
-              counterAnswers.includes('clientCpf')) &&
             counterAnswers.includes('clientNameContact') &&
             counterAnswers.includes('clientEmail')
           ) {
@@ -627,8 +620,6 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
         if (
           confirmDataHasOpened &&
           counterAnswers.includes('clientName') &&
-          (counterAnswers.includes('clientCnpj') ||
-            counterAnswers.includes('clientCpf')) &&
           counterAnswers.includes('clientNameContact') &&
           counterAnswers.includes('clientEmail')
         ) {
@@ -816,12 +807,11 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
     user.id,
   ]);
 
-  // Função para transitar entre as questões
+  // Função para transitar entre as questões com PageUp
   const handleChangeToPreviousQuestion = useCallback(() => {
     if (
       clientNameOpen &&
       clientName.name &&
-      (clientCnpj || clientCpf) &&
       clientNameContact &&
       clientEmail &&
       (clientPhone || clientMobilePhone)
@@ -840,6 +830,10 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
     if (clientCpfOpen && clientCpf) {
       setClientCpfOpen(!clientCpfOpen); // Fecha o component que está aberto
       setClientNameOpen(!clientNameOpen); // Abre o component anterior
+    }
+    if (clientNameContactOpen && !clientCnpj && !clientCpf) {
+      setClientNameContactOpen(!clientNameContactOpen); // Fecha o component que está aberto
+      setClientCnpjOpen(!clientCnpjOpen); // Abre o component anterior
     }
     if (clientNameContactOpen && clientCnpj) {
       setClientNameContactOpen(!clientNameContactOpen); // Fecha o component que está aberto
@@ -883,7 +877,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
     confirmDataOpen,
   ]);
 
-  // Função para transitar entre as questões
+  // Função para transitar entre as questões com PageDown
   const handleChangeToNextQuestion = useCallback(() => {
     if (clientNameOpen && clientName.name && clientCnpj) {
       setClientNameOpen(!clientNameOpen); // Fecha o component que está aberto
@@ -892,6 +886,16 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
     if (clientNameOpen && clientName.name && clientCpf) {
       setClientNameOpen(!clientNameOpen); // Fecha o component que está aberto
       setClientCpfOpen(!clientCpfOpen); // Abre o próximo component
+    }
+    if (
+      clientNameOpen &&
+      clientName.name &&
+      !clientCpf &&
+      !clientCnpj &&
+      clientNameContact
+    ) {
+      setClientNameOpen(!clientNameOpen); // Fecha o component que está aberto
+      setClientNameContactOpen(!clientNameContactOpen); // Abre o próximo component
     }
     if (clientCnpjOpen && !clientCnpj) {
       setClientCnpjOpen(!clientCnpjOpen); // Fecha o component que está aberto
@@ -913,9 +917,13 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
       setClientEmailOpen(!clientEmailOpen); // Fecha o component que está aberto
       setClientPhoneOpen(!clientPhoneOpen); // Abre o próximo component
     }
-    if (clientPhoneOpen) {
+    if (clientPhoneOpen && clientMobilePhone) {
       setClientPhoneOpen(!clientPhoneOpen); // Fecha o component que está aberto
       setClientMobilePhoneOpen(!clientMobilePhoneOpen); // Abre o próximo component
+    }
+    if (clientPhoneOpen && !clientMobilePhone) {
+      setClientPhoneOpen(!clientPhoneOpen); // Fecha o component que está aberto
+      setConfirmDataOpen(!confirmDataOpen); // Abre o próximo component
     }
     if (clientMobilePhoneOpen && (clientMobilePhone || clientPhoneOpen)) {
       setClientMobilePhoneOpen(!clientMobilePhoneOpen); // Fecha o component que está aberto
@@ -1416,7 +1424,8 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
                   </QuestionsContainer>
                   <AnswersContainer>
                     <p>{clientName.name}</p>
-                    <p>{clientCnpj || clientCpf}</p>
+                    {clientCnpj && <p>clientCnpj</p>}
+                    {clientCpf && <p>clientCpf</p>}
                     <p>{clientNameContact}</p>
                     <p>{clientEmail}</p>
                     {clientPhone && <p>{clientPhone}</p>}

@@ -25,7 +25,12 @@ import Autocomplete from '@material-ui/lab/Autocomplete';
 import * as themeAugmentation from '@material-ui/lab/themeAugmentation';
 import parse from 'autosuggest-highlight/parse';
 import match from 'autosuggest-highlight/match';
-import { FaCheckCircle, FaRegClock, FaTimes } from 'react-icons/fa';
+import {
+  FaCheckCircle,
+  FaRegCheckCircle,
+  FaRegClock,
+  FaTimes,
+} from 'react-icons/fa';
 import { HiOutlineRefresh } from 'react-icons/hi';
 import { RiDraftFill } from 'react-icons/ri';
 import { IoMdThumbsDown } from 'react-icons/io';
@@ -183,7 +188,10 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
       formControl: {
         margin: theme.spacing(1),
       },
-      faCheck: {
+      faGrayCheck: {
+        color: '#555',
+      },
+      faGreenCheck: {
         color: '#1b914f',
       },
       faRegClock: {
@@ -206,7 +214,8 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
 
   const {
     formControl,
-    faCheck,
+    faGrayCheck,
+    faGreenCheck,
     faRegClock,
     riDraftFill,
     faTimes,
@@ -485,7 +494,13 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
                     value="Concluído"
                     style={{ justifyContent: 'center' }}
                   >
-                    <FaCheckCircle className={faCheck} />
+                    <FaRegCheckCircle className={faGrayCheck} />
+                  </MenuItem>
+                  <MenuItem
+                    value="Entregue"
+                    style={{ justifyContent: 'center' }}
+                  >
+                    <FaCheckCircle className={faGreenCheck} />
                   </MenuItem>
                   <MenuItem
                     value="Cancelado"
@@ -516,7 +531,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
                   <FaRegClock className={faRegClock} />
                 </MenuItem>
                 <MenuItem value="Faturado" style={{ justifyContent: 'center' }}>
-                  <FaCheckCircle className={faCheck} />
+                  <FaCheckCircle className={faGreenCheck} />
                 </MenuItem>
                 <MenuItem
                   value="Cancelado"
@@ -555,7 +570,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
                   <IoMdThumbsDown className={ioThumbsDown} />
                 </MenuItem>
                 <MenuItem value="Aprovado" style={{ justifyContent: 'center' }}>
-                  <FaCheckCircle className={faCheck} />
+                  <FaCheckCircle className={faGreenCheck} />
                 </MenuItem>
                 <MenuItem
                   value="Cancelado"

@@ -130,7 +130,11 @@ export const Status = styled.div`
     padding: 0.5px;
   }
 
-  .faCheck {
+  .faGrayCheck {
+    color: #555;
+  }
+
+  .faGreenCheck {
     color: #1b914f;
   }
 
