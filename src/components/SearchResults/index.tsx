@@ -343,7 +343,9 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
         }, 0);
 
       // Se houver valores realiza a formatação
-      return productsValues ? formatValue(productsValues) : '';
+      return productsValues && productsValues >= 0
+        ? formatValue(productsValues)
+        : formatValue(0);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [searchResults, updateSearchResults]
@@ -544,7 +546,12 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
                       {search.orders_products && search.orders_products.length
                         ? 'R$'
                         : ''}
-                      <div>{totalValueToShow(search.id)}</div>
+                      {search.orders_products &&
+                      search.orders_products.length ? (
+                        <div>{totalValueToShow(search.id)}</div>
+                      ) : (
+                        ''
+                      )}
                     </Value>
                   </>
                 )}

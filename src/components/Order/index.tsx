@@ -1312,7 +1312,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         return accumulator + productValue;
       }, 0);
 
-    return productsValues ? formatValueCurrency(productsValues) : '';
+    return productsValues && productsValues >= 0
+      ? formatValueCurrency(productsValues)
+      : formatValueCurrency(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     orderData,
@@ -1462,7 +1464,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         !orderData.client?.cnpj_cpf &&
         orderData?.status_order === 'Aprovado'
       ) {
-        // Se não possui CNPJ/CPF e possui status Aprovado define um erro
+        // Se não possui CNPJ/CPF e possuir status Aprovado define um erro
         addToast({
           type: 'error',
           description: 'Favor preencher um CNPJ ou CPF',
@@ -1475,9 +1477,19 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         return;
       }
 
-      // Limpa os erros
-      clientCnpjCpfRef.current?.setErrors({});
-      setCounterErrors((state) => state.filter((e) => e !== 'clientCnpjCpf'));
+      // Verifica se o pedido possui algum serviço e status do pedido
+      if (
+        !orderData.orders_products?.length &&
+        orderData?.status_order === 'Aprovado'
+      ) {
+        // Se não possui serviço e possuir status Aprovado define um erro
+        addToast({
+          type: 'error',
+          description: 'Favor adicionar um serviço',
+        });
+
+        return;
+      }
     }
 
     if (newOrderOpen) {
@@ -1549,6 +1561,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     orderData.status_delivery,
     orderData.client?.cnpj_cpf,
     orderData?.status_order,
+    orderData.orders_products?.length,
     addToast,
     overlapNewOrderOpen,
     orderUpdated,
