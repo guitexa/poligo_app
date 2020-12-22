@@ -212,7 +212,9 @@ const NewProduct: React.FC<NewProductProps> = ({
     (name: string) => {
       // Verifica se esse produto já existe
       const findProduct = products.find(
-        (product) => product.name.toLowerCase() === name.toLowerCase()
+        (product) =>
+          product.name.toLowerCase().trimStart().trimEnd() ===
+          name.toLowerCase().trimStart().trimEnd()
       );
 
       if (findProduct) {
@@ -228,7 +230,7 @@ const NewProduct: React.FC<NewProductProps> = ({
         setSelectedProduct({
           ...selectedProduct,
           id: '', // Se um novo produto será criado limpa o existente
-          name,
+          name: name.trimStart().trimEnd(),
         });
       }
     },

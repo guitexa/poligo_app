@@ -727,17 +727,29 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
   const handleSubmitForm = useCallback(async () => {
     try {
       // Remove os caracteres especiais das variáveis para salvar no banco
-      const formattedClientCnpj = clientCnpj.replace(/[^\w\s]/gi, '');
-      const formattedClientCpf = clientCpf.replace(/[^\w\s]/gi, '');
-      const formattedClientPhone = clientPhone.replace(/[^\w]/gi, '');
-      const formattedClientMobilePhone = clientMobilePhone.replace(
-        /[^\w]/gi,
-        ''
-      );
+      const clearClientCnpj = clientCnpj
+        .replace(/[^\w\s]/gi, '')
+        .trimEnd()
+        .trimStart();
+      const clearClientCpf = clientCpf
+        .replace(/[^\w\s]/gi, '')
+        .trimEnd()
+        .trimStart();
+      const clearClientNameContact = clientNameContact.trimEnd().trimStart();
+      const clearClientPhone = clientPhone
+        .replace(/[^\w]/gi, '')
+        .trimEnd()
+        .trimStart();
+      const clearClientMobilePhone = clientMobilePhone
+        .replace(/[^\w]/gi, '')
+        .trimEnd()
+        .trimStart();
 
       // Verifica no array de clients cadastrados se existe um client com o mesmo nome
       const findClient = clients.find(
-        (client) => client.name === clientName.name
+        (client) =>
+          client.name.toLocaleLowerCase().trimEnd().trimStart() ===
+          clientName.name.toLocaleLowerCase().trimEnd().trimStart()
       );
 
       if (!findClient) {
@@ -745,12 +757,11 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
         const client = await api.post<ClientData>('/clients', {
           name: clientName.name,
           cnpj_cpf:
-            (clientCnpj && formattedClientCnpj) ||
-            (clientCpf && formattedClientCpf),
-          contact_name: clientNameContact,
+            (clientCnpj && clearClientCnpj) || (clientCpf && clearClientCpf),
+          contact_name: clearClientNameContact,
           email: clientEmail,
-          phone: formattedClientPhone,
-          mobile: formattedClientMobilePhone,
+          phone: clearClientPhone,
+          mobile: clearClientMobilePhone,
         });
 
         // Após o cadastro do novo client, cria uma nova order
@@ -764,12 +775,11 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
         // Se o client existe ele será atualizado
         await api.patch<ClientData>(`/clients/${findClient.id}`, {
           cnpj_cpf:
-            (clientCnpj && formattedClientCnpj) ||
-            (clientCpf && formattedClientCpf),
-          contact_name: clientNameContact,
+            (clientCnpj && clearClientCnpj) || (clientCpf && clearClientCpf),
+          contact_name: clearClientNameContact,
           email: clientEmail,
-          phone: formattedClientPhone,
-          mobile: formattedClientMobilePhone,
+          phone: clearClientPhone,
+          mobile: clearClientMobilePhone,
         });
 
         // Após atualizar o cadastro do client, cria uma nova order
@@ -1070,7 +1080,9 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
                           // Adiciona uma empresa nova
                           setClientName({
                             ...newClientName,
-                            name: newClientName.inputValue,
+                            name: newClientName.inputValue
+                              .trimEnd()
+                              .trimStart(),
                           });
                         } else if (newClientName) {
                           // Seleciona um existente e encerra o formulário

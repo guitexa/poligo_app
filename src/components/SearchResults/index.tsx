@@ -27,6 +27,7 @@ import api from '../../services/api';
 import {
   OrderOverlap,
   Container,
+  ContentWithErrors,
   Content,
   RowResult,
   DateField,
@@ -96,7 +97,13 @@ export interface OrderData {
   payment_way?: string;
   due_date?: string;
   status_billing?: '' | 'Aguardando' | 'Faturado' | 'Cancelado' | unknown;
-  status_payment?: '' | 'Aguardando' | 'Pago' | 'Vencido' | unknown;
+  status_payment?:
+    | ''
+    | 'Aguardando'
+    | 'Pago'
+    | 'Vencido'
+    | 'Cancelado'
+    | unknown;
   created_at: string;
   client: ClientData;
   seller: User;
@@ -133,6 +140,10 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
   const [orderIdOpen, setOrderIdOpen] = useState('');
   // Armazena os resultados da pesquisa recebidos do banco de dados
   const [searchResults, setSearchResults] = useState<OrderData[]>([]);
+  // Armazena os resultados da pesquisa recebidos do banco de dados
+  const [searchErrorsResults, setSearchErrorsResults] = useState<OrderData[]>(
+    []
+  );
   // Define qual a quantidade de resultados que deverá aparecer em tela
   const [take, setTake] = useState(30);
   // Armazena se está realizando uma pesquisa com filtro ou não
@@ -293,63 +304,22 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
           });
         }
       }
+
+      // Verifica se alguma das atualizações de status é Cancelado para atualizar os resultados com a API
+      if (
+        updateSearchResults.status_order === 'Cancelado' ||
+        updateSearchResults.status_delivery === 'Cancelado' ||
+        updateSearchResults.status_billing === 'Cancelado' ||
+        updateSearchResults.status_payment === 'Cancelado'
+      ) {
+        setUpdateResults(updateResults + 1);
+      }
+
       // Limpa o estado
       toUpdateSearchResults({} as UpdateSearchResultsData);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [updateSearchResults.order_id]);
-
-  // Função para formatar os nomes de produtos para serem exibidos
-  const productsToShow = useCallback(
-    (order_id: string): string[] => {
-      // Busca no array de resultados um pedido específico
-      const getOrderIndex = searchResults.findIndex(
-        (result) => result.id === order_id
-      );
-
-      // Ordena os itens do array por order de criação e formata com vírgula
-      const productsToString = searchResults[getOrderIndex].orders_products
-        ?.sort((a, b) => {
-          if (a.created_at < b.created_at) return -1;
-          if (a.created_at > b.created_at) return 1;
-          return 0;
-        })
-        .map((item) => `${item.product && item.product.name}, `);
-
-      // Formata o último item do array removendo a vírgula no final
-      const lastItemFormatted = productsToString?.pop()?.slice(0, -2);
-      lastItemFormatted &&
-        productsToString &&
-        productsToString.push(lastItemFormatted);
-
-      return productsToString || [];
-    },
-    [searchResults]
-  );
-
-  // Função para formatar o valor total do pedido para ser exibido
-  const totalValueToShow = useCallback(
-    (order_id: string): string => {
-      // Busca no array de resultados um pedido específico
-      const getOrderIndex = searchResults.findIndex(
-        (result) => result.id === order_id
-      );
-
-      // Faz a soma de todos os valores dos orders_products deste pedido
-      const productsValues = searchResults[getOrderIndex].orders_products
-        ?.map((e) => Number(e.product_value))
-        .reduce((accumulator, productValue) => {
-          return accumulator + productValue;
-        }, 0);
-
-      // Se houver valores realiza a formatação
-      return productsValues && productsValues >= 0
-        ? formatValue(productsValues)
-        : formatValue(0);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [searchResults, updateSearchResults]
-  );
 
   // Função que redefine o limite de resultados da pesquisa
   useEffect(() => {
@@ -361,6 +331,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
 
   // Função para realizar a pesquisa padrão ou então pesquisa com filtro
   useEffect(() => {
+    // Realiza a pesquisa sem filtro
     if (
       user &&
       (!client_name || client_name.length <= 2) &&
@@ -388,6 +359,17 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
             setSearchResults(response.data);
           });
 
+        api
+          .get<OrderData[]>('/orders/errors', {
+            params: {
+              take: 5,
+              from,
+            },
+          })
+          .then((response) => {
+            setSearchErrorsResults(response.data);
+          });
+
         setChangeResults('orders');
       } catch (err) {
         addToast({
@@ -395,7 +377,9 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
           description: 'Ocorreu um erro na comunicação com o servidor',
         });
       }
-    } else if (
+    }
+    // Realiza a pesquisa com filtro
+    else if (
       user &&
       (client_name.length > 2 ||
         approved_at ||
@@ -460,6 +444,112 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
     updateResults,
   ]);
 
+  // Função para formatar os nomes de produtos para serem exibidos
+  const productsToShow = useCallback(
+    (order_id: string): string[] => {
+      // Busca no array de resultados um pedido específico
+      const getOrderIndex = searchResults.findIndex(
+        (result) => result.id === order_id
+      );
+
+      if (searchResults[getOrderIndex]) {
+        // Ordena os itens do array por order de criação e formata com vírgula
+        const productsToString = searchResults[getOrderIndex].orders_products
+          ?.sort((a, b) => {
+            if (a.created_at < b.created_at) return -1;
+            if (a.created_at > b.created_at) return 1;
+            return 0;
+          })
+          .map((item) => `${item.product && item.product.name}, `);
+
+        // Formata o último item do array removendo a vírgula no final
+        const lastItemFormatted = productsToString?.pop()?.slice(0, -2);
+        lastItemFormatted &&
+          productsToString &&
+          productsToString.push(lastItemFormatted);
+
+        return productsToString || [];
+      }
+
+      // Se não encontrar no searchResults procura no searchErrorsResults
+      const getOrderErrorIndex = searchErrorsResults.findIndex(
+        (result) => result.id === order_id
+      );
+
+      if (searchErrorsResults[getOrderErrorIndex]) {
+        // Ordena os itens do array por order de criação e formata com vírgula
+        const productsToString = searchErrorsResults[
+          getOrderErrorIndex
+        ].orders_products
+          ?.sort((a, b) => {
+            if (a.created_at < b.created_at) return -1;
+            if (a.created_at > b.created_at) return 1;
+            return 0;
+          })
+          .map((item) => `${item.product && item.product.name}, `);
+
+        // Formata o último item do array removendo a vírgula no final
+        const lastItemFormatted = productsToString?.pop()?.slice(0, -2);
+        lastItemFormatted &&
+          productsToString &&
+          productsToString.push(lastItemFormatted);
+
+        return productsToString || [];
+      }
+
+      return [];
+    },
+    [searchErrorsResults, searchResults]
+  );
+
+  // Função para formatar o valor total do pedido para ser exibido
+  const totalValueToShow = useCallback(
+    (order_id: string): string => {
+      // Busca no array de resultados um pedido específico
+      const getOrderIndex = searchResults.findIndex(
+        (result) => result.id === order_id
+      );
+
+      if (searchResults[getOrderIndex]) {
+        // Faz a soma de todos os valores dos orders_products deste pedido
+        const productsValues = searchResults[getOrderIndex].orders_products
+          ?.map((e) => Number(e.product_value))
+          .reduce((accumulator, productValue) => {
+            return accumulator + productValue;
+          }, 0);
+
+        // Se houver valores realiza a formatação
+        return productsValues && productsValues > 0
+          ? formatValue(productsValues)
+          : formatValue(0);
+      }
+
+      // Se não encontrar no searchResults procura no searchErrorsResults
+      const getOrderErrorIndex = searchErrorsResults.findIndex(
+        (result) => result.id === order_id
+      );
+
+      if (searchErrorsResults[getOrderErrorIndex]) {
+        // Faz a soma de todos os valores dos orders_products deste pedido
+        const productsValues = searchErrorsResults[
+          getOrderErrorIndex
+        ].orders_products
+          ?.map((e) => Number(e.product_value))
+          .reduce((accumulator, productValue) => {
+            return accumulator + productValue;
+          }, 0);
+
+        // Se houver valores realiza a formatação
+        return productsValues && productsValues > 0
+          ? formatValue(productsValues)
+          : formatValue(0);
+      }
+
+      return '';
+    },
+    [searchErrorsResults, searchResults]
+  );
+
   // Função para exibir os ícones de status conforme valor recebido
   const statusReturn = useCallback((element: string | unknown):
     | IconBaseProps
@@ -515,12 +605,97 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
         </OrderOverlap>
       )}
       <Container>
+        {(!client_name || client_name.length <= 2) &&
+          !approved_at &&
+          !created_at &&
+          !delivery_date &&
+          !seller &&
+          (!products || products.length <= 2) &&
+          !status_billing &&
+          !status_delivery &&
+          !status_order &&
+          !technical &&
+          (!total_value || total_value.length <= 1) && (
+            <ContentWithErrors>
+              <div>
+                {searchErrorsResults &&
+                  searchErrorsResults.map((search: OrderData) => (
+                    <RowResult
+                      type="button"
+                      color={color}
+                      isCanceled
+                      onClick={() => handleOpenOrder(search.id)}
+                      key={search.id}
+                    >
+                      {from === 'TechnicalArea' ? (
+                        <DateField>
+                          {search?.approved_at
+                            ? formatToDate(parseISO(search.approved_at))
+                            : ''}
+                        </DateField>
+                      ) : (
+                        <DateField>
+                          {formatToDate(parseISO(search.created_at))}
+                        </DateField>
+                      )}
+                      <ClientName>
+                        {search.client && search.client.name}
+                      </ClientName>
+                      <Product>{productsToShow(search.id)}</Product>
+                      {(from === 'Comercial' || from === 'Billing') && (
+                        <>
+                          <Professional>
+                            {search.seller && search.seller.name}
+                          </Professional>
+                          <Value>
+                            {search.orders_products &&
+                            search.orders_products.length
+                              ? 'R$'
+                              : ''}
+                            {search.orders_products &&
+                            search.orders_products.length ? (
+                              <div>{totalValueToShow(search.id)}</div>
+                            ) : (
+                              ''
+                            )}
+                          </Value>
+                        </>
+                      )}
+                      {from === 'TechnicalArea' && (
+                        <>
+                          <Professional>
+                            {search.technical ? search.technical.name : ''}
+                          </Professional>
+                          <DateField>
+                            {search.delivery_date
+                              ? formatToDate(parseISO(search.delivery_date))
+                              : ''}
+                          </DateField>
+                        </>
+                      )}
+                      <Status isCanceled>
+                        {from === 'Comercial' && search.status_order
+                          ? statusReturn(search.status_order)
+                          : ''}
+                        {from === 'Billing' && search.status_billing
+                          ? statusReturn(search.status_billing)
+                          : ''}
+                        {from === 'TechnicalArea' && search.status_delivery
+                          ? statusReturn(search.status_delivery)
+                          : ''}
+                      </Status>
+                    </RowResult>
+                  ))}
+              </div>
+            </ContentWithErrors>
+          )}
         <Content>
           {searchResults &&
             searchResults.map((search: OrderData) => (
               <RowResult
                 type="button"
                 color={color}
+                isCanceled={false}
                 onClick={() => handleOpenOrder(search.id)}
                 key={search.id}
               >
@@ -542,7 +717,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
                     <Professional>
                       {search.seller && search.seller.name}
                     </Professional>
-                    <Value status_order={search.status_order}>
+                    <Value>
                       {search.orders_products && search.orders_products.length
                         ? 'R$'
                         : ''}
@@ -567,7 +742,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
                     </DateField>
                   </>
                 )}
-                <Status>
+                <Status isCanceled={false}>
                   {from === 'Comercial' && search.status_order
                     ? statusReturn(search.status_order)
                     : ''}

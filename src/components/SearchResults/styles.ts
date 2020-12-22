@@ -2,14 +2,15 @@ import styled from 'styled-components';
 
 interface ContentProps {
   color: string;
+  isCanceled: boolean;
 }
 
 interface LoadMoreProps {
   color: string;
 }
 
-interface ValueProps {
-  status_order: string | unknown;
+interface StatusProps {
+  isCanceled: boolean;
 }
 
 export const OrderOverlap = styled.div`
@@ -17,8 +18,9 @@ export const OrderOverlap = styled.div`
 `;
 
 export const Container = styled.div`
-  position: absolute;
   display: flex;
+  flex-direction: column;
+  position: absolute;
   top: 110px;
   right: 0;
   left: 0;
@@ -27,6 +29,15 @@ export const Container = styled.div`
   overflow: hidden;
   z-index: 0;
   background: #fff;
+`;
+
+export const ContentWithErrors = styled.div`
+  width: 100%;
+
+  > div {
+    width: 100%;
+    overflow-y: scroll;
+  }
 `;
 
 export const Content = styled.div`
@@ -43,7 +54,8 @@ export const RowResult = styled.button<ContentProps>`
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  background: transparent;
+  background: ${({ isCanceled }) => (isCanceled ? '#f00' : 'transparent')};
+  color: ${({ isCanceled }) => (isCanceled ? '#fff' : '#000')};
   outline: none;
   border: none;
 
@@ -107,17 +119,15 @@ export const Professional = styled.div`
   text-align: left;
 `;
 
-export const Value = styled.div<ValueProps>`
+export const Value = styled.div`
   width: 11%;
   max-width: 120px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: ${({ status_order }) =>
-    status_order !== 'Aprovado' ? '#666' : '#000'};
 `;
 
-export const Status = styled.div`
+export const Status = styled.div<StatusProps>`
   width: 8%;
   max-width: 80px;
   display: flex;
@@ -131,38 +141,38 @@ export const Status = styled.div`
   }
 
   .faGrayCheck {
-    color: #555;
+    color: ${({ isCanceled }) => (isCanceled ? '#fff' : '#555')};
   }
 
   .faGreenCheck {
-    color: #1b914f;
+    color: ${({ isCanceled }) => (isCanceled ? '#fff' : '#1b914f')};
   }
 
   .faRegClock {
-    color: #555;
+    color: ${({ isCanceled }) => (isCanceled ? '#fff' : '#555')};
   }
 
   .riDraftFill {
-    color: #999;
+    color: ${({ isCanceled }) => (isCanceled ? '#fff' : '#999')};
     width: 16px;
     height: 16px;
   }
 
   .faTimes {
-    color: #f00;
+    color: ${({ isCanceled }) => (isCanceled ? '#fff' : '#f00')};
     width: 18px;
     height: 18px;
   }
 
   .faCalendarTimes,
   .ioThumbsDown {
-    color: #c00000;
+    color: ${({ isCanceled }) => (isCanceled ? '#fff' : '#c00000')};
     width: 16px;
     height: 16px;
   }
 
   .hiRefresh {
-    color: #000;
+    color: ${({ isCanceled }) => (isCanceled ? '#fff' : '#000')};
   }
 `;
 
