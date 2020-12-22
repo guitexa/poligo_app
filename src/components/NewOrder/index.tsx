@@ -681,7 +681,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
           setClientCnpj(formatToCNPJ(findClient.cnpj_cpf)); // Armazena o valor encontrado
           // Armazena no estado que agora está questão está respondida
           setCounterAnswers((state) => [...state, 'clientCnpj']);
-        } else {
+        } else if (findClient.cnpj_cpf.length > 0) {
           setClientCpf(formatToCPF(findClient.cnpj_cpf)); // Armazena o valor encontrado
           // Armazena no estado que agora está questão está respondida
           setCounterAnswers((state) => [...state, 'clientCpf']);
@@ -1424,8 +1424,8 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
                   </QuestionsContainer>
                   <AnswersContainer>
                     <p>{clientName.name}</p>
-                    {clientCnpj && <p>clientCnpj</p>}
-                    {clientCpf && <p>clientCpf</p>}
+                    {clientCnpj && <p>{clientCnpj}</p>}
+                    {clientCpf && <p>{clientCpf}</p>}
                     <p>{clientNameContact}</p>
                     <p>{clientEmail}</p>
                     {clientPhone && <p>{clientPhone}</p>}
