@@ -145,7 +145,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
     []
   );
   // Define qual a quantidade de resultados que deverá aparecer em tela
-  const [take, setTake] = useState(30);
+  const [take, setTake] = useState(50);
   // Armazena se está realizando uma pesquisa com filtro ou não
   const [changeResults, setChangeResults] = useState('');
   // Atualiza os resultados
@@ -323,7 +323,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
 
   // Função que redefine o limite de resultados da pesquisa
   useEffect(() => {
-    setTake(30);
+    setTake(50);
   }, [changeResults]);
 
   // Função que atualiza os resultados a cada hora
@@ -362,7 +362,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
         api
           .get<OrderData[]>('/orders/errors', {
             params: {
-              take: 5,
+              take: 10,
               from,
             },
           })
