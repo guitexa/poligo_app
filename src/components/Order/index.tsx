@@ -446,7 +446,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
 
   // Função para atualizar o status do pedido e/ou a data de aprovação
   const updateStatusOrder = useCallback(
-    (e: ChangeEvent<{ value: unknown }>) => {
+    async (e: ChangeEvent<{ value: unknown }>) => {
       if (e.target.value === 'Aprovado') {
         // Se o valor recebido for 'Aprovado' atualiza também a data de aprovação
 
@@ -464,6 +464,27 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         // Define que o banco de dados deve ser atualizado
         setOrderUpdated(true);
       }
+      // Se o status for Cancelado vai atualizar a API direto
+      else if (e.target.value === 'Cancelado') {
+        try {
+          await api.patch<OrderData>(`/orders/${order_id}`, {
+            status_order: e.target.value,
+          });
+          // Armazena o valor recebido no estado
+          orderData.status_order = e.target.value;
+
+          // Envia atualização para o component searchResults
+          toUpdateSearchResults({
+            order_id,
+            status_order: e.target.value,
+          });
+        } catch (err) {
+          addToast({
+            type: 'error',
+            description: 'Ocorreu um erro na comunicação com o servidor',
+          });
+        }
+      }
       // Se o valor recebido for diferente de 'Aprovado' atualiza apenas o status
       else {
         // Armazena o valor recebido no estado
@@ -479,12 +500,12 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         setOrderUpdated(true);
       }
     },
-    [orderData, order_id, toUpdateSearchResults]
+    [addToast, orderData, order_id, toUpdateSearchResults]
   );
 
   // Função para atualizar o status da área técnica e/ou o técnico executante
   const updateStatusDelivery = useCallback(
-    (e: ChangeEvent<{ value: unknown }>) => {
+    async (e: ChangeEvent<{ value: unknown }>) => {
       if (!orderData.technical) {
         // Se não possui técnico executante, define o usuário como técnico executante
 
@@ -520,6 +541,27 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         // Define que o banco de dados deve ser atualizado
         setOrderUpdated(true);
       }
+      // Se o status for Cancelado vai atualizar a API direto
+      else if (e.target.value === 'Cancelado') {
+        try {
+          await api.patch<OrderData>(`/orders/${order_id}`, {
+            status_delivery: e.target.value,
+          });
+          // Armazena o valor recebido no estado
+          orderData.status_delivery = e.target.value;
+
+          // Envia atualização para o component searchResults
+          toUpdateSearchResults({
+            order_id,
+            status_delivery: e.target.value,
+          });
+        } catch (err) {
+          addToast({
+            type: 'error',
+            description: 'Ocorreu um erro na comunicação com o servidor',
+          });
+        }
+      }
       // Se houver valor recebido, altera o status e mantem o técnico executante
       else {
         // Armazena o valor recebido no estado
@@ -535,43 +577,106 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         setOrderUpdated(true);
       }
     },
-    [orderData, order_id, toUpdateSearchResults, user]
+    [addToast, orderData, order_id, toUpdateSearchResults, user]
   );
 
   // Função para atualizar o status do faturamento
   const updateStatusBilling = useCallback(
-    (e: ChangeEvent<{ value: unknown }>) => {
-      // Armazena o valor recebido no estado
-      orderData.status_billing = e.target.value;
+    async (e: ChangeEvent<{ value: unknown }>) => {
+      // Verifica o valor recebido se é diferente de Faturado
+      if (e.target.value !== 'Faturado' && e.target.value !== 'Cancelado') {
+        // Armazena o valor recebido no estado
+        orderData.status_billing = e.target.value;
 
-      // Envia atualização para o component searchResults
-      toUpdateSearchResults({
-        order_id,
-        status_billing: e.target.value,
-      });
+        // Envia atualização para o component searchResults
+        toUpdateSearchResults({
+          order_id,
+          status_billing: e.target.value,
+        });
 
-      // Define que o banco de dados deve ser atualizado
-      setOrderUpdated(true);
+        // Define que o banco de dados deve ser atualizado
+        setOrderUpdated(true);
+      }
+      // Se o status for Cancelado vai atualizar a API direto
+      else if (e.target.value === 'Cancelado') {
+        try {
+          await api.patch<OrderData>(`/orders/${order_id}`, {
+            status_billing: e.target.value,
+          });
+          // Armazena o valor recebido no estado
+          orderData.status_billing = e.target.value;
+
+          // Envia atualização para o component searchResults
+          toUpdateSearchResults({
+            order_id,
+            status_billing: e.target.value,
+          });
+        } catch (err) {
+          addToast({
+            type: 'error',
+            description: 'Ocorreu um erro na comunicação com o servidor',
+          });
+        }
+      }
+      // Se o status recebido por Faturado então altera o status_payment para Aguardando
+      else if (e.target.value === 'Faturado') {
+        // Armazena o valor recebido no estado
+        orderData.status_billing = e.target.value;
+        orderData.status_payment = 'Aguardando';
+
+        // Envia atualização para o component searchResults
+        toUpdateSearchResults({
+          order_id,
+          status_billing: e.target.value,
+          status_payment: 'Aguardando',
+        });
+
+        // Define que o banco de dados deve ser atualizado
+        setOrderUpdated(true);
+      }
     },
-    [orderData, order_id, toUpdateSearchResults]
+    [addToast, orderData, order_id, toUpdateSearchResults]
   );
 
   // Função para atualizar o status do financeiro
   const updateStatusPayment = useCallback(
-    (e: ChangeEvent<{ value: unknown }>) => {
-      // Armazena o valor recebido no estado
-      orderData.status_payment = e.target.value;
+    async (e: ChangeEvent<{ value: unknown }>) => {
+      if (e.target.value !== 'Cancelado') {
+        // Armazena o valor recebido no estado
+        orderData.status_payment = e.target.value;
 
-      // Envia atualização para o component searchResults
-      toUpdateSearchResults({
-        order_id,
-        status_payment: e.target.value,
-      });
+        // Envia atualização para o component searchResults
+        toUpdateSearchResults({
+          order_id,
+          status_payment: e.target.value,
+        });
 
-      // Define que o banco de dados deve ser atualizado
-      setOrderUpdated(true);
+        // Define que o banco de dados deve ser atualizado
+        setOrderUpdated(true);
+      }
+      // Se o status for Cancelado vai atualizar a API direto
+      else if (e.target.value === 'Cancelado') {
+        try {
+          await api.patch<OrderData>(`/orders/${order_id}`, {
+            status_payment: e.target.value,
+          });
+          // Armazena o valor recebido no estado
+          orderData.status_payment = e.target.value;
+
+          // Envia atualização para o component searchResults
+          toUpdateSearchResults({
+            order_id,
+            status_payment: e.target.value,
+          });
+        } catch (err) {
+          addToast({
+            type: 'error',
+            description: 'Ocorreu um erro na comunicação com o servidor',
+          });
+        }
+      }
     },
-    [orderData, order_id, toUpdateSearchResults]
+    [addToast, orderData, order_id, toUpdateSearchResults]
   );
 
   // Função para atualizar as condições de pagamento
@@ -835,10 +940,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função para atualizar o nome da empresa
   const submitClientName = useCallback(
     ({ clientNameData }: InputData) => {
+      // Remove espaços em branco no final e no início da string
+      const clearClientNameData = clientNameData.trimEnd().trimStart();
+
       // Verifica se o valor recebido é diferente do existente
-      if (orderData?.client.name !== clientNameData) {
+      if (orderData?.client.name !== clearClientNameData) {
         // Verifica se o valor recebido é um nome válido
-        if (!clientNameData) {
+        if (!clearClientNameData) {
           // Define um erro
           clientNameRef.current?.setErrors({
             clientNameData: 'Favor digitar um nome válido',
@@ -857,12 +965,12 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         // Se houver nome de cliente válido o valor será atualizado
         else {
           // Armazena o valor recebido no estado
-          orderData.client.name = clientNameData;
+          orderData.client.name = clearClientNameData;
 
           // Envia atualização para o component searchResults
           toUpdateSearchResults({
             order_id,
-            client_name: clientNameData,
+            client_name: clearClientNameData,
             client_id: orderData.client.id,
           });
 
@@ -875,7 +983,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         }
       }
       // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
-      else if (orderData?.client.name === clientNameData) {
+      else if (orderData?.client.name === clearClientNameData) {
         // Limpa os erros
         clientNameRef.current?.setErrors({});
         setCounterErrors((state) => state.filter((e) => e !== 'clientName'));
@@ -893,13 +1001,16 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   const submitClientCnpjCpf = useCallback(
     ({ clientCnpjCpfData }: InputData) => {
       // Remove os caracteres especiais do valor recebido
-      const clearClientCnpjCpfData = clientCnpjCpfData.replace(/[^\w\s]/gi, '');
+      const clearClientCnpjCpfData = clientCnpjCpfData
+        .replace(/[^\w\s]/gi, '')
+        .trimEnd()
+        .trimStart();
 
       // Verifica se o valor recebido é diferente do existente
       if (orderData?.client.cnpj_cpf !== clearClientCnpjCpfData) {
-        // Verifica se o valor recebido é um CNPJ ou CPF válido
+        // Verifica se o valor recebido é um CNPJ ou CPF válido ou se não possui valor recebido
         if (
-          (!clearClientCnpjCpfData && orderData?.status_order === 'Aprovado') ||
+          !clearClientCnpjCpfData ||
           (clearClientCnpjCpfData &&
             !isCNPJ(clearClientCnpjCpfData) &&
             !isCPF(clearClientCnpjCpfData))
@@ -940,24 +1051,6 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             state.filter((e) => e !== 'clientCnpjCpf')
           );
         }
-        // Verifica se não possui valor recebido e se o status do pedido é diferente de Aprovado
-        else if (
-          !clearClientCnpjCpfData &&
-          orderData?.status_order !== 'Aprovado'
-        ) {
-          // Armazena o valor recebido no estado
-          orderData.client.cnpj_cpf = '';
-          orderData.client.formatted_cnpj_cpf = '';
-
-          // Define que o banco de dados deve ser atualizado
-          setClientUpdated(true);
-
-          // Limpa os erros
-          clientCnpjCpfRef.current?.setErrors({});
-          setCounterErrors((state) =>
-            state.filter((e) => e !== 'clientCnpjCpf')
-          );
-        }
       }
       // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
       else if (orderData?.client.cnpj_cpf === clearClientCnpjCpfData) {
@@ -977,10 +1070,15 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função para atualizar o nome do responsável pela empresa
   const submitClientNameContact = useCallback(
     ({ clientNameContactData }: InputData) => {
+      // Remove espaços em branco no final e no início da string
+      const clearClientNameContactData = clientNameContactData
+        .trimEnd()
+        .trimStart();
+
       // Verifica se o valor recebido é diferente do existente
-      if (orderData?.client.contact_name !== clientNameContactData) {
+      if (orderData?.client.contact_name !== clearClientNameContactData) {
         // Verifica se o valor recebido é um nome de responsável válido
-        if (!clientNameContactData) {
+        if (!clearClientNameContactData) {
           clientNameContactRef.current?.setErrors({
             clientNameContactData: 'Favor digitar um nome válido',
           });
@@ -999,7 +1097,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         else {
           // Armazena o valor recebido no estado
           orderData.client.contact_name = formatToCapitalized(
-            clientNameContactData,
+            clearClientNameContactData,
             {
               trimTrailingWhiteSpaces: false,
             }
@@ -1016,7 +1114,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         }
       }
       // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
-      else if (orderData?.client.contact_name === clientNameContactData) {
+      else if (orderData?.client.contact_name === clearClientNameContactData) {
         // Limpa os erros
         clientNameContactRef.current?.setErrors({});
         setCounterErrors((state) =>
@@ -1035,10 +1133,15 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função para atualizar o e-mail da empresa
   const submitClientEmail = useCallback(
     ({ clientEmailData }: InputData) => {
+      // Remove espaços em branco no final e no início da string
+      const clearClientEmailData = clientEmailData.trimEnd().trimStart();
+
       // Verifica se o valor recebido é diferente do existente
-      if (orderData?.client.email !== clientEmailData.toLocaleLowerCase()) {
+      if (
+        orderData?.client.email !== clearClientEmailData.toLocaleLowerCase()
+      ) {
         // Verifica se o valor recebido é um e-mail válido
-        if (!isEmail(clientEmailData) || !clientEmailData) {
+        if (!isEmail(clearClientEmailData) || !clearClientEmailData) {
           // Define um erro
           clientEmailRef.current?.setErrors({
             clientEmailData: 'Favor digitar um e-mail válido',
@@ -1057,7 +1160,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         // Se houver e-mail válido o valor será atualizado
         else {
           // Armazena o valor recebido no estado
-          orderData.client.email = clientEmailData.toLocaleLowerCase();
+          orderData.client.email = clearClientEmailData.toLocaleLowerCase();
 
           // Define que o banco de dados deve ser atualizado
           setClientUpdated(true);
@@ -1069,7 +1172,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       }
       // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
       else if (
-        orderData?.client.email === clientEmailData.toLocaleLowerCase()
+        orderData?.client.email === clearClientEmailData.toLocaleLowerCase()
       ) {
         // Limpa os erros
         clientEmailRef.current?.setErrors({});
@@ -1087,7 +1190,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   const submitClientPhone = useCallback(
     ({ clientPhoneData }: InputData) => {
       // Remove os caracteres especiais do valor recebido
-      const clearClientPhoneData = clientPhoneData.replace(/[^\w]/gi, '');
+      const clearClientPhoneData = clientPhoneData
+        .replace(/[^\w]/gi, '')
+        .trimEnd()
+        .trimStart();
 
       // Verifica se o valor recebido é diferente do existente
       if (orderData?.client.phone !== clearClientPhoneData) {
@@ -1175,10 +1281,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   const submitClientMobilePhone = useCallback(
     ({ clientMobilePhoneData }: InputData) => {
       // Remove os caracteres especiais do valor recebido
-      const clearClientMobilePhoneData = clientMobilePhoneData.replace(
-        /[^\w]/gi,
-        ''
-      );
+      const clearClientMobilePhoneData = clientMobilePhoneData
+        .replace(/[^\w]/gi, '')
+        .trimEnd()
+        .trimStart();
 
       // Verifica se o valor recebido é diferente do existente
       if (orderData?.client.mobile !== clearClientMobilePhoneData) {
@@ -1312,7 +1418,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         return accumulator + productValue;
       }, 0);
 
-    return productsValues ? formatValueCurrency(productsValues) : '';
+    return productsValues && productsValues > 0
+      ? formatValueCurrency(productsValues)
+      : formatValueCurrency(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     orderData,
@@ -1462,7 +1570,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         !orderData.client?.cnpj_cpf &&
         orderData?.status_order === 'Aprovado'
       ) {
-        // Se não possui CNPJ/CPF e possui status Aprovado define um erro
+        // Se não possui CNPJ/CPF e possuir status Aprovado define um erro
         addToast({
           type: 'error',
           description: 'Favor preencher um CNPJ ou CPF',
@@ -1475,9 +1583,19 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         return;
       }
 
-      // Limpa os erros
-      clientCnpjCpfRef.current?.setErrors({});
-      setCounterErrors((state) => state.filter((e) => e !== 'clientCnpjCpf'));
+      // Verifica se o pedido possui algum serviço e status do pedido
+      if (
+        !orderData.orders_products?.length &&
+        orderData?.status_order === 'Aprovado'
+      ) {
+        // Se não possui serviço e possuir status Aprovado define um erro
+        addToast({
+          type: 'error',
+          description: 'Favor adicionar um serviço',
+        });
+
+        return;
+      }
     }
 
     if (newOrderOpen) {
@@ -1549,6 +1667,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     orderData.status_delivery,
     orderData.client?.cnpj_cpf,
     orderData?.status_order,
+    orderData.orders_products?.length,
     addToast,
     overlapNewOrderOpen,
     orderUpdated,
@@ -2032,9 +2151,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                             <MenuItem
                               value="Agendado"
                               disabled={
-                                !!orderData.status_delivery &&
-                                orderData.status_delivery !== 'Agendado' &&
-                                user.permissions !== 'Admin'
+                                (!!orderData.status_delivery &&
+                                  orderData.status_delivery !== 'Agendado' &&
+                                  user.permissions !== 'Admin') ||
+                                orderData.status_order === 'Cancelado'
                               }
                             >
                               <FaRegClock className={faRegClock} />
@@ -2043,58 +2163,56 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                             <MenuItem
                               value="Execução"
                               disabled={
-                                !!orderData.status_delivery &&
-                                orderData.status_delivery !== 'Agendado' &&
-                                orderData.status_delivery !== 'Execução' &&
-                                user.permissions !== 'Admin'
+                                (!!orderData.status_delivery &&
+                                  orderData.status_delivery !== 'Agendado' &&
+                                  orderData.status_delivery !== 'Execução' &&
+                                  user.permissions !== 'Admin') ||
+                                orderData.status_order === 'Cancelado'
                               }
                             >
-                              <HiOutlineRefresh
-                                className={`hiRefresh ${hiRefresh}`}
-                              />
+                              <HiOutlineRefresh className={hiRefresh} />
                               Em execução
                             </MenuItem>
                             <MenuItem
                               value="Concluído"
                               disabled={
-                                !!orderData.status_delivery &&
-                                orderData.status_delivery !== 'Agendado' &&
-                                orderData.status_delivery !== 'Execução' &&
-                                orderData.status_delivery !== 'Concluído' &&
-                                user.permissions !== 'Admin'
+                                (!!orderData.status_delivery &&
+                                  orderData.status_delivery !== 'Agendado' &&
+                                  orderData.status_delivery !== 'Execução' &&
+                                  orderData.status_delivery !== 'Concluído' &&
+                                  user.permissions !== 'Admin') ||
+                                orderData.status_order === 'Cancelado'
                               }
                             >
-                              <FaRegCheckCircle
-                                className={`faGrayCheck ${faGrayCheck}`}
-                              />
+                              <FaRegCheckCircle className={faGrayCheck} />
                               Concluído
                             </MenuItem>
                             <MenuItem
                               value="Entregue"
                               disabled={
-                                !!orderData.status_delivery &&
-                                orderData.status_delivery !== 'Agendado' &&
-                                orderData.status_delivery !== 'Execução' &&
-                                orderData.status_delivery !== 'Concluído' &&
-                                orderData.status_delivery !== 'Entregue' &&
-                                user.permissions !== 'Admin'
+                                (!!orderData.status_delivery &&
+                                  orderData.status_delivery !== 'Agendado' &&
+                                  orderData.status_delivery !== 'Execução' &&
+                                  orderData.status_delivery !== 'Concluído' &&
+                                  orderData.status_delivery !== 'Entregue' &&
+                                  user.permissions !== 'Admin') ||
+                                orderData.status_order === 'Cancelado'
                               }
                             >
-                              <FaCheckCircle
-                                className={`faGreenCheck ${faGreenCheck}`}
-                              />
+                              <FaCheckCircle className={faGreenCheck} />
                               Entregue
                             </MenuItem>
                             <MenuItem
                               value="Cancelado"
                               disabled={
-                                !!orderData.status_delivery &&
-                                orderData.status_delivery !== 'Agendado' &&
-                                orderData.status_delivery !== 'Execução' &&
-                                orderData.status_delivery !== 'Concluído' &&
-                                orderData.status_delivery !== 'Cancelado' &&
-                                orderData.status_delivery !== 'Entregue' &&
-                                user.permissions !== 'Admin'
+                                (!!orderData.status_delivery &&
+                                  orderData.status_delivery !== 'Agendado' &&
+                                  orderData.status_delivery !== 'Execução' &&
+                                  orderData.status_delivery !== 'Concluído' &&
+                                  orderData.status_delivery !== 'Cancelado' &&
+                                  orderData.status_delivery !== 'Entregue' &&
+                                  user.permissions !== 'Admin') ||
+                                orderData.status_order !== 'Cancelado'
                               }
                             >
                               <FaTimes className={faTimes} />
@@ -2192,9 +2310,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                             <MenuItem
                               value="Aguardando"
                               disabled={
-                                !!orderData.status_billing &&
-                                orderData.status_billing !== 'Aguardando' &&
-                                user.permissions !== 'Admin'
+                                (!!orderData.status_billing &&
+                                  orderData.status_billing !== 'Aguardando' &&
+                                  user.permissions !== 'Admin') ||
+                                orderData.status_order === 'Cancelado'
                               }
                             >
                               <FaRegClock className={faRegClock} />
@@ -2203,25 +2322,25 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                             <MenuItem
                               value="Faturado"
                               disabled={
-                                !!orderData.status_billing &&
-                                orderData.status_billing !== 'Aguardando' &&
-                                orderData.status_billing !== 'Faturado' &&
-                                user.permissions !== 'Admin'
+                                (!!orderData.status_billing &&
+                                  orderData.status_billing !== 'Aguardando' &&
+                                  orderData.status_billing !== 'Faturado' &&
+                                  user.permissions !== 'Admin') ||
+                                orderData.status_order === 'Cancelado'
                               }
                             >
-                              <FaCheckCircle
-                                className={`faGreenCheck ${faGreenCheck}`}
-                              />
+                              <FaCheckCircle className={faGreenCheck} />
                               Faturado
                             </MenuItem>
                             <MenuItem
                               value="Cancelado"
                               disabled={
-                                !!orderData.status_billing &&
-                                orderData.status_billing !== 'Aguardando' &&
-                                orderData.status_billing !== 'Faturado' &&
-                                orderData.status_billing !== 'Cancelado' &&
-                                user.permissions !== 'Admin'
+                                (!!orderData.status_billing &&
+                                  orderData.status_billing !== 'Aguardando' &&
+                                  orderData.status_billing !== 'Faturado' &&
+                                  orderData.status_billing !== 'Cancelado' &&
+                                  user.permissions !== 'Admin') ||
+                                orderData.status_order !== 'Cancelado'
                               }
                             >
                               <FaTimes className={faTimes} />
@@ -2285,9 +2404,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                             <MenuItem
                               value="Aguardando"
                               disabled={
-                                !!orderData.status_payment &&
-                                orderData.status_payment !== 'Aguardando' &&
-                                user.permissions !== 'Admin'
+                                (!!orderData.status_payment &&
+                                  orderData.status_payment !== 'Aguardando' &&
+                                  user.permissions !== 'Admin') ||
+                                orderData.status_order === 'Cancelado'
                               }
                             >
                               <FaRegClock className={faRegClock} />
@@ -2296,34 +2416,47 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                             <MenuItem
                               value="Pago"
                               disabled={
-                                !!orderData.status_payment &&
-                                orderData.status_payment !== 'Aguardando' &&
-                                orderData.status_payment !== 'Pago' &&
-                                orderData.status_payment !== 'Vencido' &&
-                                user.permissions !== 'Admin'
+                                (!!orderData.status_payment &&
+                                  orderData.status_payment !== 'Aguardando' &&
+                                  orderData.status_payment !== 'Pago' &&
+                                  orderData.status_payment !== 'Vencido' &&
+                                  user.permissions !== 'Admin') ||
+                                orderData.status_order === 'Cancelado'
                               }
                             >
-                              <FaCheckCircle
-                                className={`faGreenCheck ${faGreenCheck}`}
-                              />
+                              <FaCheckCircle className={faGreenCheck} />
                               Pago
                             </MenuItem>
                             {orderData.status_payment !== 'Pago' && (
                               <MenuItem
                                 value="Vencido"
                                 disabled={
-                                  !!orderData.status_payment &&
-                                  orderData.status_payment !== 'Aguardando' &&
-                                  orderData.status_payment !== 'Vencido' &&
-                                  user.permissions !== 'Admin'
+                                  (!!orderData.status_payment &&
+                                    orderData.status_payment !== 'Aguardando' &&
+                                    orderData.status_payment !== 'Vencido' &&
+                                    user.permissions !== 'Admin') ||
+                                  orderData.status_order === 'Cancelado'
                                 }
                               >
-                                <FaCalendarTimes
-                                  className={`faCalendarTimes ${faCalendarTimes}`}
-                                />
+                                <FaCalendarTimes className={faCalendarTimes} />
                                 Vencido
                               </MenuItem>
                             )}
+                            <MenuItem
+                              value="Cancelado"
+                              disabled={
+                                (!!orderData.status_payment &&
+                                  orderData.status_payment !== 'Aguardando' &&
+                                  orderData.status_payment !== 'Pago' &&
+                                  orderData.status_payment !== 'Vencido' &&
+                                  orderData.status_payment !== 'Cancelado' &&
+                                  user.permissions !== 'Admin') ||
+                                orderData.status_order !== 'Cancelado'
+                              }
+                            >
+                              <FaTimes className={faTimes} />
+                              Cancelado
+                            </MenuItem>
                           </Select>
                         </FormControl>
                       </Status>
