@@ -8,6 +8,7 @@ import {
   FaRegClock,
   FaTimes,
 } from 'react-icons/fa';
+import { GoAlert } from 'react-icons/go';
 import { IoMdThumbsDown } from 'react-icons/io';
 import { HiOutlineRefresh } from 'react-icons/hi';
 import { FiChevronDown } from 'react-icons/fi';
@@ -92,6 +93,7 @@ export interface OrderData {
     | 'Execução'
     | 'Concluído'
     | 'Entregue'
+    | 'Pendência'
     | 'Cancelado'
     | unknown;
   payment_way?: string;
@@ -346,37 +348,42 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
       !technical &&
       (!total_value || total_value.length <= 1)
     ) {
-      try {
-        checkToken();
-        api
-          .get<OrderData[]>('/orders/', {
-            params: {
-              take,
-              from,
-            },
-          })
-          .then((response) => {
-            setSearchResults(response.data);
+      checkToken();
+      api
+        .get<OrderData[]>('/orders/', {
+          params: {
+            take,
+            from,
+          },
+        })
+        .then((response) => {
+          setSearchResults(response.data);
+        })
+        .catch(() => {
+          addToast({
+            type: 'error',
+            description: '#0240 - Erro ao carregar os pedidos cadastrados',
           });
-
-        api
-          .get<OrderData[]>('/orders/errors', {
-            params: {
-              take: 10,
-              from,
-            },
-          })
-          .then((response) => {
-            setSearchErrorsResults(response.data);
-          });
-
-        setChangeResults('orders');
-      } catch (err) {
-        addToast({
-          type: 'error',
-          description: 'Ocorreu um erro na comunicação com o servidor',
         });
-      }
+
+      api
+        .get<OrderData[]>('/orders/errors', {
+          params: {
+            take: 10,
+            from,
+          },
+        })
+        .then((response) => {
+          setSearchErrorsResults(response.data);
+
+          setChangeResults('orders');
+        })
+        .catch(() => {
+          addToast({
+            type: 'error',
+            description: '#0240 - Erro ao carregar os pedidos cadastrados',
+          });
+        });
     }
     // Realiza a pesquisa com filtro
     else if (
@@ -393,37 +400,36 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
         technical ||
         total_value.length > 1)
     ) {
-      try {
-        checkToken();
-        api
-          .get<OrderData[]>('/search-orders/', {
-            params: {
-              approved_at,
-              created_at,
-              client_name,
-              seller,
-              products,
-              technical,
-              delivery_date,
-              status_billing,
-              status_delivery,
-              status_order,
-              total_value,
-              take,
-              from,
-            },
-          })
-          .then((response) => {
-            setSearchResults(response.data);
-          });
+      checkToken();
+      api
+        .get<OrderData[]>('/search-orders/', {
+          params: {
+            approved_at,
+            created_at,
+            client_name,
+            seller,
+            products,
+            technical,
+            delivery_date,
+            status_billing,
+            status_delivery,
+            status_order,
+            total_value,
+            take,
+            from,
+          },
+        })
+        .then((response) => {
+          setSearchResults(response.data);
 
-        setChangeResults('search-orders');
-      } catch (err) {
-        addToast({
-          type: 'error',
-          description: 'Ocorreu um erro na comunicação com o servidor',
+          setChangeResults('search-orders');
+        })
+        .catch(() => {
+          addToast({
+            type: 'error',
+            description: '#0250 - Erro ao realizar a pesquisa',
+          });
         });
-      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -579,6 +585,9 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
     }
     if (element === 'Vencido') {
       return <FaCalendarTimes className="faCalendarTimes" />;
+    }
+    if (element === 'Pendência') {
+      return <GoAlert className="goAlert" />;
     }
     if (element === 'Cancelado') {
       return <FaTimes className="faTimes" />;

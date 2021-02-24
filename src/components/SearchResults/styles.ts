@@ -171,6 +171,12 @@ export const Status = styled.div<StatusProps>`
     height: 16px;
   }
 
+  .goAlert {
+    color: ${({ isCanceled }) => (isCanceled ? '#fff' : '#FFA602')};
+    width: 16px;
+    height: 16px;
+  }
+
   .hiRefresh {
     color: ${({ isCanceled }) => (isCanceled ? '#fff' : '#000')};
   }

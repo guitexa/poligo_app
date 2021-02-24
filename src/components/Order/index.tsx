@@ -27,6 +27,7 @@ import {
   FaEdit,
   FaTrashAlt,
 } from 'react-icons/fa';
+import { GoAlert } from 'react-icons/go';
 import { RiDraftFill } from 'react-icons/ri';
 import { IoMdThumbsDown } from 'react-icons/io';
 import { HiOutlineRefresh } from 'react-icons/hi';
@@ -48,6 +49,8 @@ import isEmail from 'validator/es/lib/isEmail';
 import formatValue from '../../utils/formatValue';
 import formatValueCurrency from '../../utils/formatValueCurrency';
 import convertDate from '../../utils/convertDate';
+import isCEI from '../../utils/isCEI';
+import convertToCEI from '../../utils/convertToCEI';
 
 import { useToast } from '../../hooks/toast';
 import { useOverlap } from '../../hooks/overlap';
@@ -195,6 +198,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         fontSize: '15px',
         margin: '0 4px 0 -2px',
       },
+      goAlert: {
+        color: '#FFA602',
+        margin: '0 4px 0 0',
+      },
       faCalendarTimes: {
         color: '#c00000',
         margin: '0 4px 0 0',
@@ -218,6 +225,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     faRegClock,
     riDraftFill,
     faTimes,
+    goAlert,
     faCalendarTimes,
     ioThumbsDown,
     hiRefresh,
@@ -330,9 +338,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
 
   // Função que busca os dados do pedido na API
   useEffect(() => {
-    try {
-      checkToken();
-      api.get<OrderData>(`/orders/${order_id}`).then((response) => {
+    checkToken();
+    api
+      .get<OrderData>(`/orders/${order_id}`)
+      .then((response) => {
         const {
           client,
           seller,
@@ -370,9 +379,11 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             client: {
               ...client,
               formatted_cnpj_cpf: client.cnpj_cpf
-                ? client.cnpj_cpf.length > 11
+                ? client.cnpj_cpf.length === 14
                   ? formatToCNPJ(client.cnpj_cpf)
-                  : formatToCPF(client.cnpj_cpf)
+                  : client.cnpj_cpf.length === 11
+                  ? formatToCPF(client.cnpj_cpf)
+                  : convertToCEI(client.cnpj_cpf)
                 : '',
               formatted_phone: formatToPhone(client.phone),
               formatted_mobile: client.mobile
@@ -388,13 +399,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             }),
           });
         }
+      })
+      .catch(() => {
+        addToast({
+          type: 'error',
+          description: '#0170 - Erro ao carregar o pedido',
+        });
       });
-    } catch (err) {
-      addToast({
-        type: 'error',
-        description: 'Ocorreu um erro na comunicação com o servidor',
-      });
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order_id]);
 
@@ -466,24 +477,31 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       }
       // Se o status for Cancelado vai atualizar a API direto
       else if (e.target.value === 'Cancelado') {
-        try {
-          await api.patch<OrderData>(`/orders/${order_id}`, {
+        await api
+          .patch<OrderData>(`/orders/${order_id}`, {
             status_order: e.target.value,
-          });
-          // Armazena o valor recebido no estado
-          orderData.status_order = e.target.value;
+          })
+          .then(() => {
+            // Armazena o valor recebido no estado
+            orderData.status_order = e.target.value;
 
-          // Envia atualização para o component searchResults
-          toUpdateSearchResults({
-            order_id,
-            status_order: e.target.value,
+            // Envia atualização para o component searchResults
+            toUpdateSearchResults({
+              order_id,
+              status_order: e.target.value,
+            });
+
+            addToast({
+              type: 'success',
+              description: 'Status do pedido atualizado com sucesso!',
+            });
+          })
+          .catch(() => {
+            addToast({
+              type: 'error',
+              description: '#0190 - Erro ao atualizar o status do pedido',
+            });
           });
-        } catch (err) {
-          addToast({
-            type: 'error',
-            description: 'Ocorreu um erro na comunicação com o servidor',
-          });
-        }
       }
       // Se o valor recebido for diferente de 'Aprovado' atualiza apenas o status
       else {
@@ -543,24 +561,31 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       }
       // Se o status for Cancelado vai atualizar a API direto
       else if (e.target.value === 'Cancelado') {
-        try {
-          await api.patch<OrderData>(`/orders/${order_id}`, {
+        await api
+          .patch<OrderData>(`/orders/${order_id}`, {
             status_delivery: e.target.value,
-          });
-          // Armazena o valor recebido no estado
-          orderData.status_delivery = e.target.value;
+          })
+          .then(() => {
+            // Armazena o valor recebido no estado
+            orderData.status_delivery = e.target.value;
 
-          // Envia atualização para o component searchResults
-          toUpdateSearchResults({
-            order_id,
-            status_delivery: e.target.value,
+            // Envia atualização para o component searchResults
+            toUpdateSearchResults({
+              order_id,
+              status_delivery: e.target.value,
+            });
+
+            addToast({
+              type: 'success',
+              description: 'Status do pedido atualizado com sucesso!',
+            });
+          })
+          .catch(() => {
+            addToast({
+              type: 'error',
+              description: '#0190 - Erro ao atualizar o status do pedido',
+            });
           });
-        } catch (err) {
-          addToast({
-            type: 'error',
-            description: 'Ocorreu um erro na comunicação com o servidor',
-          });
-        }
       }
       // Se houver valor recebido, altera o status e mantem o técnico executante
       else {
@@ -599,24 +624,31 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       }
       // Se o status for Cancelado vai atualizar a API direto
       else if (e.target.value === 'Cancelado') {
-        try {
-          await api.patch<OrderData>(`/orders/${order_id}`, {
+        await api
+          .patch<OrderData>(`/orders/${order_id}`, {
             status_billing: e.target.value,
-          });
-          // Armazena o valor recebido no estado
-          orderData.status_billing = e.target.value;
+          })
+          .then(() => {
+            // Armazena o valor recebido no estado
+            orderData.status_billing = e.target.value;
 
-          // Envia atualização para o component searchResults
-          toUpdateSearchResults({
-            order_id,
-            status_billing: e.target.value,
+            // Envia atualização para o component searchResults
+            toUpdateSearchResults({
+              order_id,
+              status_billing: e.target.value,
+            });
+
+            addToast({
+              type: 'success',
+              description: 'Status do pedido atualizado com sucesso!',
+            });
+          })
+          .catch(() => {
+            addToast({
+              type: 'error',
+              description: '#0190 - Erro ao atualizar o status do pedido',
+            });
           });
-        } catch (err) {
-          addToast({
-            type: 'error',
-            description: 'Ocorreu um erro na comunicação com o servidor',
-          });
-        }
       }
       // Se o status recebido por Faturado então altera o status_payment para Aguardando
       else if (e.target.value === 'Faturado') {
@@ -656,24 +688,31 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       }
       // Se o status for Cancelado vai atualizar a API direto
       else if (e.target.value === 'Cancelado') {
-        try {
-          await api.patch<OrderData>(`/orders/${order_id}`, {
+        await api
+          .patch<OrderData>(`/orders/${order_id}`, {
             status_payment: e.target.value,
-          });
-          // Armazena o valor recebido no estado
-          orderData.status_payment = e.target.value;
+          })
+          .then(() => {
+            // Armazena o valor recebido no estado
+            orderData.status_payment = e.target.value;
 
-          // Envia atualização para o component searchResults
-          toUpdateSearchResults({
-            order_id,
-            status_payment: e.target.value,
+            // Envia atualização para o component searchResults
+            toUpdateSearchResults({
+              order_id,
+              status_payment: e.target.value,
+            });
+
+            addToast({
+              type: 'success',
+              description: 'Status do pedido atualizado com sucesso!',
+            });
+          })
+          .catch(() => {
+            addToast({
+              type: 'error',
+              description: '#0190 - Erro ao atualizar o status do pedido',
+            });
           });
-        } catch (err) {
-          addToast({
-            type: 'error',
-            description: 'Ocorreu um erro na comunicação com o servidor',
-          });
-        }
       }
     },
     [addToast, orderData, order_id, toUpdateSearchResults]
@@ -682,10 +721,17 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função para atualizar as condições de pagamento
   const submitDeliveryConditions = useCallback(
     ({ deliveryConditionsData }: InputData) => {
+      // Remove espaços em branco no final, no início da string e duplo espaço
+      const clearDeliveryConditionsData = deliveryConditionsData
+        .trimEnd()
+        .trimStart()
+        .split(/\s+/)
+        .join(' ');
+
       // Verifica se o valor recebido é diferente do existente
-      if (orderData.delivery_conditions !== deliveryConditionsData) {
+      if (orderData.delivery_conditions !== clearDeliveryConditionsData) {
         // Armazena o valor recebido no estado
-        orderData.delivery_conditions = deliveryConditionsData;
+        orderData.delivery_conditions = clearDeliveryConditionsData;
 
         // Define que o banco de dados deve ser atualizado
         setOrderUpdated(true);
@@ -900,10 +946,17 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função para atualizar a forma de pagamento
   const submitPaymentWay = useCallback(
     ({ paymentWayData }: InputData) => {
+      // Remove espaços em branco no final, no início da string e duplo espaço
+      const clearPaymentWayData = paymentWayData
+        .trimEnd()
+        .trimStart()
+        .split(/\s+/)
+        .join(' ');
+
       // Verifica se o valor recebido é diferente do existente
-      if (orderData.payment_way !== paymentWayData) {
+      if (orderData.payment_way !== clearPaymentWayData) {
         // Armazena o valor recebido no estado
-        orderData.payment_way = paymentWayData;
+        orderData.payment_way = clearPaymentWayData;
 
         // Define que o banco de dados deve ser atualizado
         setOrderUpdated(true);
@@ -920,10 +973,17 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função para atualizar o vencimento
   const submitDueDate = useCallback(
     ({ dueDateData }: InputData) => {
+      // Remove espaços em branco no final, no início da string e duplo espaço
+      const clearDueDateData = dueDateData
+        .trimEnd()
+        .trimStart()
+        .split(/\s+/)
+        .join(' ');
+
       // Verifica se o valor recebido é diferente do existente
-      if (orderData.due_date !== dueDateData) {
+      if (orderData.due_date !== clearDueDateData) {
         // Armazena o valor recebido no estado
-        orderData.due_date = dueDateData;
+        orderData.due_date = clearDueDateData;
 
         // Define que o banco de dados deve ser atualizado
         setOrderUpdated(true);
@@ -940,8 +1000,12 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função para atualizar o nome da empresa
   const submitClientName = useCallback(
     ({ clientNameData }: InputData) => {
-      // Remove espaços em branco no final e no início da string
-      const clearClientNameData = clientNameData.trimEnd().trimStart();
+      // Remove espaços em branco no final, no início da string e duplo espaço
+      const clearClientNameData = clientNameData
+        .trimEnd()
+        .trimStart()
+        .split(/\s+/)
+        .join(' ');
 
       // Verifica se o valor recebido é diferente do existente
       if (orderData?.client.name !== clearClientNameData) {
@@ -1013,7 +1077,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           !clearClientCnpjCpfData ||
           (clearClientCnpjCpfData &&
             !isCNPJ(clearClientCnpjCpfData) &&
-            !isCPF(clearClientCnpjCpfData))
+            !isCPF(clearClientCnpjCpfData) &&
+            !isCEI(clearClientCnpjCpfData))
         ) {
           // Define um erro
           clientCnpjCpfRef.current?.setErrors({
@@ -1033,14 +1098,17 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         // Se houver CNPJ ou CPF válido os valores serão atualizados
         else if (
           isCNPJ(clearClientCnpjCpfData) ||
-          isCPF(clearClientCnpjCpfData)
+          isCPF(clearClientCnpjCpfData) ||
+          isCEI(clearClientCnpjCpfData)
         ) {
           // Armazena o valor recebido no estado
           orderData.client.cnpj_cpf = clearClientCnpjCpfData;
           orderData.client.formatted_cnpj_cpf =
-            clearClientCnpjCpfData.length > 11
+            clearClientCnpjCpfData.length === 14
               ? formatToCNPJ(clearClientCnpjCpfData)
-              : formatToCPF(clearClientCnpjCpfData);
+              : clearClientCnpjCpfData.length === 11
+              ? formatToCPF(clearClientCnpjCpfData)
+              : convertToCEI(clearClientCnpjCpfData);
 
           // Define que o banco de dados deve ser atualizado
           setClientUpdated(true);
@@ -1070,10 +1138,12 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função para atualizar o nome do responsável pela empresa
   const submitClientNameContact = useCallback(
     ({ clientNameContactData }: InputData) => {
-      // Remove espaços em branco no final e no início da string
+      // Remove espaços em branco no final, no início da string e duplo espaço
       const clearClientNameContactData = clientNameContactData
         .trimEnd()
-        .trimStart();
+        .trimStart()
+        .split(/\s+/)
+        .join(' ');
 
       // Verifica se o valor recebido é diferente do existente
       if (orderData?.client.contact_name !== clearClientNameContactData) {
@@ -1133,8 +1203,12 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função para atualizar o e-mail da empresa
   const submitClientEmail = useCallback(
     ({ clientEmailData }: InputData) => {
-      // Remove espaços em branco no final e no início da string
-      const clearClientEmailData = clientEmailData.trimEnd().trimStart();
+      // Remove espaços em branco no final, no início da string e duplo espaço
+      const clearClientEmailData = clientEmailData
+        .trimEnd()
+        .trimStart()
+        .split(/\s+/)
+        .join(' ');
 
       // Verifica se o valor recebido é diferente do existente
       if (
@@ -1381,31 +1455,32 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função para deletar um order_product
   const handleDeleteOrderProductItem = useCallback(
     async (order_product_id: string) => {
-      try {
-        checkToken();
-        await api.delete(`/orders-products/${order_product_id}`);
+      checkToken();
+      await api
+        .delete(`/orders-products/${order_product_id}`)
+        .then(() => {
+          // Atualiza o estado removendo o item deletado
+          orderData.orders_products = orderData.orders_products?.filter(
+            (orders_product) => orders_product.id !== order_product_id
+          );
 
-        // Atualiza o estado removendo o item deletado
-        orderData.orders_products = orderData.orders_products?.filter(
-          (orders_product) => orders_product.id !== order_product_id
-        );
+          // Envia atualização para o component searchResults
+          toUpdateSearchResults({
+            order_id,
+            order_product_delete: order_product_id,
+          });
 
-        // Envia atualização para o component searchResults
-        toUpdateSearchResults({
-          order_id,
-          order_product_delete: order_product_id,
+          addToast({
+            type: 'success',
+            description: 'Serviço excluído com sucesso!',
+          });
+        })
+        .catch(() => {
+          addToast({
+            type: 'error',
+            description: '#0200 - Erro ao excluir um serviço do pedido',
+          });
         });
-
-        addToast({
-          type: 'success',
-          description: 'Serviço excluído com sucesso!',
-        });
-      } catch (err) {
-        addToast({
-          type: 'error',
-          description: 'Ocorreu um erro na comunicação com o servidor',
-        });
-      }
     },
     [addToast, checkToken, orderData, order_id, toUpdateSearchResults]
   );
@@ -1462,8 +1537,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
 
   // Função que atualiza o pedido no banco de dados
   const handleSubmitOrderToUpdate = useCallback(async () => {
-    try {
-      await api.patch<OrderData>(`/orders/${order_id}`, {
+    await api
+      .patch<OrderData>(`/orders/${order_id}`, {
         status_order: orderData?.status_order,
         approved_at: orderData?.approved_at,
         status_delivery: orderData?.status_delivery,
@@ -1475,38 +1550,50 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         delivery_date: orderData?.delivery_date,
         payment_way: orderData?.payment_way,
         due_date: orderData?.due_date,
-      });
+      })
+      .then(() => {
+        addToast({
+          type: 'success',
+          description: 'Pedido atualizado com sucesso!',
+        });
 
-      setOrderUpdated(false); // Limpa do estado
-      overlapOrderOpen(!orderOpen); // Fecha o component
-    } catch (err) {
-      addToast({
-        type: 'error',
-        description: 'Ocorreu um erro na comunicação com o servidor',
+        setOrderUpdated(false); // Limpa do estado
+        overlapOrderOpen(!orderOpen); // Fecha o component
+      })
+      .catch(() => {
+        addToast({
+          type: 'error',
+          description: '#0210 - Erro ao atualizar o pedido',
+        });
       });
-    }
   }, [addToast, orderData, orderOpen, order_id, overlapOrderOpen]);
 
   // Função que atualiza o pedido no banco de dados
   const handleSubmitClientToUpdate = useCallback(async () => {
-    try {
-      await api.patch<ClientData>(`/clients/${orderData.client.id}`, {
+    await api
+      .patch<ClientData>(`/clients/${orderData.client.id}`, {
         name: orderData.client?.name,
         cnpj_cpf: orderData.client?.cnpj_cpf,
         contact_name: orderData.client?.contact_name,
         email: orderData.client?.email,
         phone: orderData.client?.phone,
         mobile: orderData.client?.mobile,
-      });
+      })
+      .then(() => {
+        addToast({
+          type: 'success',
+          description: 'Pedido atualizado com sucesso!',
+        });
 
-      setClientUpdated(false); // Limpa do estado
-      overlapOrderOpen(!orderOpen); // Fecha o component
-    } catch (err) {
-      addToast({
-        type: 'error',
-        description: 'Ocorreu um erro na comunicação com o servidor',
+        setClientUpdated(false); // Limpa do estado
+        overlapOrderOpen(!orderOpen); // Fecha o component
+      })
+      .catch(() => {
+        addToast({
+          type: 'error',
+          description: '#0220 - Erro ao atualizar o cadastro do cliente',
+        });
       });
-    }
   }, [addToast, orderData.client, orderOpen, overlapOrderOpen]);
 
   // Função que faz validações ao fechar a order
@@ -1517,7 +1604,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       if (
         !orderData?.delivery_date &&
         !!orderData?.status_delivery &&
-        orderData?.status_delivery !== 'Cancelado'
+        orderData?.status_delivery !== 'Cancelado' &&
+        orderData?.status_delivery !== 'Pendência'
       ) {
         if (orderData.status_delivery === 'Concluído') {
           // Se não possui data e possui status define um erro
@@ -1608,43 +1696,21 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       counterErrors.includes('clientCnpjCpf') ||
       counterErrors.includes('deliveryDate')
     ) {
-      try {
-        checkToken();
-        // Se houve alteração no pedido vai atualizar
-        if (orderUpdated && !clientUpdated) {
-          handleSubmitOrderToUpdate(); // Atualiza o pedido
+      checkToken();
+      // Se houve alteração no pedido vai atualizar
+      if (orderUpdated && !clientUpdated) {
+        handleSubmitOrderToUpdate(); // Atualiza o pedido
+      }
 
-          addToast({
-            type: 'success',
-            description: 'Pedido atualizado com sucesso!',
-          });
-        }
+      // Se houve alteração no cliente vai atualizar
+      if (!orderUpdated && clientUpdated) {
+        handleSubmitClientToUpdate(); // Atualiza o cliente
+      }
 
-        // Se houve alteração no cliente vai atualizar
-        if (!orderUpdated && clientUpdated) {
-          handleSubmitClientToUpdate(); // Atualiza o cliente
-
-          addToast({
-            type: 'success',
-            description: 'Pedido atualizado com sucesso!',
-          });
-        }
-
-        // Se houve alteração no pedido e no cliente vai atualizar os dois
-        if (clientUpdated && orderUpdated) {
-          handleSubmitOrderToUpdate(); // Atualiza o pedido
-          handleSubmitClientToUpdate(); // Atualiza o cliente
-
-          addToast({
-            type: 'success',
-            description: 'Pedido atualizado com sucesso!',
-          });
-        }
-      } catch (err) {
-        addToast({
-          type: 'error',
-          description: 'Ocorreu um erro na comunicação com o servidor',
-        });
+      // Se houve alteração no pedido e no cliente vai atualizar os dois
+      if (clientUpdated && orderUpdated) {
+        handleSubmitOrderToUpdate(); // Atualiza o pedido
+        handleSubmitClientToUpdate(); // Atualiza o cliente
       }
 
       // Se não houve alteração vai fechar
@@ -1679,6 +1745,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     orderOpen,
   ]);
 
+  // Mensagem que aparece para o usuário se ele tentar fechar o navegador ao invés de fechar o pedido
   window.onbeforeunload = () => {
     return clientUpdated || orderUpdated
       ? 'Se você sair desta página você irá perder suas alterações.'
@@ -1727,13 +1794,15 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                   <TitlesForm>
                     <p>Razão social:</p>
                     {orderData.client.cnpj_cpf ? (
-                      orderData.client.cnpj_cpf.length > 11 ? (
+                      orderData.client.cnpj_cpf.length === 14 ? (
                         <p>CNPJ:</p>
-                      ) : (
+                      ) : orderData.client.cnpj_cpf.length === 11 ? (
                         <p>CPF:</p>
+                      ) : (
+                        <p>CEI:</p>
                       )
                     ) : (
-                      <p>CNPJ/CPF:</p>
+                      <p>CNPJ/CPF/CEI:</p>
                     )}
                     <p>Contato:</p>
                     <p>E-mail:</p>
@@ -2123,6 +2192,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                         </div>
                       )}
                     {from !== 'TechnicalArea' &&
+                      orderData.status_delivery === 'Pendência' && (
+                        <div className="status">
+                          <GoAlert className={`goAlert ${goAlert}`} />
+                          <span>Pendência do cliente</span>
+                        </div>
+                      )}
+                    {from !== 'TechnicalArea' &&
                       orderData.status_delivery === 'Cancelado' && (
                         <div className="status">
                           <FaTimes className={`faTimes ${faTimes}`} />
@@ -2152,6 +2228,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                               value="Agendado"
                               disabled={
                                 (!!orderData.status_delivery &&
+                                  orderData.status_delivery !== 'Pendência' &&
                                   orderData.status_delivery !== 'Agendado' &&
                                   user.permissions !== 'Admin') ||
                                 orderData.status_order === 'Cancelado'
@@ -2165,6 +2242,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                               disabled={
                                 (!!orderData.status_delivery &&
                                   orderData.status_delivery !== 'Agendado' &&
+                                  orderData.status_delivery !== 'Pendência' &&
                                   orderData.status_delivery !== 'Execução' &&
                                   user.permissions !== 'Admin') ||
                                 orderData.status_order === 'Cancelado'
@@ -2179,6 +2257,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                                 (!!orderData.status_delivery &&
                                   orderData.status_delivery !== 'Agendado' &&
                                   orderData.status_delivery !== 'Execução' &&
+                                  orderData.status_delivery !== 'Pendência' &&
                                   orderData.status_delivery !== 'Concluído' &&
                                   user.permissions !== 'Admin') ||
                                 orderData.status_order === 'Cancelado'
@@ -2194,6 +2273,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                                   orderData.status_delivery !== 'Agendado' &&
                                   orderData.status_delivery !== 'Execução' &&
                                   orderData.status_delivery !== 'Concluído' &&
+                                  orderData.status_delivery !== 'Pendência' &&
                                   orderData.status_delivery !== 'Entregue' &&
                                   user.permissions !== 'Admin') ||
                                 orderData.status_order === 'Cancelado'
@@ -2203,14 +2283,27 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                               Entregue
                             </MenuItem>
                             <MenuItem
+                              value="Pendência"
+                              disabled={
+                                (!!orderData.status_delivery &&
+                                  orderData.status_delivery === 'Entregue' &&
+                                  user.permissions !== 'Admin') ||
+                                orderData.status_order === 'Cancelado'
+                              }
+                            >
+                              <GoAlert className={goAlert} />
+                              Pendência do cliente
+                            </MenuItem>
+                            <MenuItem
                               value="Cancelado"
                               disabled={
                                 (!!orderData.status_delivery &&
                                   orderData.status_delivery !== 'Agendado' &&
                                   orderData.status_delivery !== 'Execução' &&
                                   orderData.status_delivery !== 'Concluído' &&
-                                  orderData.status_delivery !== 'Cancelado' &&
                                   orderData.status_delivery !== 'Entregue' &&
+                                  orderData.status_delivery !== 'Pendência' &&
+                                  orderData.status_delivery !== 'Cancelado' &&
                                   user.permissions !== 'Admin') ||
                                 orderData.status_order !== 'Cancelado'
                               }

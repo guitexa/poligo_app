@@ -173,6 +173,11 @@ export const DataForm = styled.div`
       margin-left: -2px;
     }
 
+    .goAlert {
+      color: #ffa602;
+      margin-left: -1px;
+    }
+
     .faCalendarTimes,
     .ioThumbsDown {
       color: #c00000;

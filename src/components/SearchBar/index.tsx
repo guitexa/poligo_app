@@ -31,6 +31,7 @@ import {
   FaRegClock,
   FaTimes,
 } from 'react-icons/fa';
+import { GoAlert } from 'react-icons/go';
 import { HiOutlineRefresh } from 'react-icons/hi';
 import { RiDraftFill } from 'react-icons/ri';
 import { IoMdThumbsDown } from 'react-icons/io';
@@ -96,9 +97,10 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
 
   // Busca na API os vendedores e técnicos cadastrados nos pedidos
   useEffect(() => {
-    try {
-      checkToken();
-      api.get<OrderData[]>('/orders/').then((response) => {
+    checkToken();
+    api
+      .get<OrderData[]>('/orders/')
+      .then((response) => {
         setSellers(
           response.data
             .map((e) => e.seller)
@@ -117,13 +119,13 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
                 index === self.findIndex((t) => t?.name === value?.name)
             )
         );
+      })
+      .catch(() => {
+        addToast({
+          type: 'error',
+          description: '#0230 - Erro ao carregar os técnicos cadastrados',
+        });
       });
-    } catch (err) {
-      addToast({
-        type: 'error',
-        description: 'Ocorreu um erro na comunicação com o servidor',
-      });
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -203,6 +205,9 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
       faTimes: {
         color: '#f00',
       },
+      goAlert: {
+        color: '#FFA602',
+      },
       ioThumbsDown: {
         color: '#c00000',
       },
@@ -219,6 +224,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
     faRegClock,
     riDraftFill,
     faTimes,
+    goAlert,
     ioThumbsDown,
     hiRefresh,
   } = useStyles();
@@ -501,6 +507,12 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
                     style={{ justifyContent: 'center' }}
                   >
                     <FaCheckCircle className={faGreenCheck} />
+                  </MenuItem>
+                  <MenuItem
+                    value="Pendência"
+                    style={{ justifyContent: 'center' }}
+                  >
+                    <GoAlert className={goAlert} />
                   </MenuItem>
                   <MenuItem
                     value="Cancelado"

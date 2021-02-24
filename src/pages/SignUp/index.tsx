@@ -114,7 +114,7 @@ const SignUp: React.FC = () => {
           if (!permission) {
             addToast({
               type: 'error',
-              description: 'Selecione uma Permissão de acesso.',
+              description: 'Selecione uma permissão de acesso.',
             });
           }
 
@@ -123,7 +123,7 @@ const SignUp: React.FC = () => {
 
         addToast({
           type: 'error',
-          description: 'Erro no cadastro. Tente novamente!',
+          description: 'Verifique as informações digitadas e tente novamente',
         });
       }
     },
