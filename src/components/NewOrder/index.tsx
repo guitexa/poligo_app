@@ -186,17 +186,18 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
 
   // Busca na API os clientes cadastrados e armazena no estado clients
   useEffect(() => {
-    try {
-      checkToken();
-      api.get<ClientData[]>('/clients').then((response) => {
+    checkToken();
+    api
+      .get<ClientData[]>('/clients')
+      .then((response) => {
         setClients(response.data);
+      })
+      .catch(() => {
+        addToast({
+          type: 'error',
+          description: '#0140 - Erro ao carregar as empresas cadastradas',
+        });
       });
-    } catch (err) {
-      addToast({
-        type: 'error',
-        description: 'Ocorreu um erro na comunicação com o servidor',
-      });
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -725,36 +726,50 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
 
   // Função que envia o formulário para ser cadastrado na API
   const handleSubmitForm = useCallback(async () => {
-    try {
-      // Remove os caracteres especiais das variáveis para salvar no banco
-      const clearClientCnpj = clientCnpj
-        .replace(/[^\w\s]/gi, '')
-        .trimEnd()
-        .trimStart();
-      const clearClientCpf = clientCpf
-        .replace(/[^\w\s]/gi, '')
-        .trimEnd()
-        .trimStart();
-      const clearClientNameContact = clientNameContact.trimEnd().trimStart();
-      const clearClientPhone = clientPhone
-        .replace(/[^\w]/gi, '')
-        .trimEnd()
-        .trimStart();
-      const clearClientMobilePhone = clientMobilePhone
-        .replace(/[^\w]/gi, '')
-        .trimEnd()
-        .trimStart();
+    // Remove os caracteres especiais das variáveis para salvar no banco
+    const clearClientCnpj = clientCnpj
+      .replace(/[^\w\s]/gi, '')
+      .trimEnd()
+      .trimStart();
+    const clearClientCpf = clientCpf
+      .replace(/[^\w\s]/gi, '')
+      .trimEnd()
+      .trimStart();
+    const clearClientNameContact = clientNameContact
+      .trimEnd()
+      .trimStart()
+      .split(/\s+/)
+      .join(' ');
+    const clearClientPhone = clientPhone
+      .replace(/[^\w]/gi, '')
+      .trimEnd()
+      .trimStart();
+    const clearClientMobilePhone = clientMobilePhone
+      .replace(/[^\w]/gi, '')
+      .trimEnd()
+      .trimStart();
 
-      // Verifica no array de clients cadastrados se existe um client com o mesmo nome
-      const findClient = clients.find(
-        (client) =>
-          client.name.toLocaleLowerCase().trimEnd().trimStart() ===
-          clientName.name.toLocaleLowerCase().trimEnd().trimStart()
-      );
+    // Verifica no array de clients cadastrados se existe um client com o mesmo nome
+    const findClient = clients.find(
+      (client) =>
+        client.name
+          .toLocaleLowerCase()
+          .trimEnd()
+          .trimStart()
+          .split(/\s+/)
+          .join(' ') ===
+        clientName.name
+          .toLocaleLowerCase()
+          .trimEnd()
+          .trimStart()
+          .split(/\s+/)
+          .join(' ')
+    );
 
-      if (!findClient) {
-        // Se o client não existe ele será cadastrado
-        const client = await api.post<ClientData>('/clients', {
+    if (!findClient) {
+      // Se o client não existe ele será cadastrado
+      await api
+        .post<ClientData>('/clients', {
           name: clientName.name,
           cnpj_cpf:
             (clientCnpj && clearClientCnpj) || (clientCpf && clearClientCpf),
@@ -762,46 +777,81 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
           email: clientEmail,
           phone: clearClientPhone,
           mobile: clearClientMobilePhone,
-        });
+        })
+        .then((clientResponse) => {
+          // Após o cadastro do novo client, cria uma nova order
+          api
+            .post<CreateOrderResponse>('/orders', {
+              client_id: clientResponse.data.id,
+              seller_id: user.id,
+            })
+            .then((orderResponse) => {
+              setOrderId(orderResponse.data.id); // Armazena a order_id recém criada
 
-        // Após o cadastro do novo client, cria uma nova order
-        const order = await api.post<CreateOrderResponse>('/orders', {
-          client_id: client.data.id,
-          seller_id: user.id,
-        });
+              addToast({
+                type: 'success',
+                description: 'Pedido criado com sucesso!',
+              });
 
-        setOrderId(order.data.id); // Armazena a order_id recém criada
-      } else {
-        // Se o client existe ele será atualizado
-        await api.patch<ClientData>(`/clients/${findClient.id}`, {
+              setConfirmDataOpen(false); // Fecha o component de confirmação
+              overlapOrderOpen(true); // Abre a order criada
+            })
+            .catch(() => {
+              addToast({
+                type: 'error',
+                description: '#0160 - Erro ao criar um novo pedido',
+              });
+            });
+        })
+        .catch(() => {
+          addToast({
+            type: 'error',
+            description: '#0150 - Erro ao cadastrar um novo cliente',
+          });
+        });
+    }
+    // Se o client existe ele será atualizado
+    else {
+      await api
+        .patch<ClientData>(`/clients/${findClient.id}`, {
           cnpj_cpf:
             (clientCnpj && clearClientCnpj) || (clientCpf && clearClientCpf),
           contact_name: clearClientNameContact,
           email: clientEmail,
           phone: clearClientPhone,
           mobile: clearClientMobilePhone,
+        })
+        .then(() => {
+          // Após atualizar o cadastro do client, cria uma nova order
+          api
+            .post<CreateOrderResponse>('/orders', {
+              client_id: findClient.id,
+              seller_id: user.id,
+            })
+            .then((orderResponse) => {
+              setOrderId(orderResponse.data.id); // Armazena a order_id recém criada
+
+              addToast({
+                type: 'success',
+                description: 'Pedido criado com sucesso!',
+              });
+
+              setConfirmDataOpen(false); // Fecha o component de confirmação
+              overlapOrderOpen(true); // Abre a order criada
+            })
+            .catch(() => {
+              addToast({
+                type: 'error',
+                description: '#0160 - Erro ao criar um novo pedido',
+              });
+            });
+        })
+        .catch(() => {
+          addToast({
+            type: 'error',
+            description: '#0220 - Erro ao atualizar o cadastro do cliente',
+          });
         });
-
-        // Após atualizar o cadastro do client, cria uma nova order
-        const order = await api.post<CreateOrderResponse>('/orders', {
-          client_id: findClient.id,
-          seller_id: user.id,
-        });
-
-        setOrderId(order.data.id); // Armazena a order_id recém criada
-      }
-
-      addToast({
-        type: 'success',
-        description: 'Pedido criado com sucesso!',
-      });
-      setConfirmDataOpen(false); // Fecha o component de confirmação
-      overlapOrderOpen(true); // Abre a order criada
-    } catch (err) {
-      addToast({
-        type: 'error',
-        description: 'Ocorreu um erro ao criar o pedido',
-      });
     }
   }, [
     addToast,
@@ -1082,7 +1132,9 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
                             ...newClientName,
                             name: newClientName.inputValue
                               .trimEnd()
-                              .trimStart(),
+                              .trimStart()
+                              .split(/\s+/)
+                              .join(' '),
                           });
                         } else if (newClientName) {
                           // Seleciona um existente e encerra o formulário

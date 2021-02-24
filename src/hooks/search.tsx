@@ -99,7 +99,7 @@ export const SearchProvider: React.FC = ({ children }) => {
 
   // Função para alterar a pesquisa do valor total do pedido
   const searchTotalValue = useCallback((val: string): void => {
-    setTotalValue(val);
+    setTotalValue(val.replace(/[^0-9,]/g, ''));
   }, []);
 
   // Função para alterar a pesquisa do status do pedido

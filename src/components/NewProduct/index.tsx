@@ -180,17 +180,18 @@ const NewProduct: React.FC<NewProductProps> = ({
 
   // Busca na API os products cadastrados e armazena no estado products
   useEffect(() => {
-    try {
-      checkToken();
-      api.get<ProductData[]>('/products').then((response) => {
+    checkToken();
+    api
+      .get<ProductData[]>('/products')
+      .then((response) => {
         setProducts(response.data);
+      })
+      .catch(() => {
+        addToast({
+          type: 'error',
+          description: '#0180 - Erro ao carregar os serviços cadastradas',
+        });
       });
-    } catch (err) {
-      addToast({
-        type: 'error',
-        description: 'Ocorreu um erro na comunicação com o servidor',
-      });
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -247,120 +248,44 @@ const NewProduct: React.FC<NewProductProps> = ({
   // Função que cria um novo order_product ou atualiza um existente e/ou cria um novo product
   const handleSubmit = useCallback(
     async ({ descriptionData }: InputData) => {
+      const clearDescriptionData = descriptionData
+        .trimEnd()
+        .trimStart()
+        .split(/\s+/)
+        .join(' ');
+
       // Verifica se existe orderProduct para atualizar
       if (orderProduct?.product) {
         // Verifica se existe ID de produto selecionado ou se precisa criar um novo
         if (selectedProduct.id) {
-          try {
-            checkToken();
-            // Faz a atualização do order_product existente utilizando um product existente
-            await api
-              .patch<OrderProductData>(`/orders-products/${orderProduct.id}`, {
-                product_id: selectedProduct.id,
-                product_description: descriptionData,
-                product_value: selectedProduct.value,
-              })
-              .then((orderProductResponse) => {
-                // Envia o response para atualizar os components order e searchResults
-                updateOrderProduct(orderProductResponse.data);
-
-                handleCloseWindow(); // Fecha este component
-
-                addToast({
-                  type: 'success',
-                  description: 'Serviço alterado com sucesso!',
-                });
-              });
-          } catch (err) {
-            addToast({
-              type: 'error',
-              description: 'Ocorreu um erro na comunicação com o servidor',
-            });
-          }
-        }
-        // Se não existe ID de product indica que é para criar um novo
-        else {
-          try {
-            checkToken();
-            // Cria um novo product
-            await api
-              .post<ProductData>('/products', {
-                name: selectedProduct.name,
-              })
-              .then((productResponse) => {
-                // Inclui no array de products o novo product adicionado
-                setProducts([
-                  ...products,
-                  {
-                    id: productResponse.data.id, // Utiliza o ID do product recém criado
-                    name: selectedProduct.name,
-                    value: selectedProduct.value || '',
-                  },
-                ]);
-
-                // Faz a atualização do order_product
-                api
-                  .patch<OrderProductData>(
-                    `/orders-products/${orderProduct.id}`,
-                    {
-                      product_id: productResponse.data.id, // Utiliza o ID do product recém criado
-                      product_description: descriptionData,
-                      product_value: selectedProduct.value,
-                    }
-                  )
-                  .then((orderProductResponse) => {
-                    // Envia o response para atualizar os components order e searchResults
-                    updateOrderProduct(orderProductResponse.data);
-
-                    handleCloseWindow(); // Fecha este component
-
-                    addToast({
-                      type: 'success',
-                      description: 'Serviço alterado com sucesso!',
-                    });
-                  });
-              });
-          } catch (err) {
-            addToast({
-              type: 'error',
-              description: 'Ocorreu um erro na comunicação com o servidor',
-            });
-          }
-        }
-      }
-      // Se não houver orderProduct indica que é para criar um novo order_product
-      // Verifica se existe ID de produto selecionado ou se precisa criar um novo
-      else if (selectedProduct.id) {
-        try {
           checkToken();
-          // Cria um novo order_product utilizando um product existente
+          // Faz a atualização do order_product existente utilizando um product existente
           await api
-            .post<OrderProductData>(`/orders-products/${order_id}`, {
+            .patch<OrderProductData>(`/orders-products/${orderProduct.id}`, {
               product_id: selectedProduct.id,
-              product_description: descriptionData,
+              product_description: clearDescriptionData,
               product_value: selectedProduct.value,
             })
             .then((orderProductResponse) => {
-              // Envia o order_product criado para atualizar a order e o searchResults
-              addNewOrderProduct(orderProductResponse.data);
+              // Envia o response para atualizar os components order e searchResults
+              updateOrderProduct(orderProductResponse.data);
+
+              handleCloseWindow(); // Fecha este component
+
+              addToast({
+                type: 'success',
+                description: 'Serviço alterado com sucesso!',
+              });
+            })
+            .catch(() => {
+              addToast({
+                type: 'error',
+                description: '#0130 - Erro ao alterar um serviço existente',
+              });
             });
-
-          handleCloseWindow(); // Fecha este component
-
-          addToast({
-            type: 'success',
-            description: 'Serviço criado com sucesso!',
-          });
-        } catch (err) {
-          addToast({
-            type: 'error',
-            description: 'Ocorreu um erro na comunicação com o servidor',
-          });
         }
-      }
-      // Se não existe ID de product indica que é para criar um novo
-      else {
-        try {
+        // Se não existe ID de product indica que é para criar um novo product
+        else {
           checkToken();
           // Cria um novo product
           await api
@@ -368,6 +293,12 @@ const NewProduct: React.FC<NewProductProps> = ({
               name: selectedProduct.name,
             })
             .then((productResponse) => {
+              // Inclui o ID do novo product no selectedProduct
+              setSelectedProduct({
+                ...selectedProduct,
+                id: productResponse.data.id,
+              });
+
               // Inclui no array de products o novo product adicionado
               setProducts([
                 ...products,
@@ -378,31 +309,130 @@ const NewProduct: React.FC<NewProductProps> = ({
                 },
               ]);
 
-              // Cria um novo order_product
+              // Faz a atualização do order_product
               api
-                .post<OrderProductData>(`/orders-products/${order_id}`, {
-                  product_id: productResponse.data.id, // Utiliza o ID do product recém criado
-                  product_description: descriptionData,
-                  product_value: selectedProduct.value,
-                })
+                .patch<OrderProductData>(
+                  `/orders-products/${orderProduct.id}`,
+                  {
+                    product_id: productResponse.data.id, // Utiliza o ID do product recém criado
+                    product_description: clearDescriptionData,
+                    product_value: selectedProduct.value,
+                  }
+                )
                 .then((orderProductResponse) => {
-                  // Envia o order_product criado para atualizar a order e o searchResults
-                  addNewOrderProduct(orderProductResponse.data);
+                  // Envia o response para atualizar os components order e searchResults
+                  updateOrderProduct(orderProductResponse.data);
+
+                  handleCloseWindow(); // Fecha este component
+
+                  addToast({
+                    type: 'success',
+                    description: 'Serviço alterado com sucesso!',
+                  });
+                })
+                .catch(() => {
+                  addToast({
+                    type: 'error',
+                    description: '#0130 - Erro ao alterar um serviço existente',
+                  });
                 });
-
-              handleCloseWindow(); // Fecha este component
-
+            })
+            .catch(() => {
               addToast({
-                type: 'success',
-                description: 'Serviço criado com sucesso!',
+                type: 'error',
+                description: '#0110 - Erro ao criar um novo serviço',
               });
             });
-        } catch (err) {
-          addToast({
-            type: 'error',
-            description: 'Ocorreu um erro na comunicação com o servidor',
-          });
         }
+      }
+      // Se não houver orderProduct indica que é para criar um novo order_product
+      // Verifica se existe ID de produto selecionado ou se precisa criar um novo
+      else if (selectedProduct.id) {
+        checkToken();
+        // Cria um novo order_product utilizando um product existente
+        await api
+          .post<OrderProductData>(`/orders-products/${order_id}`, {
+            product_id: selectedProduct.id,
+            product_description: clearDescriptionData,
+            product_value: selectedProduct.value,
+          })
+          .then((orderProductResponse) => {
+            // Envia o order_product criado para atualizar a order e o searchResults
+            addNewOrderProduct(orderProductResponse.data);
+
+            handleCloseWindow(); // Fecha este component
+
+            addToast({
+              type: 'success',
+              description: 'Serviço criado com sucesso!',
+            });
+          })
+          .catch(() => {
+            addToast({
+              type: 'error',
+              description:
+                '#0120 - Erro ao adicionar um novo serviço no pedido',
+            });
+          });
+      }
+      // Se não existe ID de product indica que é para criar um novo
+      else {
+        checkToken();
+        // Cria um novo product
+        await api
+          .post<ProductData>('/products', {
+            name: selectedProduct.name,
+          })
+          .then((productResponse) => {
+            // Inclui o ID do novo product no selectedProduct
+            setSelectedProduct({
+              ...selectedProduct,
+              id: productResponse.data.id,
+            });
+
+            // Inclui no array de products o novo product adicionado
+            setProducts([
+              ...products,
+              {
+                id: productResponse.data.id, // Utiliza o ID do product recém criado
+                name: selectedProduct.name,
+                value: selectedProduct.value || '',
+              },
+            ]);
+
+            // Cria um novo order_product
+            api
+              .post<OrderProductData>(`/orders-products/${order_id}`, {
+                product_id: productResponse.data.id, // Utiliza o ID do product recém criado
+                // product_id: selectedProduct.id, // Utiliza o ID do product recém criado
+                product_description: clearDescriptionData,
+                product_value: selectedProduct.value,
+              })
+              .then((orderProductResponse) => {
+                // Envia o order_product criado para atualizar a order e o searchResults
+                addNewOrderProduct(orderProductResponse.data);
+
+                handleCloseWindow(); // Fecha este component
+
+                addToast({
+                  type: 'success',
+                  description: 'Serviço criado com sucesso!',
+                });
+              })
+              .catch(() => {
+                addToast({
+                  type: 'error',
+                  description:
+                    '#120 - Erro ao adicionar um novo serviço no pedido',
+                });
+              });
+          })
+          .catch(() => {
+            addToast({
+              type: 'error',
+              description: '#0110 - Erro ao criar um novo serviço',
+            });
+          });
       }
     },
     [
@@ -413,9 +443,7 @@ const NewProduct: React.FC<NewProductProps> = ({
       orderProduct,
       order_id,
       products,
-      selectedProduct.id,
-      selectedProduct.name,
-      selectedProduct.value,
+      selectedProduct,
       updateOrderProduct,
     ]
   );
