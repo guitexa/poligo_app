@@ -65,14 +65,14 @@ import InputAsText from '../InputAsText';
 import InputAsTextWithMask from '../InputAsTextWithMask';
 import HeaderButton from '../HeaderButton';
 
-import { OrderData, OrderProductData, ClientData } from '../SearchResults';
+import { OrderData, OrderProductData, CompanyData } from '../SearchResults';
 
 import {
   OrderOverlap,
   ModalOverlap,
   Container,
   PrimaryContent,
-  ClientContainer,
+  CompanyContainer,
   OrdersProductsContainer,
   Status,
   SecondaryContent,
@@ -98,12 +98,12 @@ interface InputData {
   deliveryDateData: string;
   paymentWayData: string;
   dueDateData: string;
-  clientNameData: string;
-  clientCnpjCpfData: string;
-  clientNameContactData: string;
-  clientEmailData: string;
-  clientPhoneData: string;
-  clientMobilePhoneData: string;
+  companyNameData: string;
+  companyCnpjCpfData: string;
+  companyNameContactData: string;
+  companyEmailData: string;
+  companyPhoneData: string;
+  companyMobilePhoneData: string;
 }
 
 interface OrderProps {
@@ -141,7 +141,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   const [orderUpdated, setOrderUpdated] = useState(false);
 
   // Armazena se houve alguma atualização no cliente
-  const [clientUpdated, setClientUpdated] = useState(false);
+  const [companyUpdated, setCompanyUpdated] = useState(false);
 
   // Armazena se existe algum erro em algum campo
   const [counterErrors, setCounterErrors] = useState<string[]>([]);
@@ -151,12 +151,12 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   const deliveryDateRef = useRef<FormHandles>(null);
   const paymentWayRef = useRef<FormHandles>(null);
   const dueDateRef = useRef<FormHandles>(null);
-  const clientNameRef = useRef<FormHandles>(null);
-  const clientCnpjCpfRef = useRef<FormHandles>(null);
-  const clientNameContactRef = useRef<FormHandles>(null);
-  const clientEmailRef = useRef<FormHandles>(null);
-  const clientPhoneRef = useRef<FormHandles>(null);
-  const clientMobilePhoneRef = useRef<FormHandles>(null);
+  const companyNameRef = useRef<FormHandles>(null);
+  const companyCnpjCpfRef = useRef<FormHandles>(null);
+  const companyNameContactRef = useRef<FormHandles>(null);
+  const companyEmailRef = useRef<FormHandles>(null);
+  const companyPhoneRef = useRef<FormHandles>(null);
+  const companyMobilePhoneRef = useRef<FormHandles>(null);
 
   const {
     orderOpen,
@@ -343,7 +343,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       .get<OrderData>(`/orders/${order_id}`)
       .then((response) => {
         const {
-          client,
+          company,
           seller,
           approved_at,
           order_number,
@@ -357,7 +357,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         } = response.data;
 
         // Verifica se existe um cliente
-        if (client) {
+        if (company) {
           // Armazena no estado o pedido recebido e formatado
           setOrderData({
             ...rest,
@@ -376,18 +376,18 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             formatted_delivery_date: delivery_date
               ? formatToDate(parseISO(delivery_date))
               : '',
-            client: {
-              ...client,
-              formatted_cnpj_cpf: client.cnpj_cpf
-                ? client.cnpj_cpf.length === 14
-                  ? formatToCNPJ(client.cnpj_cpf)
-                  : client.cnpj_cpf.length === 11
-                  ? formatToCPF(client.cnpj_cpf)
-                  : convertToCEI(client.cnpj_cpf)
+            company: {
+              ...company,
+              formatted_cnpj_cpf: company.cnpj_cpf
+                ? company.cnpj_cpf.length === 14
+                  ? formatToCNPJ(company.cnpj_cpf)
+                  : company.cnpj_cpf.length === 11
+                  ? formatToCPF(company.cnpj_cpf)
+                  : convertToCEI(company.cnpj_cpf)
                 : '',
-              formatted_phone: formatToPhone(client.phone),
-              formatted_mobile: client.mobile
-                ? formatToPhone(client.mobile)
+              formatted_phone: formatToPhone(company.phone),
+              formatted_mobile: company.mobile
+                ? formatToPhone(company.mobile)
                 : '',
             },
             seller,
@@ -998,27 +998,27 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   }, []);
 
   // Função para atualizar o nome da empresa
-  const submitClientName = useCallback(
-    ({ clientNameData }: InputData) => {
+  const submitCompanyName = useCallback(
+    ({ companyNameData }: InputData) => {
       // Remove espaços em branco no final, no início da string e duplo espaço
-      const clearClientNameData = clientNameData
+      const clearCompanyNameData = companyNameData
         .trimEnd()
         .trimStart()
         .split(/\s+/)
         .join(' ');
 
       // Verifica se o valor recebido é diferente do existente
-      if (orderData?.client.name !== clearClientNameData) {
+      if (orderData?.company.name !== clearCompanyNameData) {
         // Verifica se o valor recebido é um nome válido
-        if (!clearClientNameData) {
+        if (!clearCompanyNameData) {
           // Define um erro
-          clientNameRef.current?.setErrors({
-            clientNameData: 'Favor digitar um nome válido',
+          companyNameRef.current?.setErrors({
+            companyNameData: 'Favor digitar um nome válido',
           });
 
           // Define que possui um erro na edição do cliente
-          if (!counterErrors.find((e) => e === 'clientName')) {
-            setCounterErrors((state) => [...state, 'clientName']);
+          if (!counterErrors.find((e) => e === 'companyName')) {
+            setCounterErrors((state) => [...state, 'companyName']);
           }
 
           addToast({
@@ -1029,65 +1029,65 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         // Se houver nome de cliente válido o valor será atualizado
         else {
           // Armazena o valor recebido no estado
-          orderData.client.name = clearClientNameData;
+          orderData.company.name = clearCompanyNameData;
 
           // Envia atualização para o component searchResults
           toUpdateSearchResults({
             order_id,
-            client_name: clearClientNameData,
-            client_id: orderData.client.id,
+            company_name: clearCompanyNameData,
+            company_id: orderData.company.id,
           });
 
           // Define que o banco de dados deve ser atualizado
-          setClientUpdated(true);
+          setCompanyUpdated(true);
 
           // Limpa os erros
-          clientNameRef.current?.setErrors({});
-          setCounterErrors((state) => state.filter((e) => e !== 'clientName'));
+          companyNameRef.current?.setErrors({});
+          setCounterErrors((state) => state.filter((e) => e !== 'companyName'));
         }
       }
       // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
-      else if (orderData?.client.name === clearClientNameData) {
+      else if (orderData?.company.name === clearCompanyNameData) {
         // Limpa os erros
-        clientNameRef.current?.setErrors({});
-        setCounterErrors((state) => state.filter((e) => e !== 'clientName'));
+        companyNameRef.current?.setErrors({});
+        setCounterErrors((state) => state.filter((e) => e !== 'companyName'));
       }
     },
     [addToast, counterErrors, orderData, order_id, toUpdateSearchResults]
   );
 
-  // Função para executar a função submitClientName
-  const onClientNameSubmit = useCallback(() => {
-    clientNameRef.current?.submitForm();
+  // Função para executar a função submitCompanyName
+  const onCompanyNameSubmit = useCallback(() => {
+    companyNameRef.current?.submitForm();
   }, []);
 
   // Função para atualizar o CNPJ/CPF da empresa
-  const submitClientCnpjCpf = useCallback(
-    ({ clientCnpjCpfData }: InputData) => {
+  const submitCompanyCnpjCpf = useCallback(
+    ({ companyCnpjCpfData }: InputData) => {
       // Remove os caracteres especiais do valor recebido
-      const clearClientCnpjCpfData = clientCnpjCpfData
+      const clearCompanyCnpjCpfData = companyCnpjCpfData
         .replace(/[^\w\s]/gi, '')
         .trimEnd()
         .trimStart();
 
       // Verifica se o valor recebido é diferente do existente
-      if (orderData?.client.cnpj_cpf !== clearClientCnpjCpfData) {
+      if (orderData?.company.cnpj_cpf !== clearCompanyCnpjCpfData) {
         // Verifica se o valor recebido é um CNPJ ou CPF válido ou se não possui valor recebido
         if (
-          !clearClientCnpjCpfData ||
-          (clearClientCnpjCpfData &&
-            !isCNPJ(clearClientCnpjCpfData) &&
-            !isCPF(clearClientCnpjCpfData) &&
-            !isCEI(clearClientCnpjCpfData))
+          !clearCompanyCnpjCpfData ||
+          (clearCompanyCnpjCpfData &&
+            !isCNPJ(clearCompanyCnpjCpfData) &&
+            !isCPF(clearCompanyCnpjCpfData) &&
+            !isCEI(clearCompanyCnpjCpfData))
         ) {
           // Define um erro
-          clientCnpjCpfRef.current?.setErrors({
-            clientCnpjCpfData: 'Favor digitar um CPF ou CNPJ válido',
+          companyCnpjCpfRef.current?.setErrors({
+            companyCnpjCpfData: 'Favor digitar um CPF ou CNPJ válido',
           });
 
           // Define que possui um erro na edição do cliente
-          if (!counterErrors.find((e) => e === 'clientCnpjCpf')) {
-            setCounterErrors((state) => [...state, 'clientCnpjCpf']);
+          if (!counterErrors.find((e) => e === 'companyCnpjCpf')) {
+            setCounterErrors((state) => [...state, 'companyCnpjCpf']);
           }
 
           addToast({
@@ -1097,65 +1097,67 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         }
         // Se houver CNPJ ou CPF válido os valores serão atualizados
         else if (
-          isCNPJ(clearClientCnpjCpfData) ||
-          isCPF(clearClientCnpjCpfData) ||
-          isCEI(clearClientCnpjCpfData)
+          isCNPJ(clearCompanyCnpjCpfData) ||
+          isCPF(clearCompanyCnpjCpfData) ||
+          isCEI(clearCompanyCnpjCpfData)
         ) {
           // Armazena o valor recebido no estado
-          orderData.client.cnpj_cpf = clearClientCnpjCpfData;
-          orderData.client.formatted_cnpj_cpf =
-            clearClientCnpjCpfData.length === 14
-              ? formatToCNPJ(clearClientCnpjCpfData)
-              : clearClientCnpjCpfData.length === 11
-              ? formatToCPF(clearClientCnpjCpfData)
-              : convertToCEI(clearClientCnpjCpfData);
+          orderData.company.cnpj_cpf = clearCompanyCnpjCpfData;
+          orderData.company.formatted_cnpj_cpf =
+            clearCompanyCnpjCpfData.length === 14
+              ? formatToCNPJ(clearCompanyCnpjCpfData)
+              : clearCompanyCnpjCpfData.length === 11
+              ? formatToCPF(clearCompanyCnpjCpfData)
+              : convertToCEI(clearCompanyCnpjCpfData);
 
           // Define que o banco de dados deve ser atualizado
-          setClientUpdated(true);
+          setCompanyUpdated(true);
 
           // Limpa os erros
-          clientCnpjCpfRef.current?.setErrors({});
+          companyCnpjCpfRef.current?.setErrors({});
           setCounterErrors((state) =>
-            state.filter((e) => e !== 'clientCnpjCpf')
+            state.filter((e) => e !== 'companyCnpjCpf')
           );
         }
       }
       // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
-      else if (orderData?.client.cnpj_cpf === clearClientCnpjCpfData) {
+      else if (orderData?.company.cnpj_cpf === clearCompanyCnpjCpfData) {
         // Limpa os erros
-        clientCnpjCpfRef.current?.setErrors({});
-        setCounterErrors((state) => state.filter((e) => e !== 'clientCnpjCpf'));
+        companyCnpjCpfRef.current?.setErrors({});
+        setCounterErrors((state) =>
+          state.filter((e) => e !== 'companyCnpjCpf')
+        );
       }
     },
     [addToast, counterErrors, orderData]
   );
 
-  // Função para executar a função submitClientCnpjCpf
-  const onClientCnpjCpfSubmit = useCallback(() => {
-    clientCnpjCpfRef.current?.submitForm();
+  // Função para executar a função submitCompanyCnpjCpf
+  const onCompanyCnpjCpfSubmit = useCallback(() => {
+    companyCnpjCpfRef.current?.submitForm();
   }, []);
 
   // Função para atualizar o nome do responsável pela empresa
-  const submitClientNameContact = useCallback(
-    ({ clientNameContactData }: InputData) => {
+  const submitCompanyNameContact = useCallback(
+    ({ companyNameContactData }: InputData) => {
       // Remove espaços em branco no final, no início da string e duplo espaço
-      const clearClientNameContactData = clientNameContactData
+      const clearCompanyNameContactData = companyNameContactData
         .trimEnd()
         .trimStart()
         .split(/\s+/)
         .join(' ');
 
       // Verifica se o valor recebido é diferente do existente
-      if (orderData?.client.contact_name !== clearClientNameContactData) {
+      if (orderData?.company.contact_name !== clearCompanyNameContactData) {
         // Verifica se o valor recebido é um nome de responsável válido
-        if (!clearClientNameContactData) {
-          clientNameContactRef.current?.setErrors({
-            clientNameContactData: 'Favor digitar um nome válido',
+        if (!clearCompanyNameContactData) {
+          companyNameContactRef.current?.setErrors({
+            companyNameContactData: 'Favor digitar um nome válido',
           });
 
           // Define que possui um erro na edição do cliente
-          if (!counterErrors.find((e) => e === 'clientNameContact')) {
-            setCounterErrors((state) => [...state, 'clientNameContact']);
+          if (!counterErrors.find((e) => e === 'companyNameContact')) {
+            setCounterErrors((state) => [...state, 'companyNameContact']);
           }
 
           addToast({
@@ -1166,45 +1168,47 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         // Se houver nome de responsável válido o valor será atualizado
         else {
           // Armazena o valor recebido no estado
-          orderData.client.contact_name = formatToCapitalized(
-            clearClientNameContactData,
+          orderData.company.contact_name = formatToCapitalized(
+            clearCompanyNameContactData,
             {
               trimTrailingWhiteSpaces: false,
             }
           );
 
           // Define que o banco de dados deve ser atualizado
-          setClientUpdated(true);
+          setCompanyUpdated(true);
 
           // Limpa os erros
-          clientNameContactRef.current?.setErrors({});
+          companyNameContactRef.current?.setErrors({});
           setCounterErrors((state) =>
-            state.filter((e) => e !== 'clientNameContact')
+            state.filter((e) => e !== 'companyNameContact')
           );
         }
       }
       // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
-      else if (orderData?.client.contact_name === clearClientNameContactData) {
+      else if (
+        orderData?.company.contact_name === clearCompanyNameContactData
+      ) {
         // Limpa os erros
-        clientNameContactRef.current?.setErrors({});
+        companyNameContactRef.current?.setErrors({});
         setCounterErrors((state) =>
-          state.filter((e) => e !== 'clientNameContact')
+          state.filter((e) => e !== 'companyNameContact')
         );
       }
     },
     [addToast, counterErrors, orderData]
   );
 
-  // Função para executar a função submitClientNameContact
-  const onClientNameContactSubmit = useCallback(() => {
-    clientNameContactRef.current?.submitForm();
+  // Função para executar a função submitCompanyNameContact
+  const onCompanyNameContactSubmit = useCallback(() => {
+    companyNameContactRef.current?.submitForm();
   }, []);
 
   // Função para atualizar o e-mail da empresa
-  const submitClientEmail = useCallback(
-    ({ clientEmailData }: InputData) => {
+  const submitCompanyEmail = useCallback(
+    ({ companyEmailData }: InputData) => {
       // Remove espaços em branco no final, no início da string e duplo espaço
-      const clearClientEmailData = clientEmailData
+      const clearCompanyEmailData = companyEmailData
         .trimEnd()
         .trimStart()
         .split(/\s+/)
@@ -1212,18 +1216,18 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
 
       // Verifica se o valor recebido é diferente do existente
       if (
-        orderData?.client.email !== clearClientEmailData.toLocaleLowerCase()
+        orderData?.company.email !== clearCompanyEmailData.toLocaleLowerCase()
       ) {
         // Verifica se o valor recebido é um e-mail válido
-        if (!isEmail(clearClientEmailData) || !clearClientEmailData) {
+        if (!isEmail(clearCompanyEmailData) || !clearCompanyEmailData) {
           // Define um erro
-          clientEmailRef.current?.setErrors({
-            clientEmailData: 'Favor digitar um e-mail válido',
+          companyEmailRef.current?.setErrors({
+            companyEmailData: 'Favor digitar um e-mail válido',
           });
 
           // Define que possui um erro na edição do cliente
-          if (!counterErrors.find((e) => e === 'clientEmail')) {
-            setCounterErrors((state) => [...state, 'clientEmail']);
+          if (!counterErrors.find((e) => e === 'companyEmail')) {
+            setCounterErrors((state) => [...state, 'companyEmail']);
           }
 
           addToast({
@@ -1234,53 +1238,55 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         // Se houver e-mail válido o valor será atualizado
         else {
           // Armazena o valor recebido no estado
-          orderData.client.email = clearClientEmailData.toLocaleLowerCase();
+          orderData.company.email = clearCompanyEmailData.toLocaleLowerCase();
 
           // Define que o banco de dados deve ser atualizado
-          setClientUpdated(true);
+          setCompanyUpdated(true);
 
           // Limpa os erros
-          clientEmailRef.current?.setErrors({});
-          setCounterErrors((state) => state.filter((e) => e !== 'clientEmail'));
+          companyEmailRef.current?.setErrors({});
+          setCounterErrors((state) =>
+            state.filter((e) => e !== 'companyEmail')
+          );
         }
       }
       // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
       else if (
-        orderData?.client.email === clearClientEmailData.toLocaleLowerCase()
+        orderData?.company.email === clearCompanyEmailData.toLocaleLowerCase()
       ) {
         // Limpa os erros
-        clientEmailRef.current?.setErrors({});
-        setCounterErrors((state) => state.filter((e) => e !== 'clientEmail'));
+        companyEmailRef.current?.setErrors({});
+        setCounterErrors((state) => state.filter((e) => e !== 'companyEmail'));
       }
     },
     [addToast, counterErrors, orderData]
   );
-  // Função para executar a função submitClientEmail
-  const onClientEmailSubmit = useCallback(() => {
-    clientEmailRef.current?.submitForm();
+  // Função para executar a função submitCompanyEmail
+  const onCompanyEmailSubmit = useCallback(() => {
+    companyEmailRef.current?.submitForm();
   }, []);
 
   // Função para atualizar o telefone da empresa
-  const submitClientPhone = useCallback(
-    ({ clientPhoneData }: InputData) => {
+  const submitCompanyPhone = useCallback(
+    ({ companyPhoneData }: InputData) => {
       // Remove os caracteres especiais do valor recebido
-      const clearClientPhoneData = clientPhoneData
+      const clearCompanyPhoneData = companyPhoneData
         .replace(/[^\w]/gi, '')
         .trimEnd()
         .trimStart();
 
       // Verifica se o valor recebido é diferente do existente
-      if (orderData?.client.phone !== clearClientPhoneData) {
+      if (orderData?.company.phone !== clearCompanyPhoneData) {
         // Verifica se o valor recebido é um telefone válido
-        if (clearClientPhoneData && !isPhone(clearClientPhoneData)) {
+        if (clearCompanyPhoneData && !isPhone(clearCompanyPhoneData)) {
           // Define um erro
-          clientPhoneRef.current?.setErrors({
-            clientPhoneData: 'Favor digitar um telefone válido',
+          companyPhoneRef.current?.setErrors({
+            companyPhoneData: 'Favor digitar um telefone válido',
           });
 
           // Define que possui um erro na edição do cliente
-          if (!counterErrors.find((e) => e === 'clientPhone')) {
-            setCounterErrors((state) => [...state, 'clientPhone']);
+          if (!counterErrors.find((e) => e === 'companyPhone')) {
+            setCounterErrors((state) => [...state, 'companyPhone']);
           }
 
           addToast({
@@ -1289,15 +1295,15 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           });
         }
         // Verifica se o celular já não está vazio
-        else if (!clearClientPhoneData && !orderData?.client.mobile) {
+        else if (!clearCompanyPhoneData && !orderData?.company.mobile) {
           // Define um erro
-          clientPhoneRef.current?.setErrors({
-            clientPhoneData: 'Favor digitar um telefone ou celular válido',
+          companyPhoneRef.current?.setErrors({
+            companyPhoneData: 'Favor digitar um telefone ou celular válido',
           });
 
           // Define que possui um erro na edição do cliente
-          if (!counterErrors.find((e) => e === 'clientPhone')) {
-            setCounterErrors((state) => [...state, 'clientPhone']);
+          if (!counterErrors.find((e) => e === 'companyPhone')) {
+            setCounterErrors((state) => [...state, 'companyPhone']);
           }
 
           addToast({
@@ -1306,75 +1312,79 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           });
         }
         // Se o valor recebido for um telefone válido será atualizado
-        else if (isPhone(clearClientPhoneData)) {
+        else if (isPhone(clearCompanyPhoneData)) {
           // Armazena o valor recebido no estado
-          orderData.client.phone = clearClientPhoneData;
-          orderData.client.formatted_phone = formatToPhone(
-            clearClientPhoneData
+          orderData.company.phone = clearCompanyPhoneData;
+          orderData.company.formatted_phone = formatToPhone(
+            clearCompanyPhoneData
           );
 
           // Define que o banco de dados deve ser atualizado
-          setClientUpdated(true);
+          setCompanyUpdated(true);
 
           // Limpa os erros
-          clientPhoneRef.current?.setErrors({});
-          setCounterErrors((state) => state.filter((e) => e !== 'clientPhone'));
+          companyPhoneRef.current?.setErrors({});
+          setCounterErrors((state) =>
+            state.filter((e) => e !== 'companyPhone')
+          );
         }
         // Se não houver valor recebido e houver telefone celular, será atualizado
-        else if (!clearClientPhoneData && !!orderData?.client.mobile) {
+        else if (!clearCompanyPhoneData && !!orderData?.company.mobile) {
           // Armazena o valor recebido no estado
-          orderData.client.phone = clearClientPhoneData;
-          orderData.client.formatted_phone = formatToPhone(
-            clearClientPhoneData
+          orderData.company.phone = clearCompanyPhoneData;
+          orderData.company.formatted_phone = formatToPhone(
+            clearCompanyPhoneData
           );
 
           // Define que o banco de dados deve ser atualizado
-          setClientUpdated(true);
+          setCompanyUpdated(true);
 
           // Limpa os erros
-          clientPhoneRef.current?.setErrors({});
-          setCounterErrors((state) => state.filter((e) => e !== 'clientPhone'));
+          companyPhoneRef.current?.setErrors({});
+          setCounterErrors((state) =>
+            state.filter((e) => e !== 'companyPhone')
+          );
         }
       }
       // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
-      else if (orderData?.client.phone === clearClientPhoneData) {
+      else if (orderData?.company.phone === clearCompanyPhoneData) {
         // Limpa os erros
-        clientPhoneRef.current?.setErrors({});
-        setCounterErrors((state) => state.filter((e) => e !== 'clientPhone'));
+        companyPhoneRef.current?.setErrors({});
+        setCounterErrors((state) => state.filter((e) => e !== 'companyPhone'));
       }
     },
     [addToast, counterErrors, orderData]
   );
 
-  // Função para executar a função submitClientPhone
-  const onClientPhoneSubmit = useCallback(() => {
-    clientPhoneRef.current?.submitForm();
+  // Função para executar a função submitCompanyPhone
+  const onCompanyPhoneSubmit = useCallback(() => {
+    companyPhoneRef.current?.submitForm();
   }, []);
 
   // Função para atualizar o celular da empresa
-  const submitClientMobilePhone = useCallback(
-    ({ clientMobilePhoneData }: InputData) => {
+  const submitCompanyMobilePhone = useCallback(
+    ({ companyMobilePhoneData }: InputData) => {
       // Remove os caracteres especiais do valor recebido
-      const clearClientMobilePhoneData = clientMobilePhoneData
+      const clearCompanyMobilePhoneData = companyMobilePhoneData
         .replace(/[^\w]/gi, '')
         .trimEnd()
         .trimStart();
 
       // Verifica se o valor recebido é diferente do existente
-      if (orderData?.client.mobile !== clearClientMobilePhoneData) {
+      if (orderData?.company.mobile !== clearCompanyMobilePhoneData) {
         // Verifica se o valor recebido é um telefone válido
         if (
-          clearClientMobilePhoneData &&
-          !isPhone(clearClientMobilePhoneData)
+          clearCompanyMobilePhoneData &&
+          !isPhone(clearCompanyMobilePhoneData)
         ) {
           // Define um erro
-          clientMobilePhoneRef.current?.setErrors({
-            clientMobilePhoneData: 'Favor digitar um telefone válido',
+          companyMobilePhoneRef.current?.setErrors({
+            companyMobilePhoneData: 'Favor digitar um telefone válido',
           });
 
           // Define que possui um erro na edição do cliente
-          if (!counterErrors.find((e) => e === 'clientMobilePhone')) {
-            setCounterErrors((state) => [...state, 'clientMobilePhone']);
+          if (!counterErrors.find((e) => e === 'companyMobilePhone')) {
+            setCounterErrors((state) => [...state, 'companyMobilePhone']);
           }
 
           addToast({
@@ -1383,16 +1393,16 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           });
         }
         // Verifica se o telefone fixo já não está vazio
-        else if (!clearClientMobilePhoneData && !orderData?.client.phone) {
+        else if (!clearCompanyMobilePhoneData && !orderData?.company.phone) {
           // Define um erro
-          clientMobilePhoneRef.current?.setErrors({
-            clientMobilePhoneData:
+          companyMobilePhoneRef.current?.setErrors({
+            companyMobilePhoneData:
               'Favor digitar um celular ou telefone válido',
           });
 
           // Define que possui um erro na edição do cliente
-          if (!counterErrors.find((e) => e === 'clientMobilePhone')) {
-            setCounterErrors((state) => [...state, 'clientMobilePhone']);
+          if (!counterErrors.find((e) => e === 'companyMobilePhone')) {
+            setCounterErrors((state) => [...state, 'companyMobilePhone']);
           }
 
           addToast({
@@ -1401,55 +1411,55 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           });
         }
         // Se o valor recebido for um telefone válido será atualizado
-        else if (isPhone(clearClientMobilePhoneData)) {
+        else if (isPhone(clearCompanyMobilePhoneData)) {
           // Armazena o valor recebido no estado
-          orderData.client.mobile = clearClientMobilePhoneData;
-          orderData.client.formatted_mobile = formatToPhone(
-            clearClientMobilePhoneData
+          orderData.company.mobile = clearCompanyMobilePhoneData;
+          orderData.company.formatted_mobile = formatToPhone(
+            clearCompanyMobilePhoneData
           );
 
           // Define que o banco de dados deve ser atualizado
-          setClientUpdated(true);
+          setCompanyUpdated(true);
 
           // Limpa os erros
-          clientMobilePhoneRef.current?.setErrors({});
+          companyMobilePhoneRef.current?.setErrors({});
           setCounterErrors((state) =>
-            state.filter((e) => e !== 'clientMobilePhone')
+            state.filter((e) => e !== 'companyMobilePhone')
           );
         }
         // Se não houver valor recebido e houver telefone fixo, será atualizado
-        else if (!clearClientMobilePhoneData && !!orderData?.client.phone) {
+        else if (!clearCompanyMobilePhoneData && !!orderData?.company.phone) {
           // Armazena o valor recebido no estado
-          orderData.client.mobile = clearClientMobilePhoneData;
-          orderData.client.formatted_mobile = formatToPhone(
-            clearClientMobilePhoneData
+          orderData.company.mobile = clearCompanyMobilePhoneData;
+          orderData.company.formatted_mobile = formatToPhone(
+            clearCompanyMobilePhoneData
           );
 
           // Define que o banco de dados deve ser atualizado
-          setClientUpdated(true);
+          setCompanyUpdated(true);
 
           // Limpa os erros
-          clientMobilePhoneRef.current?.setErrors({});
+          companyMobilePhoneRef.current?.setErrors({});
           setCounterErrors((state) =>
-            state.filter((e) => e !== 'clientMobilePhone')
+            state.filter((e) => e !== 'companyMobilePhone')
           );
         }
       }
       // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
-      else if (orderData?.client.mobile === clearClientMobilePhoneData) {
+      else if (orderData?.company.mobile === clearCompanyMobilePhoneData) {
         // Limpa os erros
-        clientMobilePhoneRef.current?.setErrors({});
+        companyMobilePhoneRef.current?.setErrors({});
         setCounterErrors((state) =>
-          state.filter((e) => e !== 'clientMobilePhone')
+          state.filter((e) => e !== 'companyMobilePhone')
         );
       }
     },
     [addToast, counterErrors, orderData]
   );
 
-  // Função para executar a função submitClientMobilePhone
-  const onClientMobilePhoneSubmit = useCallback(() => {
-    clientMobilePhoneRef.current?.submitForm();
+  // Função para executar a função submitCompanyMobilePhone
+  const onCompanyMobilePhoneSubmit = useCallback(() => {
+    companyMobilePhoneRef.current?.submitForm();
   }, []);
 
   // Função para deletar um order_product
@@ -1569,15 +1579,15 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   }, [addToast, orderData, orderOpen, order_id, overlapOrderOpen]);
 
   // Função que atualiza o pedido no banco de dados
-  const handleSubmitClientToUpdate = useCallback(async () => {
+  const handleSubmitCompanyToUpdate = useCallback(async () => {
     await api
-      .patch<ClientData>(`/clients/${orderData.client.id}`, {
-        name: orderData.client?.name,
-        cnpj_cpf: orderData.client?.cnpj_cpf,
-        contact_name: orderData.client?.contact_name,
-        email: orderData.client?.email,
-        phone: orderData.client?.phone,
-        mobile: orderData.client?.mobile,
+      .patch<CompanyData>(`/companies/${orderData.company.id}`, {
+        name: orderData.company?.name,
+        cnpj_cpf: orderData.company?.cnpj_cpf,
+        contact_name: orderData.company?.contact_name,
+        email: orderData.company?.email,
+        phone: orderData.company?.phone,
+        mobile: orderData.company?.mobile,
       })
       .then(() => {
         addToast({
@@ -1585,7 +1595,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           description: 'Pedido atualizado com sucesso!',
         });
 
-        setClientUpdated(false); // Limpa do estado
+        setCompanyUpdated(false); // Limpa do estado
         overlapOrderOpen(!orderOpen); // Fecha o component
       })
       .catch(() => {
@@ -1594,7 +1604,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           description: '#0220 - Erro ao atualizar o cadastro do cliente',
         });
       });
-  }, [addToast, orderData.client, orderOpen, overlapOrderOpen]);
+  }, [addToast, orderData.company, orderOpen, overlapOrderOpen]);
 
   // Função que faz validações ao fechar a order
   const handleCloseOrder = useCallback(() => {
@@ -1655,7 +1665,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     if (from === 'Comercial') {
       // Verifica se o pedido possui CNPJ/CPF e status do pedido
       if (
-        !orderData.client?.cnpj_cpf &&
+        !orderData.company?.cnpj_cpf &&
         orderData?.status_order === 'Aprovado'
       ) {
         // Se não possui CNPJ/CPF e possuir status Aprovado define um erro
@@ -1664,8 +1674,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           description: 'Favor preencher um CNPJ ou CPF',
         });
 
-        clientCnpjCpfRef.current?.setErrors({
-          clientCnpjCpfData: 'CNPJ/CPF inválido',
+        companyCnpjCpfRef.current?.setErrors({
+          companyCnpjCpfData: 'CNPJ/CPF inválido',
         });
 
         return;
@@ -1693,28 +1703,28 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     // Verifica se não existe erros nos campos
     if (
       counterErrors.length === 0 ||
-      counterErrors.includes('clientCnpjCpf') ||
+      counterErrors.includes('companyCnpjCpf') ||
       counterErrors.includes('deliveryDate')
     ) {
       checkToken();
       // Se houve alteração no pedido vai atualizar
-      if (orderUpdated && !clientUpdated) {
+      if (orderUpdated && !companyUpdated) {
         handleSubmitOrderToUpdate(); // Atualiza o pedido
       }
 
       // Se houve alteração no cliente vai atualizar
-      if (!orderUpdated && clientUpdated) {
-        handleSubmitClientToUpdate(); // Atualiza o cliente
+      if (!orderUpdated && companyUpdated) {
+        handleSubmitCompanyToUpdate(); // Atualiza o cliente
       }
 
       // Se houve alteração no pedido e no cliente vai atualizar os dois
-      if (clientUpdated && orderUpdated) {
+      if (companyUpdated && orderUpdated) {
         handleSubmitOrderToUpdate(); // Atualiza o pedido
-        handleSubmitClientToUpdate(); // Atualiza o cliente
+        handleSubmitCompanyToUpdate(); // Atualiza o cliente
       }
 
       // Se não houve alteração vai fechar
-      if (!orderUpdated && !clientUpdated) {
+      if (!orderUpdated && !companyUpdated) {
         overlapOrderOpen(!orderOpen); // Fecha o component
       }
     }
@@ -1731,23 +1741,23 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     counterErrors,
     orderData?.delivery_date,
     orderData.status_delivery,
-    orderData.client?.cnpj_cpf,
+    orderData.company?.cnpj_cpf,
     orderData?.status_order,
     orderData.orders_products?.length,
     addToast,
     overlapNewOrderOpen,
     orderUpdated,
-    clientUpdated,
+    companyUpdated,
     checkToken,
     handleSubmitOrderToUpdate,
-    handleSubmitClientToUpdate,
+    handleSubmitCompanyToUpdate,
     overlapOrderOpen,
     orderOpen,
   ]);
 
   // Mensagem que aparece para o usuário se ele tentar fechar o navegador ao invés de fechar o pedido
   window.onbeforeunload = () => {
-    return clientUpdated || orderUpdated
+    return companyUpdated || orderUpdated
       ? 'Se você sair desta página você irá perder suas alterações.'
       : null;
   };
@@ -1777,7 +1787,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           />
         </ModalOverlap>
       )}
-      {orderData?.client && orderData?.seller && (
+      {orderData?.company && orderData?.seller && (
         <>
           <HeaderButton
             show={orderOpen && !newProductOpen && !productViewOpen}
@@ -1790,13 +1800,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           <Container>
             <ThemeProvider theme={orderMaterialTheme}>
               <PrimaryContent isModalOpen={newProductOpen || productViewOpen}>
-                <ClientContainer>
+                <CompanyContainer>
                   <TitlesForm>
                     <p>Razão social:</p>
-                    {orderData.client.cnpj_cpf ? (
-                      orderData.client.cnpj_cpf.length === 14 ? (
+                    {orderData.company.cnpj_cpf ? (
+                      orderData.company.cnpj_cpf.length === 14 ? (
                         <p>CNPJ:</p>
-                      ) : orderData.client.cnpj_cpf.length === 11 ? (
+                      ) : orderData.company.cnpj_cpf.length === 11 ? (
                         <p>CPF:</p>
                       ) : (
                         <p>CEI:</p>
@@ -1812,71 +1822,81 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                   <DataForm>
                     {from === 'Comercial' && !orderData.status_billing ? (
                       <>
-                        <Form ref={clientNameRef} onSubmit={submitClientName}>
+                        <Form ref={companyNameRef} onSubmit={submitCompanyName}>
                           <InputAsText
-                            name="clientNameData"
-                            onBlur={onClientNameSubmit}
-                            defaultValue={orderData.client.name}
+                            name="companyNameData"
+                            onBlur={onCompanyNameSubmit}
+                            defaultValue={orderData.company.name}
                           />
                         </Form>
                         <Form
-                          ref={clientCnpjCpfRef}
-                          onSubmit={submitClientCnpjCpf}
+                          ref={companyCnpjCpfRef}
+                          onSubmit={submitCompanyCnpjCpf}
                         >
-                          {orderData.client.cnpj_cpf &&
-                          orderData.client.cnpj_cpf.length > 11 ? (
+                          {orderData.company.cnpj_cpf &&
+                          orderData.company.cnpj_cpf.length > 11 ? (
                             <InputAsText
-                              name="clientCnpjCpfData"
-                              onBlur={onClientCnpjCpfSubmit}
-                              defaultValue={orderData.client.formatted_cnpj_cpf}
+                              name="companyCnpjCpfData"
+                              onBlur={onCompanyCnpjCpfSubmit}
+                              defaultValue={
+                                orderData.company.formatted_cnpj_cpf
+                              }
                               styled={{ width: '10em' }}
                               maxLength={18}
                             />
                           ) : (
                             <InputAsText
-                              name="clientCnpjCpfData"
-                              onBlur={onClientCnpjCpfSubmit}
-                              defaultValue={orderData.client.formatted_cnpj_cpf}
+                              name="companyCnpjCpfData"
+                              onBlur={onCompanyCnpjCpfSubmit}
+                              defaultValue={
+                                orderData.company.formatted_cnpj_cpf
+                              }
                               styled={{ width: '10em' }}
                               maxLength={18}
                             />
                           )}
                         </Form>
                         <Form
-                          ref={clientNameContactRef}
-                          onSubmit={submitClientNameContact}
+                          ref={companyNameContactRef}
+                          onSubmit={submitCompanyNameContact}
                         >
                           <InputAsText
-                            name="clientNameContactData"
-                            onBlur={onClientNameContactSubmit}
-                            defaultValue={orderData.client.contact_name}
+                            name="companyNameContactData"
+                            onBlur={onCompanyNameContactSubmit}
+                            defaultValue={orderData.company.contact_name}
                           />
                         </Form>
-                        <Form ref={clientEmailRef} onSubmit={submitClientEmail}>
+                        <Form
+                          ref={companyEmailRef}
+                          onSubmit={submitCompanyEmail}
+                        >
                           <InputAsText
-                            name="clientEmailData"
-                            onBlur={onClientEmailSubmit}
-                            defaultValue={orderData.client.email}
+                            name="companyEmailData"
+                            onBlur={onCompanyEmailSubmit}
+                            defaultValue={orderData.company.email}
                           />
                         </Form>
-                        <Form ref={clientPhoneRef} onSubmit={submitClientPhone}>
+                        <Form
+                          ref={companyPhoneRef}
+                          onSubmit={submitCompanyPhone}
+                        >
                           <InputAsTextWithMask
-                            name="clientPhoneData"
-                            onBlur={onClientPhoneSubmit}
-                            defaultValue={orderData.client.formatted_phone}
+                            name="companyPhoneData"
+                            onBlur={onCompanyPhoneSubmit}
+                            defaultValue={orderData.company.formatted_phone}
                             mask="(99) 9999-9999"
                             maskChar={null}
                             styled={{ width: '8em' }}
                           />
                         </Form>
                         <Form
-                          ref={clientMobilePhoneRef}
-                          onSubmit={submitClientMobilePhone}
+                          ref={companyMobilePhoneRef}
+                          onSubmit={submitCompanyMobilePhone}
                         >
                           <InputAsTextWithMask
-                            name="clientMobilePhoneData"
-                            onBlur={onClientMobilePhoneSubmit}
-                            defaultValue={orderData.client.formatted_mobile}
+                            name="companyMobilePhoneData"
+                            onBlur={onCompanyMobilePhoneSubmit}
+                            defaultValue={orderData.company.formatted_mobile}
                             mask="(99) 9 9999-9999"
                             maskChar={null}
                             styled={{ width: '8em' }}
@@ -1885,16 +1905,16 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                       </>
                     ) : (
                       <>
-                        <p>{orderData.client.name}</p>
-                        <p>{orderData.client.formatted_cnpj_cpf}</p>
-                        <p>{orderData.client.contact_name}</p>
-                        <p>{orderData.client.email}</p>
-                        <p>{orderData.client.formatted_phone}</p>
-                        <p>{orderData.client.formatted_mobile}</p>
+                        <p>{orderData.company.name}</p>
+                        <p>{orderData.company.formatted_cnpj_cpf}</p>
+                        <p>{orderData.company.contact_name}</p>
+                        <p>{orderData.company.email}</p>
+                        <p>{orderData.company.formatted_phone}</p>
+                        <p>{orderData.company.formatted_mobile}</p>
                       </>
                     )}
                   </DataForm>
-                </ClientContainer>
+                </CompanyContainer>
                 <OrdersProductsContainer>
                   <TitlesForm>
                     <p>Pedido Nº:</p>

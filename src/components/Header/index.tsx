@@ -6,6 +6,8 @@ import { MdSettings } from 'react-icons/md';
 import IconTechnicalArea from '../../assets/icons/icon-technical-area.svg';
 import IconComercial from '../../assets/icons/icon-comercial.svg';
 import IconBilling from '../../assets/icons/icon-billing.svg';
+import IconFinancial from '../../assets/icons/icon-financial.svg';
+import IconReception from '../../assets/icons/icon-reception.svg';
 import IconExit from '../../assets/icons/icon-exit.svg';
 
 import { useAuth } from '../../hooks/auth';
@@ -51,7 +53,7 @@ const Header: React.FC<HeaderProps> = ({ title, color, children }) => {
                 <p className="title">Área Técnica</p>
                 <p className="text">Controle os serviços</p>
                 <p className="text">pendentes e realizados</p>
-                <p className="text">da área técnica.</p>
+                <p className="text">da área técnica</p>
               </div>
             </Link>
           )}
@@ -63,6 +65,30 @@ const Header: React.FC<HeaderProps> = ({ title, color, children }) => {
                 <p className="text">Gerencie o</p>
                 <p className="text">faturamento dos</p>
                 <p className="text">pedidos do comercial</p>
+              </div>
+            </Link>
+          )}
+          {(user.permissions === 'Financial' ||
+            user.permissions === 'Admin') && (
+            <Link id="financial" to="/Financial">
+              <img src={IconFinancial} alt="" />
+              <div>
+                <p className="title">Financeiro</p>
+                <p className="text">Gerencie as contas a pagar e</p>
+                <p className="text">receber, controle as cobranças</p>
+                <p className="text">e o saldo das contas</p>
+              </div>
+            </Link>
+          )}
+          {(user.permissions === 'Reception' ||
+            user.permissions === 'Admin') && (
+            <Link id="reception" to="/Reception">
+              <img src={IconReception} alt="" width="35px" />
+              <div>
+                <p className="title">Atendimento</p>
+                <p className="text">Crie filas de atendimento</p>
+                <p className="text">e direcione os pacientes</p>
+                <p className="text">para salas de exames</p>
               </div>
             </Link>
           )}
@@ -86,7 +112,7 @@ const Header: React.FC<HeaderProps> = ({ title, color, children }) => {
       {/* Topo que abriga o menu e o título da página */}
       <Container color={color}>
         <Title>{title}</Title>
-        {children}
+        <div>{children}</div>
       </Container>
       {/* Background que escurece quando o menu está aberto */}
       <Cover

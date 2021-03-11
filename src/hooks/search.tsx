@@ -6,7 +6,7 @@ interface SearchContextData {
   approved_at: Date | null;
   created_at: Date | null;
   delivery_date: Date | null;
-  client_name: string;
+  company_name: string;
   products: string;
   seller: string;
   technical: string;
@@ -18,7 +18,7 @@ interface SearchContextData {
   searchApprovedAt(date: Date | null): void;
   searchCreatedAt(date: Date | null): void;
   searchDeliveryDate(date: Date | null): void;
-  searchClientName(name: string): void;
+  searchCompanyName(name: string): void;
   searchProducts(name: string): void;
   searchSeller(name: string): void;
   searchTechnical(name: string): void;
@@ -40,7 +40,7 @@ export const SearchProvider: React.FC = ({ children }) => {
   // Armazena o valor pesquisado: data de entrega do pedido
   const [delivery_date, setSelectedDeliveryDate] = useState<Date | null>(null);
   // Armazena o valor pesquisado: nome do cliente
-  const [client_name, setClientName] = useState('');
+  const [company_name, setCompanyName] = useState('');
   // Armazena o valor pesquisado: nome do produto
   const [products, setProducts] = useState('');
   // Armazena o valor pesquisado: nome do vendedor
@@ -78,8 +78,8 @@ export const SearchProvider: React.FC = ({ children }) => {
   }, []);
 
   // Função para alterar a pesquisa do nome do cliente
-  const searchClientName = useCallback((name: string): void => {
-    setClientName(name);
+  const searchCompanyName = useCallback((name: string): void => {
+    setCompanyName(name);
   }, []);
 
   // Função para alterar a pesquisa do nome do produto
@@ -131,8 +131,8 @@ export const SearchProvider: React.FC = ({ children }) => {
       searchDeliveryDate(null);
     }
 
-    if (client_name) {
-      searchClientName('');
+    if (company_name) {
+      searchCompanyName('');
     }
 
     if (products) {
@@ -166,7 +166,7 @@ export const SearchProvider: React.FC = ({ children }) => {
     approved_at,
     created_at,
     delivery_date,
-    client_name,
+    company_name,
     products,
     seller,
     technical,
@@ -177,7 +177,7 @@ export const SearchProvider: React.FC = ({ children }) => {
     searchApprovedAt,
     searchCreatedAt,
     searchDeliveryDate,
-    searchClientName,
+    searchCompanyName,
     searchProducts,
     searchSeller,
     searchTechnical,
@@ -197,7 +197,7 @@ export const SearchProvider: React.FC = ({ children }) => {
         approved_at,
         created_at,
         delivery_date,
-        client_name,
+        company_name,
         products,
         seller,
         technical,
@@ -209,7 +209,7 @@ export const SearchProvider: React.FC = ({ children }) => {
         searchApprovedAt,
         searchCreatedAt,
         searchDeliveryDate,
-        searchClientName,
+        searchCompanyName,
         searchProducts,
         searchSeller,
         searchTechnical,

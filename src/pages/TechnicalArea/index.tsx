@@ -19,7 +19,7 @@ const TechnicalArea: React.FC = () => {
     approved_at,
     created_at,
     delivery_date,
-    client_name,
+    company_name,
     seller,
     products,
     status_billing,
@@ -45,7 +45,7 @@ const TechnicalArea: React.FC = () => {
       approved_at ||
       created_at ||
       delivery_date ||
-      client_name ||
+      company_name ||
       seller ||
       products ||
       status_billing ||

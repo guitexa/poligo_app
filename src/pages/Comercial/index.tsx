@@ -1,16 +1,16 @@
 import React, { useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
 
-import ContractIcon from '../../assets/icons/icon-contract.svg';
+import { useOverlap } from '../../hooks/overlap';
+import { useAuth } from '../../hooks/auth';
+import { useSearch } from '../../hooks/search';
+
+import IconContract from '../../assets/icons/icon-contract.svg';
 import Header from '../../components/Header';
 import HeaderButton from '../../components/HeaderButton';
 import SearchBar from '../../components/SearchBar';
 import NewOrder from '../../components/NewOrder';
 import SearchResults from '../../components/SearchResults';
-
-import { useOverlap } from '../../hooks/overlap';
-import { useAuth } from '../../hooks/auth';
-import { useSearch } from '../../hooks/search';
 
 import { NewOrderOverlap, Container } from './styles';
 
@@ -27,7 +27,7 @@ const Comercial: React.FC = () => {
     approved_at,
     created_at,
     delivery_date,
-    client_name,
+    company_name,
     seller,
     products,
     status_billing,
@@ -53,7 +53,7 @@ const Comercial: React.FC = () => {
       approved_at ||
       created_at ||
       delivery_date ||
-      client_name ||
+      company_name ||
       seller ||
       products ||
       status_billing ||
@@ -89,7 +89,7 @@ const Comercial: React.FC = () => {
             show={!newOrderOpen && !orderOpen}
             handleClick={(e) => overlapNewOrderOpen(!!e)}
             type="button"
-            icon={ContractIcon}
+            icon={IconContract}
             color={color}
           />
         </Header>

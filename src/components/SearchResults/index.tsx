@@ -32,7 +32,7 @@ import {
   Content,
   RowResult,
   DateField,
-  ClientName,
+  CompanyName,
   Product,
   Professional,
   Value,
@@ -40,8 +40,8 @@ import {
   LoadMore,
 } from './styles';
 
-// Interface do client
-export interface ClientData {
+// Interface do company
+export interface CompanyData {
   id: string;
   name: string;
   cnpj_cpf?: string;
@@ -107,7 +107,7 @@ export interface OrderData {
     | 'Cancelado'
     | unknown;
   created_at: string;
-  client: ClientData;
+  company: CompanyData;
   seller: User;
   technical?: User;
   total_value?: string;
@@ -126,8 +126,8 @@ export interface UpdateSearchResultsData {
   order_product_add?: OrderProductData;
   order_product_update?: OrderProductData;
   order_product_delete?: string;
-  client_id?: string;
-  client_name?: string;
+  company_id?: string;
+  company_name?: string;
 }
 
 interface SearchResultsProps {
@@ -157,7 +157,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
     approved_at,
     created_at,
     delivery_date,
-    client_name,
+    company_name,
     seller,
     products,
     status_billing,
@@ -289,16 +289,16 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
           }
         }
 
-        // Verifica se recebeu client_id para atualizar o nome do cliente
-        if (updateSearchResults.client_id) {
+        // Verifica se recebeu company_id para atualizar o nome do cliente
+        if (updateSearchResults.company_id) {
           // Faz um filtro no array de resultado para encontrar este cliente
           searchResults.filter((item) => {
-            // Verifica se existe o client_id recebido
-            if (item.client.id === updateSearchResults.client_id) {
-              // Verifica se existe um client_name para ser atualizado
-              if (updateSearchResults.client_name) {
+            // Verifica se existe o company_id recebido
+            if (item.company.id === updateSearchResults.company_id) {
+              // Verifica se existe um company_name para ser atualizado
+              if (updateSearchResults.company_name) {
                 // eslint-disable-next-line no-param-reassign
-                item.client.name = updateSearchResults.client_name;
+                item.company.name = updateSearchResults.company_name;
               }
             }
 
@@ -336,7 +336,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
     // Realiza a pesquisa sem filtro
     if (
       user &&
-      (!client_name || client_name.length <= 2) &&
+      (!company_name || company_name.length <= 2) &&
       !approved_at &&
       !created_at &&
       !delivery_date &&
@@ -388,7 +388,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
     // Realiza a pesquisa com filtro
     else if (
       user &&
-      (client_name.length > 2 ||
+      (company_name.length > 2 ||
         approved_at ||
         created_at ||
         delivery_date ||
@@ -406,7 +406,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
           params: {
             approved_at,
             created_at,
-            client_name,
+            company_name,
             seller,
             products,
             technical,
@@ -435,7 +435,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
   }, [
     approved_at,
     created_at,
-    client_name,
+    company_name,
     delivery_date,
     seller,
     products,
@@ -614,7 +614,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
         </OrderOverlap>
       )}
       <Container>
-        {(!client_name || client_name.length <= 2) &&
+        {(!company_name || company_name.length <= 2) &&
           !approved_at &&
           !created_at &&
           !delivery_date &&
@@ -647,9 +647,9 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
                           {formatToDate(parseISO(search.created_at))}
                         </DateField>
                       )}
-                      <ClientName>
-                        {search.client && search.client.name}
-                      </ClientName>
+                      <CompanyName>
+                        {search.company && search.company.name}
+                      </CompanyName>
                       <Product>{productsToShow(search.id)}</Product>
                       {(from === 'Comercial' || from === 'Billing') && (
                         <>
@@ -719,7 +719,9 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
                     {formatToDate(parseISO(search.created_at))}
                   </DateField>
                 )}
-                <ClientName>{search.client && search.client.name}</ClientName>
+                <CompanyName>
+                  {search.company && search.company.name}
+                </CompanyName>
                 <Product>{productsToShow(search.id)}</Product>
                 {(from === 'Comercial' || from === 'Billing') && (
                   <>

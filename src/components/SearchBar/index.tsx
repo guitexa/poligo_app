@@ -46,9 +46,11 @@ import { OrderData } from '../SearchResults';
 import {
   Container,
   Date,
-  ClientName,
+  CompanyName,
+  CompanySupplier,
   Product,
   Professional,
+  Account,
   Value,
   Status,
 } from './styles';
@@ -70,7 +72,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
     approved_at,
     created_at,
     delivery_date,
-    client_name,
+    company_name,
     products,
     seller,
     technical,
@@ -81,7 +83,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
     searchApprovedAt,
     searchCreatedAt,
     searchDeliveryDate,
-    searchClientName,
+    searchCompanyName,
     searchProducts,
     searchSeller,
     searchTechnical,
@@ -232,7 +234,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
   return (
     <Container color={color}>
       <ThemeProvider theme={searchBarMaterialTheme}>
-        {from === 'TechnicalArea' ? (
+        {from === 'TechnicalArea' && (
           <Date isFilled={!!approved_at}>
             <Grid container alignItems="flex-end">
               <Grid item>
@@ -241,7 +243,6 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
                     disableToolbar
                     variant="inline"
                     autoOk
-                    id="date-picker-inline"
                     label="Data"
                     format="dd/MM/yyyy"
                     value={approved_at}
@@ -264,7 +265,66 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
               </Grid>
             </Grid>
           </Date>
-        ) : (
+        )}
+        {from === 'Financial' && (
+          <>
+            <Date isFilled={!!approved_at}>
+              <Grid container alignItems="flex-end">
+                <Grid item>
+                  <MuiPickersUtilsProvider utils={DateFnsUtils}>
+                    <KeyboardDatePicker
+                      disableToolbar
+                      variant="inline"
+                      autoOk
+                      label="Venc."
+                      format="dd/MM/yyyy"
+                      value={approved_at}
+                      onChange={() => {}}
+                      KeyboardButtonProps={{
+                        'aria-label': 'change date',
+                      }}
+                    />
+                  </MuiPickersUtilsProvider>
+                </Grid>
+                <Grid item>
+                  {approved_at && (
+                    <IconButton className="close-button" onClick={() => {}}>
+                      <Close />
+                    </IconButton>
+                  )}
+                </Grid>
+              </Grid>
+            </Date>
+            <Date isFilled={!!approved_at}>
+              <Grid container alignItems="flex-end">
+                <Grid item>
+                  <MuiPickersUtilsProvider utils={DateFnsUtils}>
+                    <KeyboardDatePicker
+                      disableToolbar
+                      variant="inline"
+                      autoOk
+                      label="Replan."
+                      format="dd/MM/yyyy"
+                      value={approved_at}
+                      onChange={() => {}}
+                      KeyboardButtonProps={{
+                        'aria-label': 'change date',
+                      }}
+                    />
+                  </MuiPickersUtilsProvider>
+                </Grid>
+                <Grid item>
+                  {approved_at && (
+                    <IconButton className="close-button" onClick={() => {}}>
+                      <Close />
+                    </IconButton>
+                  )}
+                </Grid>
+              </Grid>
+            </Date>
+          </>
+        )}
+        {(from === 'Comercial' || from === 'Billing') && (
           <Date isFilled={!!created_at}>
             <Grid container alignItems="flex-end">
               <Grid item>
@@ -273,7 +333,6 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
                     disableToolbar
                     variant="inline"
                     autoOk
-                    id="date-picker-inline"
                     label="Data"
                     format="dd/MM/yyyy"
                     value={created_at}
@@ -297,48 +356,265 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
             </Grid>
           </Date>
         )}
-        <ClientName>
-          <Grid container spacing={1} alignItems="flex-end">
-            <Grid item>
-              <TextField
-                id="input-with-icon-grid-client-name"
-                label="Razão Social"
-                value={client_name}
-                onChange={(e) => searchClientName(e.target.value)}
+        {from === 'Financial' && (
+          <>
+            <Value>
+              <Grid container spacing={1} alignItems="flex-end">
+                <Grid item>
+                  <TextField
+                    label="Bruto"
+                    value={total_value}
+                    onChange={() => {}}
+                    name="formattedValue"
+                    id="formatted-formattedValue-input"
+                  />
+                </Grid>
+                <Grid item>
+                  {total_value ? (
+                    <IconButton onClick={() => {}}>
+                      <Close />
+                    </IconButton>
+                  ) : (
+                    <Search />
+                  )}
+                </Grid>
+              </Grid>
+            </Value>
+            <Value>
+              <Grid container spacing={1} alignItems="flex-end">
+                <Grid item>
+                  <TextField
+                    label="Líquido"
+                    value={total_value}
+                    onChange={() => {}}
+                    name="formattedValue"
+                    id="formatted-formattedValue-input"
+                  />
+                </Grid>
+                <Grid item>
+                  {total_value ? (
+                    <IconButton onClick={() => {}}>
+                      <Close />
+                    </IconButton>
+                  ) : (
+                    <Search />
+                  )}
+                </Grid>
+              </Grid>
+            </Value>
+          </>
+        )}
+        {from === 'Financial' && (
+          <>
+            <Date isFilled={!!approved_at}>
+              <Grid container alignItems="flex-end">
+                <Grid item>
+                  <MuiPickersUtilsProvider utils={DateFnsUtils}>
+                    <KeyboardDatePicker
+                      disableToolbar
+                      variant="inline"
+                      autoOk
+                      label="Realizado"
+                      format="dd/MM/yyyy"
+                      value={approved_at}
+                      onChange={() => {}}
+                      KeyboardButtonProps={{
+                        'aria-label': 'change date',
+                      }}
+                    />
+                  </MuiPickersUtilsProvider>
+                </Grid>
+                <Grid item>
+                  {approved_at && (
+                    <IconButton className="close-button" onClick={() => {}}>
+                      <Close />
+                    </IconButton>
+                  )}
+                </Grid>
+              </Grid>
+            </Date>
+            <Value>
+              <Grid container spacing={1} alignItems="flex-end">
+                <Grid item>
+                  <TextField
+                    label="Líquido Real."
+                    value={total_value}
+                    onChange={() => {}}
+                    name="formattedValue"
+                    id="formatted-formattedValue-input"
+                  />
+                </Grid>
+                <Grid item>
+                  {total_value ? (
+                    <IconButton onClick={() => {}}>
+                      <Close />
+                    </IconButton>
+                  ) : (
+                    <Search />
+                  )}
+                </Grid>
+              </Grid>
+            </Value>
+            <CompanySupplier>
+              <Grid container spacing={1} alignItems="flex-end">
+                <Grid item>
+                  <TextField
+                    id="input-with-icon-grid-company-name"
+                    label="Cliente/Fornecedor"
+                    value={company_name}
+                    onChange={(e) => searchCompanyName(e.target.value)}
+                  />
+                </Grid>
+                <Grid item>
+                  {company_name ? (
+                    <IconButton onClick={() => searchCompanyName('')}>
+                      <Close />
+                    </IconButton>
+                  ) : (
+                    <Search />
+                  )}
+                </Grid>
+              </Grid>
+            </CompanySupplier>
+            <Account>
+              <Autocomplete
+                openText=""
+                clearText=""
+                clearOnBlur={false}
+                id="input-sellers"
+                options={sellers || []}
+                getOptionLabel={({ name }) => name}
+                onChange={(event, selectedSeller) => {
+                  searchSeller(
+                    selectedSeller !== null ? selectedSeller.name : ''
+                  );
+                }}
+                noOptionsText=""
+                renderInput={(params) => (
+                  <TextField {...params} label="Conta" value={seller} />
+                )}
+                renderOption={({ name }, { inputValue }) => {
+                  const matches = match(name, inputValue);
+                  const parts = parse(name, matches);
+
+                  return (
+                    <div>
+                      {parts.map(({ highlight, text }) => (
+                        <span
+                          key={text}
+                          style={{
+                            fontWeight: highlight ? 700 : 400,
+                          }}
+                        >
+                          {text}
+                        </span>
+                      ))}
+                    </div>
+                  );
+                }}
               />
-            </Grid>
-            <Grid item>
-              {client_name ? (
-                <IconButton onClick={() => searchClientName('')}>
-                  <Close />
-                </IconButton>
-              ) : (
-                <Search />
-              )}
-            </Grid>
-          </Grid>
-        </ClientName>
-        <Product>
-          <Grid container spacing={1} alignItems="flex-end">
-            <Grid item>
-              <TextField
-                id="input-with-icon-grid-product"
-                label="Serviço"
-                value={products}
-                onChange={(e) => searchProducts(e.target.value)}
-              />
-            </Grid>
-            <Grid item>
-              {products ? (
-                <IconButton onClick={() => searchProducts('')}>
-                  <Close />
-                </IconButton>
-              ) : (
-                <Search />
-              )}
-            </Grid>
-          </Grid>
-        </Product>
+            </Account>
+            <Status value={!!status_delivery}>
+              <FormControl className={formControl}>
+                <InputLabel id="demo-simple-select-label">Status</InputLabel>
+                <Select
+                  labelId="demo-simple-select-label"
+                  id="demo-simple-select"
+                  value={status_delivery}
+                  onChange={(e) => {
+                    searchStatusDelivery(e.target.value as string);
+                  }}
+                >
+                  <MenuItem value="">&nbsp;</MenuItem>
+                  <MenuItem
+                    value="Agendado"
+                    style={{ justifyContent: 'center' }}
+                  >
+                    <FaRegClock className={faRegClock} />
+                  </MenuItem>
+                  <MenuItem
+                    value="Execução"
+                    style={{ justifyContent: 'center' }}
+                  >
+                    <HiOutlineRefresh className={hiRefresh} />
+                  </MenuItem>
+                  <MenuItem
+                    value="Concluído"
+                    style={{ justifyContent: 'center' }}
+                  >
+                    <FaRegCheckCircle className={faGrayCheck} />
+                  </MenuItem>
+                  <MenuItem
+                    value="Entregue"
+                    style={{ justifyContent: 'center' }}
+                  >
+                    <FaCheckCircle className={faGreenCheck} />
+                  </MenuItem>
+                  <MenuItem
+                    value="Pendência"
+                    style={{ justifyContent: 'center' }}
+                  >
+                    <GoAlert className={goAlert} />
+                  </MenuItem>
+                  <MenuItem
+                    value="Cancelado"
+                    style={{ justifyContent: 'center' }}
+                  >
+                    <FaTimes className={faTimes} />
+                  </MenuItem>
+                </Select>
+              </FormControl>
+            </Status>
+          </>
+        )}
+        {(from === 'Comercial' ||
+          from === 'Billing' ||
+          from === 'TechnicalArea') && (
+          <>
+            <CompanyName>
+              <Grid container spacing={1} alignItems="flex-end">
+                <Grid item>
+                  <TextField
+                    id="input-with-icon-grid-company-name"
+                    label="Razão Social"
+                    value={company_name}
+                    onChange={(e) => searchCompanyName(e.target.value)}
+                  />
+                </Grid>
+                <Grid item>
+                  {company_name ? (
+                    <IconButton onClick={() => searchCompanyName('')}>
+                      <Close />
+                    </IconButton>
+                  ) : (
+                    <Search />
+                  )}
+                </Grid>
+              </Grid>
+            </CompanyName>
+            <Product>
+              <Grid container spacing={1} alignItems="flex-end">
+                <Grid item>
+                  <TextField
+                    id="input-with-icon-grid-product"
+                    label="Serviço"
+                    value={products}
+                    onChange={(e) => searchProducts(e.target.value)}
+                  />
+                </Grid>
+                <Grid item>
+                  {products ? (
+                    <IconButton onClick={() => searchProducts('')}>
+                      <Close />
+                    </IconButton>
+                  ) : (
+                    <Search />
+                  )}
+                </Grid>
+              </Grid>
+            </Product>
+          </>
+        )}
         {(from === 'Comercial' || from === 'Billing') && (
           <>
             <Professional>
@@ -379,28 +655,32 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
                 }}
               />
             </Professional>
-            <Value>
-              <Grid container spacing={1} alignItems="flex-end">
-                <Grid item>
-                  <TextField
-                    label="Valor"
-                    value={total_value}
-                    onChange={(e) => searchTotalValue(e.target.value)}
-                    name="formattedValue"
-                    id="formatted-formattedValue-input"
-                  />
+            {(from === 'Comercial' ||
+              from === 'Billing' ||
+              from === 'TechnicalArea') && (
+              <Value>
+                <Grid container spacing={1} alignItems="flex-end">
+                  <Grid item>
+                    <TextField
+                      label="Valor"
+                      value={total_value}
+                      onChange={(e) => searchTotalValue(e.target.value)}
+                      name="formattedValue"
+                      id="formatted-formattedValue-input"
+                    />
+                  </Grid>
+                  <Grid item>
+                    {total_value ? (
+                      <IconButton onClick={() => searchTotalValue('')}>
+                        <Close />
+                      </IconButton>
+                    ) : (
+                      <Search />
+                    )}
+                  </Grid>
                 </Grid>
-                <Grid item>
-                  {total_value ? (
-                    <IconButton onClick={() => searchTotalValue('')}>
-                      <Close />
-                    </IconButton>
-                  ) : (
-                    <Search />
-                  )}
-                </Grid>
-              </Grid>
-            </Value>
+              </Value>
+            )}
           </>
         )}
         {from === 'TechnicalArea' && (

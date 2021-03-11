@@ -89,7 +89,7 @@ export const DateField = styled.div`
   justify-content: flex-start;
 `;
 
-export const ClientName = styled.div`
+export const CompanyName = styled.div`
   flex: 0.8;
   text-align: left;
 

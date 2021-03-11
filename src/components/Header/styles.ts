@@ -28,6 +28,14 @@ export const Container = styled.div<ContainerProps>`
   padding: 0 15px 0 70px;
   justify-content: space-between;
   z-index: 10;
+
+  div {
+    display: flex;
+
+    button + button {
+      margin-left: 15px;
+    }
+  }
 `;
 
 export const Menu = styled.div<MenuProps>`
@@ -63,6 +71,22 @@ export const Menu = styled.div<MenuProps>`
 
     &:hover {
       background: ${shade(0.1, '#c9a100')};
+    }
+  }
+
+  #financial {
+    background: #851800;
+
+    &:hover {
+      background: ${shade(0.1, '#851800')};
+    }
+  }
+
+  #reception {
+    background: #246ce5;
+
+    &:hover {
+      background: ${shade(0.1, '#246CE5')};
     }
   }
 
@@ -102,6 +126,7 @@ export const Menu = styled.div<MenuProps>`
 
       img {
         width: 40px;
+        max-height: 45px;
       }
 
       div {

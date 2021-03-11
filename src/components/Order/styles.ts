@@ -189,7 +189,7 @@ export const DataForm = styled.div`
   }
 `;
 
-export const ClientContainer = styled.div`
+export const CompanyContainer = styled.div`
   width: 50%;
   padding: 15px;
   border-bottom: 1px solid #999;
