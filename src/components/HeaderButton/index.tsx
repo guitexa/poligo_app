@@ -14,6 +14,8 @@ interface HeaderButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   add?: boolean;
   // Controla se o component é exibido ou não
   show: boolean;
+  // Indica que a página que este botão abre está aberta
+  inUse?: boolean;
   // Recebe uma função para executar quando o component receber um click
   handleClick(e: React.MouseEvent<HTMLButtonElement, MouseEvent>): void;
 }
@@ -25,6 +27,7 @@ const HeaderButton: React.FC<HeaderButtonProps> = ({
   color,
   add,
   show,
+  inUse,
   handleClick,
   ...rest
 }) => {
@@ -32,7 +35,12 @@ const HeaderButton: React.FC<HeaderButtonProps> = ({
     <>
       {/* Controla se o component é exibido ou não */}
       {show && (
-        <Container color={color} {...rest} onClick={handleClick}>
+        <Container
+          color={color}
+          {...rest}
+          onClick={inUse ? () => {} : handleClick}
+          inUse={inUse}
+        >
           {/* Se o icon recebido for uma imagem renderiza desta forma */}
           {typeof icon === 'string' ? (
             <img src={icon} alt="" />

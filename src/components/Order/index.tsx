@@ -23,10 +23,10 @@ import {
   FaCheckCircle,
   FaRegClock,
   FaTimes,
-  FaCalendarTimes,
   FaEdit,
   FaTrashAlt,
 } from 'react-icons/fa';
+import { BiCalendarX } from 'react-icons/bi';
 import { GoAlert } from 'react-icons/go';
 import { RiDraftFill } from 'react-icons/ri';
 import { IoMdThumbsDown } from 'react-icons/io';
@@ -55,7 +55,7 @@ import convertToCEI from '../../utils/convertToCEI';
 import { useToast } from '../../hooks/toast';
 import { useOverlap } from '../../hooks/overlap';
 import { useAuth } from '../../hooks/auth';
-import { useSearch } from '../../hooks/search';
+import { useOrdersSearch } from '../../hooks/orders_search';
 import api from '../../services/api';
 
 import MaterialTooltip from '../MaterialTooltip';
@@ -170,7 +170,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   } = useOverlap();
   const { addToast } = useToast();
   const { user, checkToken } = useAuth();
-  const { toUpdateSearchResults } = useSearch();
+  const { toUpdateSearchResults } = useOrdersSearch();
 
   const useStyles = makeStyles((theme: Theme) =>
     createStyles({
@@ -198,18 +198,19 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         fontSize: '15px',
         margin: '0 4px 0 -2px',
       },
-      goAlert: {
-        color: '#FFA602',
-        margin: '0 4px 0 0',
-      },
-      faCalendarTimes: {
+      biCalendarX: {
         color: '#c00000',
-        margin: '0 4px 0 0',
+        fontSize: '16px',
+        margin: '0 4px 0 -1px',
       },
       ioThumbsDown: {
         color: '#c00000',
         fontSize: '15px',
         margin: '0 4px 0 -2px',
+      },
+      goAlert: {
+        color: '#FFA602',
+        margin: '0 4px 0 0',
       },
       hiRefresh: {
         color: '#000',
@@ -226,7 +227,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     riDraftFill,
     faTimes,
     goAlert,
-    faCalendarTimes,
+    biCalendarX,
     ioThumbsDown,
     hiRefresh,
   } = useStyles();
@@ -247,12 +248,16 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
               fontSize: '17px',
             },
             '&[class*="faTimes"]': {
-              margin: '0 10px -1px -4px',
+              margin: '0 10px 0px -4px',
               fontSize: '20px',
             },
             '&[class*="riDraftFill"]': {
               margin: '0 10px -1px -3px',
               fontSize: '17px',
+            },
+            '&[class*="biCalendarX"]': {
+              margin: '0 10px -1px -3px',
+              fontSize: '18px',
             },
             '&[class*="hiRefresh"]': {
               margin: '0 10px -1px -4px',
@@ -270,12 +275,16 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                 fontSize: '17px',
               },
               '&[class*="faTimes"]': {
-                margin: '0 10px -1px -4px',
+                margin: '0 10px 0px -4px',
                 fontSize: '20px',
               },
               '&[class*="riDraftFill"]': {
                 margin: '0 10px -1px -3px',
                 fontSize: '17px',
+              },
+              '&[class*="biCalendarX"]': {
+                margin: '0 10px -1px -3px',
+                fontSize: '18px',
               },
               '&[class*="hiRefresh"]': {
                 margin: '0 10px -1px -4px',
@@ -294,12 +303,16 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                 fontSize: '17px',
               },
               '&[class*="faTimes"]': {
-                margin: '0 10px -1px -4px',
+                margin: '0 10px 0px -4px',
                 fontSize: '20px',
               },
               '&[class*="riDraftFill"]': {
                 margin: '0 10px -1px -3px',
                 fontSize: '17px',
+              },
+              '&[class*="biCalendarX"]': {
+                margin: '0 10px -1px -3px',
+                fontSize: '18px',
               },
               '&[class*="hiRefresh"]': {
                 margin: '0 10px -1px -4px',
@@ -317,12 +330,16 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                   fontSize: '17px',
                 },
                 '&[class*="faTimes"]': {
-                  margin: '0 10px -1px -4px',
+                  margin: '0 10px 0px -4px',
                   fontSize: '20px',
                 },
                 '&[class*="riDraftFill"]': {
                   margin: '0 10px -1px -3px',
                   fontSize: '17px',
+                },
+                '&[class*="biCalendarX"]': {
+                  margin: '0 10px -1px -3px',
+                  fontSize: '18px',
                 },
                 '&[class*="hiRefresh"]': {
                   margin: '0 10px -1px -4px',
@@ -2482,8 +2499,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                     {from !== 'Billing' &&
                       orderData.status_payment === 'Vencido' && (
                         <div className="status">
-                          <FaCalendarTimes
-                            className={`faCalendarTimes ${faCalendarTimes}`}
+                          <BiCalendarX
+                            className={`biCalendarX ${biCalendarX}`}
                           />
                           <span>Vencido</span>
                         </div>
@@ -2551,7 +2568,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                                   orderData.status_order === 'Cancelado'
                                 }
                               >
-                                <FaCalendarTimes className={faCalendarTimes} />
+                                <BiCalendarX className={biCalendarX} />
                                 Vencido
                               </MenuItem>
                             )}

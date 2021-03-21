@@ -2,16 +2,19 @@ import React from 'react';
 
 import { AuthProvider } from './auth';
 import { ToastProvider } from './toast';
-import { SearchProvider } from './search';
+import { OrdersSearchProvider } from './orders_search';
+import { FinancialsSearchProvider } from './financials_search';
 import { OverlapProvider } from './overlap';
 
 const AppProvider: React.FC = ({ children }) => {
   return (
     <AuthProvider>
       <OverlapProvider>
-        <SearchProvider>
-          <ToastProvider>{children}</ToastProvider>
-        </SearchProvider>
+        <FinancialsSearchProvider>
+          <OrdersSearchProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </OrdersSearchProvider>
+        </FinancialsSearchProvider>
       </OverlapProvider>
     </AuthProvider>
   );

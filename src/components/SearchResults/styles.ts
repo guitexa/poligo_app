@@ -3,6 +3,20 @@ import styled from 'styled-components';
 interface ContentProps {
   color: string;
   isCanceled: boolean;
+  dueDate?: string | false;
+}
+
+interface TextFlexProps {
+  flex: string;
+}
+
+interface TextWidthProps {
+  width?: string;
+}
+
+interface ValueProps {
+  width?: string;
+  negative?: boolean;
 }
 
 interface LoadMoreProps {
@@ -31,7 +45,7 @@ export const Container = styled.div`
   background: #fff;
 `;
 
-export const ContentWithErrors = styled.div`
+export const SeparatedContent = styled.div`
   width: 100%;
 
   > div {
@@ -54,9 +68,11 @@ export const RowResult = styled.button<ContentProps>`
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  background: ${({ isCanceled }) => (isCanceled ? '#f00' : 'transparent')};
+  background: ${({ isCanceled, dueDate }) =>
+    isCanceled ? '#f00' : dueDate || 'transparent'};
   color: ${({ isCanceled }) => (isCanceled ? '#fff' : '#000')};
   outline: none;
+  font-weight: ${({ dueDate }) => dueDate && 'bold'};
   border: none;
 
   &:hover {
@@ -89,8 +105,8 @@ export const DateField = styled.div`
   justify-content: flex-start;
 `;
 
-export const CompanyName = styled.div`
-  flex: 0.8;
+export const TextFlex = styled.div<TextFlexProps>`
+  flex: ${({ flex }) => flex};
   text-align: left;
 
   overflow: hidden;
@@ -100,27 +116,17 @@ export const CompanyName = styled.div`
   -webkit-box-orient: vertical;
 `;
 
-export const Product = styled.div`
-  flex: 1;
-  text-align: left;
-
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-`;
-
-export const Professional = styled.div`
-  width: 14%;
+export const TextWidth = styled.div<TextWidthProps>`
+  width: ${({ width }) => width || '14%'};
   max-width: 200px;
   display: flex;
   align-items: center;
   text-align: left;
 `;
 
-export const Value = styled.div`
-  width: 11%;
+export const Value = styled.div<ValueProps>`
+  width: ${({ width }) => width || '11%'};
+  color: ${({ negative }) => (negative ? '#f00' : 'inherit')};
   max-width: 120px;
   display: flex;
   align-items: center;
@@ -164,7 +170,18 @@ export const Status = styled.div<StatusProps>`
     height: 18px;
   }
 
-  .faCalendarTimes,
+  .faCalendarAlt {
+    color: ${({ isCanceled }) => (isCanceled ? '#fff' : '#19518A')};
+    width: 15px;
+    height: 15px;
+  }
+
+  .biCalendarX {
+    color: ${({ isCanceled }) => (isCanceled ? '#fff' : '#c00000')};
+    width: 18px;
+    height: 18px;
+  }
+
   .ioThumbsDown {
     color: ${({ isCanceled }) => (isCanceled ? '#fff' : '#c00000')};
     width: 16px;

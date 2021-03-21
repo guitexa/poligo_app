@@ -1,14 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import 'date-fns';
-import DateFnsUtils from '@date-io/date-fns';
 import {
-  MuiPickersUtilsProvider,
-  KeyboardDatePicker,
-} from '@material-ui/pickers';
-import {
-  TextField,
-  IconButton,
-  Grid,
   InputLabel,
   Select,
   MenuItem,
@@ -19,41 +10,32 @@ import {
   createMuiTheme,
   ThemeProvider,
 } from '@material-ui/core';
-import { Search, Close } from '@material-ui/icons';
-import Autocomplete from '@material-ui/lab/Autocomplete';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import * as themeAugmentation from '@material-ui/lab/themeAugmentation';
-import parse from 'autosuggest-highlight/parse';
-import match from 'autosuggest-highlight/match';
 import {
   FaCheckCircle,
   FaRegCheckCircle,
   FaRegClock,
   FaTimes,
+  FaCalendarAlt,
 } from 'react-icons/fa';
+import { BiCalendarX } from 'react-icons/bi';
 import { GoAlert } from 'react-icons/go';
 import { HiOutlineRefresh } from 'react-icons/hi';
 import { RiDraftFill } from 'react-icons/ri';
 import { IoMdThumbsDown } from 'react-icons/io';
 
 import api from '../../services/api';
-import { useSearch } from '../../hooks/search';
+import { useOrdersSearch } from '../../hooks/orders_search';
+import { useFinancialsSearch } from '../../hooks/financials_search';
 import { useAuth, User } from '../../hooks/auth';
 import { useToast } from '../../hooks/toast';
 
-import { OrderData } from '../SearchResults';
+import Date from './Date';
+import Text from './Text';
+import AutoComplete from './AutoComplete';
+import Number from './Number';
+import { OrderData, BankAccount, FinancialData } from '../SearchResults';
 
-import {
-  Container,
-  Date,
-  CompanyName,
-  CompanySupplier,
-  Product,
-  Professional,
-  Account,
-  Value,
-  Status,
-} from './styles';
+import { Container, Status } from './styles';
 
 interface SearchBarProps {
   // Recebe a cor do módulo a partir de qual módulo este component está sendo executado
@@ -67,67 +49,83 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
   const [sellers, setSellers] = useState<User[]>([]);
   // Armazena os técnicos cadastrados no banco de dados
   const [technicals, setTechnicals] = useState<(User | null | undefined)[]>([]);
+  // Armazena as contas bancárias cadastrados no banco de dados
+  const [bankAccounts, setBankAccounts] = useState<
+    (BankAccount | null | undefined)[]
+  >([]);
 
-  const {
-    approved_at,
-    created_at,
-    delivery_date,
-    company_name,
-    products,
-    seller,
-    technical,
-    total_value,
-    status_order,
-    status_delivery,
-    status_billing,
-    searchApprovedAt,
-    searchCreatedAt,
-    searchDeliveryDate,
-    searchCompanyName,
-    searchProducts,
-    searchSeller,
-    searchTechnical,
-    searchTotalValue,
-    searchStatusOrder,
-    searchStatusDelivery,
-    searchStatusBilling,
-  } = useSearch();
-
+  const ordersSearch = useOrdersSearch();
+  const financialsSearch = useFinancialsSearch();
   const { addToast } = useToast();
-
   const { checkToken } = useAuth();
 
-  // Busca na API os vendedores e técnicos cadastrados nos pedidos
+  // Busca na API, vendedores, técnicos e contas bancárias
   useEffect(() => {
     checkToken();
-    api
-      .get<OrderData[]>('/orders/')
-      .then((response) => {
-        setSellers(
-          response.data
-            .map((e) => e.seller)
-            .filter(
-              (value, index, self) =>
-                value !== null &&
-                index === self.findIndex((t) => t.name === value.name)
-            )
-        );
-        setTechnicals(
-          response.data
-            .map((e) => e.technical)
-            .filter(
-              (value, index, self) =>
-                value !== null &&
-                index === self.findIndex((t) => t?.name === value?.name)
-            )
-        );
-      })
-      .catch(() => {
-        addToast({
-          type: 'error',
-          description: '#0230 - Erro ao carregar os técnicos cadastrados',
+    if (from === 'Comercial' || from === 'Billing') {
+      api
+        .get<OrderData[]>('/orders/')
+        .then((response) => {
+          setSellers(
+            response.data
+              .map((e) => e.seller)
+              .filter(
+                (value, index, self) =>
+                  value !== null &&
+                  index === self.findIndex((t) => t.name === value.name)
+              )
+          );
+        })
+        .catch(() => {
+          addToast({
+            type: 'error',
+            description: '#0230 - Erro ao carregar os vendedores cadastrados',
+          });
         });
-      });
+    }
+    if (from === 'TechnicalArea') {
+      api
+        .get<OrderData[]>('/orders/')
+        .then((response) => {
+          setTechnicals(
+            response.data
+              .map((e) => e.technical)
+              .filter(
+                (value, index, self) =>
+                  value !== null &&
+                  index === self.findIndex((t) => t?.name === value?.name)
+              )
+          );
+        })
+        .catch(() => {
+          addToast({
+            type: 'error',
+            description: '#0230 - Erro ao carregar os técnicos cadastrados',
+          });
+        });
+    }
+    if (from === 'Financial') {
+      api
+        .get<FinancialData[]>('/financials/')
+        .then((response) => {
+          setBankAccounts(
+            response.data
+              .map((e) => e.bank_account)
+              .filter(
+                (value, index, self) =>
+                  value !== null &&
+                  index === self.findIndex((t) => t?.name === value?.name)
+              )
+          );
+        })
+        .catch(() => {
+          addToast({
+            type: 'error',
+            description:
+              '#0230 - Erro ao carregar as contas bancárias cadastrados',
+          });
+        });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -206,12 +204,20 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
       },
       faTimes: {
         color: '#f00',
+        fontSize: '17px',
       },
-      goAlert: {
-        color: '#FFA602',
+      faCalendarAlt: {
+        color: '#19518A',
+      },
+      biCalendarX: {
+        color: '#c00000',
+        fontSize: '17px',
       },
       ioThumbsDown: {
         color: '#c00000',
+      },
+      goAlert: {
+        color: '#FFA602',
       },
       hiRefresh: {
         color: '#000',
@@ -226,656 +232,376 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
     faRegClock,
     riDraftFill,
     faTimes,
+    biCalendarX,
+    faCalendarAlt,
     goAlert,
     ioThumbsDown,
     hiRefresh,
   } = useStyles();
 
   return (
-    <Container color={color}>
-      <ThemeProvider theme={searchBarMaterialTheme}>
-        {from === 'TechnicalArea' && (
-          <Date isFilled={!!approved_at}>
-            <Grid container alignItems="flex-end">
-              <Grid item>
-                <MuiPickersUtilsProvider utils={DateFnsUtils}>
-                  <KeyboardDatePicker
-                    disableToolbar
-                    variant="inline"
-                    autoOk
-                    label="Data"
-                    format="dd/MM/yyyy"
-                    value={approved_at}
-                    onChange={(e) => searchApprovedAt(e)}
-                    KeyboardButtonProps={{
-                      'aria-label': 'change date',
-                    }}
-                  />
-                </MuiPickersUtilsProvider>
-              </Grid>
-              <Grid item>
-                {approved_at && (
-                  <IconButton
-                    className="close-button"
-                    onClick={() => searchApprovedAt(null)}
-                  >
-                    <Close />
-                  </IconButton>
-                )}
-              </Grid>
-            </Grid>
-          </Date>
-        )}
-        {from === 'Financial' && (
-          <>
-            <Date isFilled={!!approved_at}>
-              <Grid container alignItems="flex-end">
-                <Grid item>
-                  <MuiPickersUtilsProvider utils={DateFnsUtils}>
-                    <KeyboardDatePicker
-                      disableToolbar
-                      variant="inline"
-                      autoOk
-                      label="Venc."
-                      format="dd/MM/yyyy"
-                      value={approved_at}
-                      onChange={() => {}}
-                      KeyboardButtonProps={{
-                        'aria-label': 'change date',
-                      }}
-                    />
-                  </MuiPickersUtilsProvider>
-                </Grid>
-                <Grid item>
-                  {approved_at && (
-                    <IconButton className="close-button" onClick={() => {}}>
-                      <Close />
-                    </IconButton>
-                  )}
-                </Grid>
-              </Grid>
-            </Date>
-            <Date isFilled={!!approved_at}>
-              <Grid container alignItems="flex-end">
-                <Grid item>
-                  <MuiPickersUtilsProvider utils={DateFnsUtils}>
-                    <KeyboardDatePicker
-                      disableToolbar
-                      variant="inline"
-                      autoOk
-                      label="Replan."
-                      format="dd/MM/yyyy"
-                      value={approved_at}
-                      onChange={() => {}}
-                      KeyboardButtonProps={{
-                        'aria-label': 'change date',
-                      }}
-                    />
-                  </MuiPickersUtilsProvider>
-                </Grid>
-                <Grid item>
-                  {approved_at && (
-                    <IconButton className="close-button" onClick={() => {}}>
-                      <Close />
-                    </IconButton>
-                  )}
-                </Grid>
-              </Grid>
-            </Date>
-          </>
-        )}
-        {(from === 'Comercial' || from === 'Billing') && (
-          <Date isFilled={!!created_at}>
-            <Grid container alignItems="flex-end">
-              <Grid item>
-                <MuiPickersUtilsProvider utils={DateFnsUtils}>
-                  <KeyboardDatePicker
-                    disableToolbar
-                    variant="inline"
-                    autoOk
-                    label="Data"
-                    format="dd/MM/yyyy"
-                    value={created_at}
-                    onChange={(e) => searchCreatedAt(e)}
-                    KeyboardButtonProps={{
-                      'aria-label': 'change date',
-                    }}
-                  />
-                </MuiPickersUtilsProvider>
-              </Grid>
-              <Grid item>
-                {created_at && (
-                  <IconButton
-                    className="close-button"
-                    onClick={() => searchCreatedAt(null)}
-                  >
-                    <Close />
-                  </IconButton>
-                )}
-              </Grid>
-            </Grid>
-          </Date>
-        )}
-        {from === 'Financial' && (
-          <>
-            <Value>
-              <Grid container spacing={1} alignItems="flex-end">
-                <Grid item>
-                  <TextField
-                    label="Bruto"
-                    value={total_value}
-                    onChange={() => {}}
-                    name="formattedValue"
-                    id="formatted-formattedValue-input"
-                  />
-                </Grid>
-                <Grid item>
-                  {total_value ? (
-                    <IconButton onClick={() => {}}>
-                      <Close />
-                    </IconButton>
-                  ) : (
-                    <Search />
-                  )}
-                </Grid>
-              </Grid>
-            </Value>
-            <Value>
-              <Grid container spacing={1} alignItems="flex-end">
-                <Grid item>
-                  <TextField
-                    label="Líquido"
-                    value={total_value}
-                    onChange={() => {}}
-                    name="formattedValue"
-                    id="formatted-formattedValue-input"
-                  />
-                </Grid>
-                <Grid item>
-                  {total_value ? (
-                    <IconButton onClick={() => {}}>
-                      <Close />
-                    </IconButton>
-                  ) : (
-                    <Search />
-                  )}
-                </Grid>
-              </Grid>
-            </Value>
-          </>
-        )}
-        {from === 'Financial' && (
-          <>
-            <Date isFilled={!!approved_at}>
-              <Grid container alignItems="flex-end">
-                <Grid item>
-                  <MuiPickersUtilsProvider utils={DateFnsUtils}>
-                    <KeyboardDatePicker
-                      disableToolbar
-                      variant="inline"
-                      autoOk
-                      label="Realizado"
-                      format="dd/MM/yyyy"
-                      value={approved_at}
-                      onChange={() => {}}
-                      KeyboardButtonProps={{
-                        'aria-label': 'change date',
-                      }}
-                    />
-                  </MuiPickersUtilsProvider>
-                </Grid>
-                <Grid item>
-                  {approved_at && (
-                    <IconButton className="close-button" onClick={() => {}}>
-                      <Close />
-                    </IconButton>
-                  )}
-                </Grid>
-              </Grid>
-            </Date>
-            <Value>
-              <Grid container spacing={1} alignItems="flex-end">
-                <Grid item>
-                  <TextField
-                    label="Líquido Real."
-                    value={total_value}
-                    onChange={() => {}}
-                    name="formattedValue"
-                    id="formatted-formattedValue-input"
-                  />
-                </Grid>
-                <Grid item>
-                  {total_value ? (
-                    <IconButton onClick={() => {}}>
-                      <Close />
-                    </IconButton>
-                  ) : (
-                    <Search />
-                  )}
-                </Grid>
-              </Grid>
-            </Value>
-            <CompanySupplier>
-              <Grid container spacing={1} alignItems="flex-end">
-                <Grid item>
-                  <TextField
-                    id="input-with-icon-grid-company-name"
-                    label="Cliente/Fornecedor"
-                    value={company_name}
-                    onChange={(e) => searchCompanyName(e.target.value)}
-                  />
-                </Grid>
-                <Grid item>
-                  {company_name ? (
-                    <IconButton onClick={() => searchCompanyName('')}>
-                      <Close />
-                    </IconButton>
-                  ) : (
-                    <Search />
-                  )}
-                </Grid>
-              </Grid>
-            </CompanySupplier>
-            <Account>
-              <Autocomplete
-                openText=""
-                clearText=""
-                clearOnBlur={false}
-                id="input-sellers"
-                options={sellers || []}
-                getOptionLabel={({ name }) => name}
-                onChange={(event, selectedSeller) => {
-                  searchSeller(
-                    selectedSeller !== null ? selectedSeller.name : ''
-                  );
-                }}
-                noOptionsText=""
-                renderInput={(params) => (
-                  <TextField {...params} label="Conta" value={seller} />
-                )}
-                renderOption={({ name }, { inputValue }) => {
-                  const matches = match(name, inputValue);
-                  const parts = parse(name, matches);
-
-                  return (
-                    <div>
-                      {parts.map(({ highlight, text }) => (
-                        <span
-                          key={text}
-                          style={{
-                            fontWeight: highlight ? 700 : 400,
-                          }}
-                        >
-                          {text}
-                        </span>
-                      ))}
-                    </div>
-                  );
-                }}
+    <>
+      {/* Verifica se a origem é Comercial */}
+      {from === 'Comercial' && (
+        <>
+          <Container color={color}>
+            <ThemeProvider theme={searchBarMaterialTheme}>
+              <Date
+                isFilled={!!ordersSearch.created_at}
+                color={color}
+                label="Data"
+                value={ordersSearch.created_at}
+                onChange={ordersSearch.searchCreatedAt}
               />
-            </Account>
-            <Status value={!!status_delivery}>
-              <FormControl className={formControl}>
-                <InputLabel id="demo-simple-select-label">Status</InputLabel>
-                <Select
-                  labelId="demo-simple-select-label"
-                  id="demo-simple-select"
-                  value={status_delivery}
-                  onChange={(e) => {
-                    searchStatusDelivery(e.target.value as string);
-                  }}
-                >
-                  <MenuItem value="">&nbsp;</MenuItem>
-                  <MenuItem
-                    value="Agendado"
-                    style={{ justifyContent: 'center' }}
-                  >
-                    <FaRegClock className={faRegClock} />
-                  </MenuItem>
-                  <MenuItem
-                    value="Execução"
-                    style={{ justifyContent: 'center' }}
-                  >
-                    <HiOutlineRefresh className={hiRefresh} />
-                  </MenuItem>
-                  <MenuItem
-                    value="Concluído"
-                    style={{ justifyContent: 'center' }}
-                  >
-                    <FaRegCheckCircle className={faGrayCheck} />
-                  </MenuItem>
-                  <MenuItem
-                    value="Entregue"
-                    style={{ justifyContent: 'center' }}
-                  >
-                    <FaCheckCircle className={faGreenCheck} />
-                  </MenuItem>
-                  <MenuItem
-                    value="Pendência"
-                    style={{ justifyContent: 'center' }}
-                  >
-                    <GoAlert className={goAlert} />
-                  </MenuItem>
-                  <MenuItem
-                    value="Cancelado"
-                    style={{ justifyContent: 'center' }}
-                  >
-                    <FaTimes className={faTimes} />
-                  </MenuItem>
-                </Select>
-              </FormControl>
-            </Status>
-          </>
-        )}
-        {(from === 'Comercial' ||
-          from === 'Billing' ||
-          from === 'TechnicalArea') && (
-          <>
-            <CompanyName>
-              <Grid container spacing={1} alignItems="flex-end">
-                <Grid item>
-                  <TextField
-                    id="input-with-icon-grid-company-name"
-                    label="Razão Social"
-                    value={company_name}
-                    onChange={(e) => searchCompanyName(e.target.value)}
-                  />
-                </Grid>
-                <Grid item>
-                  {company_name ? (
-                    <IconButton onClick={() => searchCompanyName('')}>
-                      <Close />
-                    </IconButton>
-                  ) : (
-                    <Search />
-                  )}
-                </Grid>
-              </Grid>
-            </CompanyName>
-            <Product>
-              <Grid container spacing={1} alignItems="flex-end">
-                <Grid item>
-                  <TextField
-                    id="input-with-icon-grid-product"
-                    label="Serviço"
-                    value={products}
-                    onChange={(e) => searchProducts(e.target.value)}
-                  />
-                </Grid>
-                <Grid item>
-                  {products ? (
-                    <IconButton onClick={() => searchProducts('')}>
-                      <Close />
-                    </IconButton>
-                  ) : (
-                    <Search />
-                  )}
-                </Grid>
-              </Grid>
-            </Product>
-          </>
-        )}
-        {(from === 'Comercial' || from === 'Billing') && (
-          <>
-            <Professional>
-              <Autocomplete
-                openText=""
-                clearText=""
-                clearOnBlur={false}
-                id="input-sellers"
-                options={sellers || []}
-                getOptionLabel={({ name }) => name}
-                onChange={(event, selectedSeller) => {
-                  searchSeller(
-                    selectedSeller !== null ? selectedSeller.name : ''
-                  );
-                }}
-                noOptionsText=""
-                renderInput={(params) => (
-                  <TextField {...params} label="Vendedor" value={seller} />
-                )}
-                renderOption={({ name }, { inputValue }) => {
-                  const matches = match(name, inputValue);
-                  const parts = parse(name, matches);
-
-                  return (
-                    <div>
-                      {parts.map(({ highlight, text }) => (
-                        <span
-                          key={text}
-                          style={{
-                            fontWeight: highlight ? 700 : 400,
-                          }}
-                        >
-                          {text}
-                        </span>
-                      ))}
-                    </div>
-                  );
-                }}
+              <Text
+                color={color}
+                label="Razão Social"
+                value={ordersSearch.company_name}
+                onChange={ordersSearch.searchCompanyName}
+                flex="0.8"
               />
-            </Professional>
-            {(from === 'Comercial' ||
-              from === 'Billing' ||
-              from === 'TechnicalArea') && (
-              <Value>
-                <Grid container spacing={1} alignItems="flex-end">
-                  <Grid item>
-                    <TextField
-                      label="Valor"
-                      value={total_value}
-                      onChange={(e) => searchTotalValue(e.target.value)}
-                      name="formattedValue"
-                      id="formatted-formattedValue-input"
-                    />
-                  </Grid>
-                  <Grid item>
-                    {total_value ? (
-                      <IconButton onClick={() => searchTotalValue('')}>
-                        <Close />
-                      </IconButton>
-                    ) : (
-                      <Search />
-                    )}
-                  </Grid>
-                </Grid>
-              </Value>
-            )}
-          </>
-        )}
-        {from === 'TechnicalArea' && (
-          <>
-            <Professional>
-              <Autocomplete
-                openText=""
-                clearText=""
-                clearOnBlur={false}
-                id="input-technical"
-                options={technicals || []}
-                getOptionLabel={(e) => e?.name || ''}
-                onChange={(event, selectedTechnical) => {
-                  searchTechnical(selectedTechnical?.name || '');
-                }}
-                noOptionsText=""
-                renderInput={(params) => (
-                  <TextField {...params} label="Executante" value={technical} />
-                )}
-                renderOption={(val, { inputValue }) => {
-                  const matches = match(val?.name || '', inputValue);
-                  const parts = parse(val?.name || '', matches);
-
-                  return (
-                    <div>
-                      {parts.map(({ highlight, text }) => (
-                        <span
-                          key={text}
-                          style={{
-                            fontWeight: highlight ? 700 : 400,
-                          }}
-                        >
-                          {text}
-                        </span>
-                      ))}
-                    </div>
-                  );
-                }}
+              <Text
+                color={color}
+                label="Serviço"
+                value={ordersSearch.products}
+                onChange={ordersSearch.searchProducts}
+                flex="1"
               />
-            </Professional>
-            <Date isFilled={!!delivery_date}>
-              <Grid container alignItems="flex-end">
-                <Grid item>
-                  <MuiPickersUtilsProvider utils={DateFnsUtils}>
-                    <KeyboardDatePicker
-                      disableToolbar
-                      variant="inline"
-                      autoOk
-                      id="date-picker-inline"
-                      label="Entrega"
-                      format="dd/MM/yyyy"
-                      value={delivery_date}
-                      onChange={(e) => searchDeliveryDate(e)}
-                      KeyboardButtonProps={{
-                        'aria-label': 'change date',
-                      }}
-                    />
-                  </MuiPickersUtilsProvider>
-                </Grid>
-                <Grid item>
-                  {delivery_date && (
-                    <IconButton
-                      className="close-button"
-                      onClick={() => searchDeliveryDate(null)}
+              <AutoComplete
+                color={color}
+                label="Vendedor"
+                value={ordersSearch.seller}
+                options={sellers}
+                onChange={ordersSearch.searchSeller}
+              />
+              <Number
+                color={color}
+                label="Valor"
+                value={ordersSearch.total_value}
+                onChange={ordersSearch.searchTotalValue}
+              />
+              <Status value={!!ordersSearch.status_order}>
+                <FormControl className={formControl}>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={ordersSearch.status_order}
+                    onChange={(e) =>
+                      ordersSearch.searchStatusOrder(e.target.value as string)
+                    }
+                  >
+                    <MenuItem value="">&nbsp;</MenuItem>
+                    <MenuItem
+                      value="Rascunho"
+                      style={{ justifyContent: 'center' }}
                     >
-                      <Close />
-                    </IconButton>
-                  )}
-                </Grid>
-              </Grid>
-            </Date>
-            <Status value={!!status_delivery}>
-              <FormControl className={formControl}>
-                <InputLabel id="demo-simple-select-label">Status</InputLabel>
-                <Select
-                  labelId="demo-simple-select-label"
-                  id="demo-simple-select"
-                  value={status_delivery}
-                  onChange={(e) => {
-                    searchStatusDelivery(e.target.value as string);
-                  }}
-                >
-                  <MenuItem value="">&nbsp;</MenuItem>
-                  <MenuItem
-                    value="Agendado"
-                    style={{ justifyContent: 'center' }}
+                      <RiDraftFill className={riDraftFill} />
+                    </MenuItem>
+                    <MenuItem
+                      value="Aguardando"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <FaRegClock className={faRegClock} />
+                    </MenuItem>
+                    <MenuItem
+                      value="Reprovado"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <IoMdThumbsDown className={ioThumbsDown} />
+                    </MenuItem>
+                    <MenuItem
+                      value="Aprovado"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <FaCheckCircle className={faGreenCheck} />
+                    </MenuItem>
+                    <MenuItem
+                      value="Cancelado"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <FaTimes className={faTimes} />
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+              </Status>
+            </ThemeProvider>
+          </Container>
+        </>
+      )}
+      {/* Verifica se a origem é TechnicalArea */}
+      {from === 'TechnicalArea' && (
+        <>
+          <Container color={color}>
+            <ThemeProvider theme={searchBarMaterialTheme}>
+              <Date
+                isFilled={!!ordersSearch.approved_at}
+                color={color}
+                label="Data"
+                value={ordersSearch.approved_at}
+                onChange={ordersSearch.searchApprovedAt}
+              />
+              <Text
+                color={color}
+                label="Razão Social"
+                value={ordersSearch.company_name}
+                onChange={ordersSearch.searchCompanyName}
+                flex="0.8"
+              />
+              <Text
+                color={color}
+                label="Serviço"
+                value={ordersSearch.products}
+                onChange={ordersSearch.searchProducts}
+                flex="1"
+              />
+              <AutoComplete
+                color={color}
+                label="Executante"
+                value={ordersSearch.technical}
+                options={technicals}
+                onChange={ordersSearch.searchTechnical}
+              />
+              <Date
+                isFilled={!!ordersSearch.delivery_date}
+                color={color}
+                label="Entrega"
+                value={ordersSearch.delivery_date}
+                onChange={ordersSearch.searchDeliveryDate}
+              />
+              <Status value={!!ordersSearch.status_delivery}>
+                <FormControl className={formControl}>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={ordersSearch.status_delivery}
+                    onChange={(e) => {
+                      ordersSearch.searchStatusDelivery(
+                        e.target.value as string
+                      );
+                    }}
                   >
-                    <FaRegClock className={faRegClock} />
-                  </MenuItem>
-                  <MenuItem
-                    value="Execução"
-                    style={{ justifyContent: 'center' }}
+                    <MenuItem value="">&nbsp;</MenuItem>
+                    <MenuItem
+                      value="Agendado"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <FaRegClock className={faRegClock} />
+                    </MenuItem>
+                    <MenuItem
+                      value="Execução"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <HiOutlineRefresh className={hiRefresh} />
+                    </MenuItem>
+                    <MenuItem
+                      value="Concluído"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <FaRegCheckCircle className={faGrayCheck} />
+                    </MenuItem>
+                    <MenuItem
+                      value="Entregue"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <FaCheckCircle className={faGreenCheck} />
+                    </MenuItem>
+                    <MenuItem
+                      value="Pendência"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <GoAlert className={goAlert} />
+                    </MenuItem>
+                    <MenuItem
+                      value="Cancelado"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <FaTimes className={faTimes} />
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+              </Status>
+            </ThemeProvider>
+          </Container>
+        </>
+      )}
+      {/* Verifica se a origem é Billing */}
+      {from === 'Billing' && (
+        <>
+          <Container color={color}>
+            <ThemeProvider theme={searchBarMaterialTheme}>
+              <Date
+                isFilled={!!ordersSearch.created_at}
+                color={color}
+                label="Data"
+                value={ordersSearch.created_at}
+                onChange={ordersSearch.searchCreatedAt}
+              />
+              <Text
+                color={color}
+                label="Razão Social"
+                value={ordersSearch.company_name}
+                onChange={ordersSearch.searchCompanyName}
+                flex="0.8"
+              />
+              <Text
+                color={color}
+                label="Serviço"
+                value={ordersSearch.products}
+                onChange={ordersSearch.searchProducts}
+                flex="1"
+              />
+              <AutoComplete
+                color={color}
+                label="Vendedor"
+                value={ordersSearch.seller}
+                options={sellers}
+                onChange={ordersSearch.searchSeller}
+              />
+              <Number
+                color={color}
+                label="Valor"
+                value={ordersSearch.total_value}
+                onChange={ordersSearch.searchTotalValue}
+              />
+              <Status value={!!ordersSearch.status_billing}>
+                <FormControl className={formControl}>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={ordersSearch.status_billing}
+                    onChange={(e) =>
+                      ordersSearch.searchStatusBilling(e.target.value as string)
+                    }
                   >
-                    <HiOutlineRefresh className={hiRefresh} />
-                  </MenuItem>
-                  <MenuItem
-                    value="Concluído"
-                    style={{ justifyContent: 'center' }}
+                    <MenuItem value="">&nbsp;</MenuItem>
+                    <MenuItem
+                      value="Aguardando"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <FaRegClock className={faRegClock} />
+                    </MenuItem>
+                    <MenuItem
+                      value="Faturado"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <FaCheckCircle className={faGreenCheck} />
+                    </MenuItem>
+                    <MenuItem
+                      value="Cancelado"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <FaTimes className={faTimes} />
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+              </Status>
+            </ThemeProvider>
+          </Container>
+        </>
+      )}
+      {/* Verifica se a origem é Financial */}
+      {from === 'Financial' && (
+        <>
+          <Container color={color}>
+            <ThemeProvider theme={searchBarMaterialTheme}>
+              <Date
+                isFilled={!!financialsSearch.due_date}
+                color={color}
+                label="Vencimento"
+                value={financialsSearch.due_date}
+                onChange={financialsSearch.searchDueDate}
+              />
+              <Date
+                isFilled={!!financialsSearch.replan_date}
+                color={color}
+                label="Replan."
+                value={financialsSearch.replan_date}
+                onChange={financialsSearch.searchReplanDate}
+              />
+              <Number
+                color={color}
+                label="Bruto"
+                value={financialsSearch.gross_value}
+                onChange={financialsSearch.searchGrossValue}
+                width="10%"
+              />
+              <Number
+                color={color}
+                label="Líquido"
+                value={financialsSearch.net_value}
+                onChange={financialsSearch.searchNetValue}
+                width="10%"
+              />
+              <Date
+                isFilled={!!financialsSearch.paid_date}
+                color={color}
+                label="Data Real."
+                value={financialsSearch.paid_date}
+                onChange={financialsSearch.searchPaidDate}
+              />
+              <Number
+                color={color}
+                label="Líquido Real."
+                value={financialsSearch.paid_value}
+                onChange={financialsSearch.searchPaidValue}
+                width="10%"
+              />
+              <Text
+                color={color}
+                label="Cliente/Fornecedor"
+                value={financialsSearch.company_name}
+                onChange={financialsSearch.searchCompanyName}
+                flex="1"
+              />
+              <AutoComplete
+                color={color}
+                label="Conta"
+                value={financialsSearch.bank_account}
+                options={bankAccounts}
+                onChange={financialsSearch.searchBankAccount}
+                width="9%"
+              />
+              <Status value={!!financialsSearch.status_financial}>
+                <FormControl className={formControl}>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={financialsSearch.status_financial}
+                    onChange={(e) =>
+                      financialsSearch.searchStatusFinancial(
+                        e.target.value as string
+                      )
+                    }
                   >
-                    <FaRegCheckCircle className={faGrayCheck} />
-                  </MenuItem>
-                  <MenuItem
-                    value="Entregue"
-                    style={{ justifyContent: 'center' }}
-                  >
-                    <FaCheckCircle className={faGreenCheck} />
-                  </MenuItem>
-                  <MenuItem
-                    value="Pendência"
-                    style={{ justifyContent: 'center' }}
-                  >
-                    <GoAlert className={goAlert} />
-                  </MenuItem>
-                  <MenuItem
-                    value="Cancelado"
-                    style={{ justifyContent: 'center' }}
-                  >
-                    <FaTimes className={faTimes} />
-                  </MenuItem>
-                </Select>
-              </FormControl>
-            </Status>
-          </>
-        )}
-        {from === 'Billing' && (
-          <Status value={!!status_billing}>
-            <FormControl className={formControl}>
-              <InputLabel id="demo-simple-select-label">Status</InputLabel>
-              <Select
-                labelId="demo-simple-select-label"
-                id="demo-simple-select"
-                value={status_billing}
-                onChange={(e) => searchStatusBilling(e.target.value as string)}
-              >
-                <MenuItem value="">&nbsp;</MenuItem>
-                <MenuItem
-                  value="Aguardando"
-                  style={{ justifyContent: 'center' }}
-                >
-                  <FaRegClock className={faRegClock} />
-                </MenuItem>
-                <MenuItem value="Faturado" style={{ justifyContent: 'center' }}>
-                  <FaCheckCircle className={faGreenCheck} />
-                </MenuItem>
-                <MenuItem
-                  value="Cancelado"
-                  style={{ justifyContent: 'center' }}
-                >
-                  <FaTimes className={faTimes} />
-                </MenuItem>
-              </Select>
-            </FormControl>
-          </Status>
-        )}
-        {from === 'Comercial' && (
-          <Status value={!!status_order}>
-            <FormControl className={formControl}>
-              <InputLabel id="demo-simple-select-label">Status</InputLabel>
-              <Select
-                labelId="demo-simple-select-label"
-                id="demo-simple-select"
-                value={status_order}
-                onChange={(e) => searchStatusOrder(e.target.value as string)}
-              >
-                <MenuItem value="">&nbsp;</MenuItem>
-                <MenuItem value="Rascunho" style={{ justifyContent: 'center' }}>
-                  <RiDraftFill className={riDraftFill} />
-                </MenuItem>
-                <MenuItem
-                  value="Aguardando"
-                  style={{ justifyContent: 'center' }}
-                >
-                  <FaRegClock className={faRegClock} />
-                </MenuItem>
-                <MenuItem
-                  value="Reprovado"
-                  style={{ justifyContent: 'center' }}
-                >
-                  <IoMdThumbsDown className={ioThumbsDown} />
-                </MenuItem>
-                <MenuItem value="Aprovado" style={{ justifyContent: 'center' }}>
-                  <FaCheckCircle className={faGreenCheck} />
-                </MenuItem>
-                <MenuItem
-                  value="Cancelado"
-                  style={{ justifyContent: 'center' }}
-                >
-                  <FaTimes className={faTimes} />
-                </MenuItem>
-              </Select>
-            </FormControl>
-          </Status>
-        )}
-      </ThemeProvider>
-    </Container>
+                    <MenuItem value="">&nbsp;</MenuItem>
+                    <MenuItem value="Hoje" style={{ justifyContent: 'center' }}>
+                      <GoAlert className={goAlert} />
+                    </MenuItem>
+                    <MenuItem value="Pago" style={{ justifyContent: 'center' }}>
+                      <FaCheckCircle className={faGreenCheck} />
+                    </MenuItem>
+                    <MenuItem
+                      value="Vencido"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <BiCalendarX className={biCalendarX} />
+                    </MenuItem>
+                    <MenuItem
+                      value="Agendado"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <FaCalendarAlt className={faCalendarAlt} />
+                    </MenuItem>
+                    <MenuItem
+                      value="Cancelado"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <FaTimes className={faTimes} />
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+              </Status>
+            </ThemeProvider>
+          </Container>
+        </>
+      )}
+    </>
   );
 };
 

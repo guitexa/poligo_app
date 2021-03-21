@@ -27,6 +27,22 @@ const Loading: React.FC = () => {
     push('/Billing');
   }
 
+  if (user.permissions === 'Financial') {
+    push('/Financial');
+  }
+
+  if (user.permissions === 'Financial') {
+    push('/Invoice');
+  }
+
+  if (user.permissions === 'Financial') {
+    push('/Vault');
+  }
+
+  if (user.permissions === 'Reception') {
+    push('/Reception');
+  }
+
   return (
     <Container>
       <img src={Logotipo} alt="" />

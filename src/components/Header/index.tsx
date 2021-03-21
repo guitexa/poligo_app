@@ -57,13 +57,15 @@ const Header: React.FC<HeaderProps> = ({ title, color, children }) => {
               </div>
             </Link>
           )}
-          {(user.permissions === 'Billing' || user.permissions === 'Admin') && (
+          {(user.permissions === 'Billing' ||
+            user.permissions === 'Financial' ||
+            user.permissions === 'Admin') && (
             <Link id="billing" to="/Billing">
               <img src={IconBilling} alt="" />
               <div>
                 <p className="title">Faturamento</p>
-                <p className="text">Gerencie o</p>
-                <p className="text">faturamento dos</p>
+                <p className="text">Fature os serviços</p>
+                <p className="text">realizados no mês e os</p>
                 <p className="text">pedidos do comercial</p>
               </div>
             </Link>

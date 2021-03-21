@@ -158,6 +158,8 @@ const SignUp: React.FC = () => {
                 <MenuItem value="TechnicalArea">Área Técnica</MenuItem>
                 <MenuItem value="Billing">Faturamento</MenuItem>
                 <MenuItem value="Comercial">Comercial</MenuItem>
+                <MenuItem value="Financial">Financeiro</MenuItem>
+                <MenuItem value="Reception">Atendimento</MenuItem>
                 <MenuItem value="Admin">Administrativo</MenuItem>
               </Select>
             </ThemeProvider>

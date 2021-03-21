@@ -3,7 +3,7 @@ import { useHistory } from 'react-router-dom';
 
 import { useOverlap } from '../../hooks/overlap';
 import { useAuth } from '../../hooks/auth';
-import { useSearch } from '../../hooks/search';
+import { useOrdersSearch } from '../../hooks/orders_search';
 
 import IconContract from '../../assets/icons/icon-contract.svg';
 import Header from '../../components/Header';
@@ -36,7 +36,7 @@ const Comercial: React.FC = () => {
     technical,
     total_value,
     clearAllResults,
-  } = useSearch();
+  } = useOrdersSearch();
 
   // Função executada ao abrir a página
   useEffect(() => {

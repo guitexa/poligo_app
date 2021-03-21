@@ -3,7 +3,7 @@ import { useHistory } from 'react-router-dom';
 
 import { useAuth } from '../../hooks/auth';
 import { useOverlap } from '../../hooks/overlap';
-import { useSearch } from '../../hooks/search';
+import { useOrdersSearch } from '../../hooks/orders_search';
 
 import Header from '../../components/Header';
 import SearchBar from '../../components/SearchBar';
@@ -28,7 +28,7 @@ const Billing: React.FC = () => {
     technical,
     total_value,
     clearAllResults,
-  } = useSearch();
+  } = useOrdersSearch();
 
   // Função executada ao abrir a página
   useEffect(() => {
@@ -36,7 +36,11 @@ const Billing: React.FC = () => {
     checkToken();
 
     // Verifica as permissões do usuário que está tentando acessar esta página
-    if (user.permissions !== 'Billing' && user.permissions !== 'Admin') {
+    if (
+      user.permissions !== 'Billing' &&
+      user.permissions !== 'Financial' &&
+      user.permissions !== 'Admin'
+    ) {
       push('/Loading');
     }
 

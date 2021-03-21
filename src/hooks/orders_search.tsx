@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useState } from 'react';
 
 import { UpdateSearchResultsData } from '../components/SearchResults';
 
-interface SearchContextData {
+interface OrdersSearchContextData {
   approved_at: Date | null;
   created_at: Date | null;
   delivery_date: Date | null;
@@ -30,15 +30,17 @@ interface SearchContextData {
   toUpdateSearchResults(data: UpdateSearchResultsData): void;
 }
 
-const SearchContext = createContext<SearchContextData>({} as SearchContextData);
+const OrdersSearchContext = createContext<OrdersSearchContextData>(
+  {} as OrdersSearchContextData
+);
 
-export const SearchProvider: React.FC = ({ children }) => {
+export const OrdersSearchProvider: React.FC = ({ children }) => {
   // Armazena o valor pesquisado: data de aprovação do pedido
-  const [approved_at, setSelectedApprovedAt] = useState<Date | null>(null);
+  const [approved_at, setApprovedAt] = useState<Date | null>(null);
   // Armazena o valor pesquisado: data de criação do pedido
-  const [created_at, setSelectedCreatedAt] = useState<Date | null>(null);
+  const [created_at, setCreatedAt] = useState<Date | null>(null);
   // Armazena o valor pesquisado: data de entrega do pedido
-  const [delivery_date, setSelectedDeliveryDate] = useState<Date | null>(null);
+  const [delivery_date, setDeliveryDate] = useState<Date | null>(null);
   // Armazena o valor pesquisado: nome do cliente
   const [company_name, setCompanyName] = useState('');
   // Armazena o valor pesquisado: nome do produto
@@ -64,17 +66,17 @@ export const SearchProvider: React.FC = ({ children }) => {
 
   // Função para alterar a pesquisa da data de aprovação do pedido
   const searchApprovedAt = useCallback((date: Date | null): void => {
-    setSelectedApprovedAt(date);
+    setApprovedAt(date);
   }, []);
 
   // Função para alterar a pesquisa da data de criação do pedido
   const searchCreatedAt = useCallback((date: Date | null): void => {
-    setSelectedCreatedAt(date);
+    setCreatedAt(date);
   }, []);
 
   // Função para alterar a pesquisa da data de entrega do pedido
   const searchDeliveryDate = useCallback((date: Date | null): void => {
-    setSelectedDeliveryDate(date);
+    setDeliveryDate(date);
   }, []);
 
   // Função para alterar a pesquisa do nome do cliente
@@ -98,8 +100,8 @@ export const SearchProvider: React.FC = ({ children }) => {
   }, []);
 
   // Função para alterar a pesquisa do valor total do pedido
-  const searchTotalValue = useCallback((val: string): void => {
-    setTotalValue(val.replace(/[^0-9,]/g, ''));
+  const searchTotalValue = useCallback((value: string): void => {
+    setTotalValue(value.replace(/[^0-9,]/g, ''));
   }, []);
 
   // Função para alterar a pesquisa do status do pedido
@@ -192,7 +194,7 @@ export const SearchProvider: React.FC = ({ children }) => {
   }, []);
 
   return (
-    <SearchContext.Provider
+    <OrdersSearchContext.Provider
       value={{
         approved_at,
         created_at,
@@ -222,12 +224,12 @@ export const SearchProvider: React.FC = ({ children }) => {
       }}
     >
       {children}
-    </SearchContext.Provider>
+    </OrdersSearchContext.Provider>
   );
 };
 
-export function useSearch(): SearchContextData {
-  const context = useContext(SearchContext);
+export function useOrdersSearch(): OrdersSearchContextData {
+  const context = useContext(OrdersSearchContext);
 
   return context;
 }

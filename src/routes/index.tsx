@@ -11,6 +11,8 @@ import Comercial from '../pages/Comercial';
 import TechnicalArea from '../pages/TechnicalArea';
 import Billing from '../pages/Billing';
 import Financial from '../pages/Financial';
+import Invoice from '../pages/Invoice';
+import Vault from '../pages/Vault';
 import Reception from '../pages/Reception';
 
 const Routes: React.FC = () => (
@@ -24,6 +26,8 @@ const Routes: React.FC = () => (
     <Route path="/TechnicalArea" component={TechnicalArea} isPrivate />
     <Route path="/Billing" component={Billing} isPrivate />
     <Route path="/Financial" component={Financial} isPrivate />
+    <Route path="/Invoice" component={Invoice} isPrivate />
+    <Route path="/Vault" component={Vault} isPrivate />
     <Route path="/Reception" component={Reception} isPrivate />
   </Switch>
 );
