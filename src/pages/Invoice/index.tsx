@@ -32,8 +32,6 @@ const Invoice: React.FC = () => {
     clearAllResults,
   } = useFinancialsSearch();
 
-  const history = useHistory();
-
   // Função executada ao abrir a página
   useEffect(() => {
     // Verifica se existe um token válido
@@ -73,7 +71,7 @@ const Invoice: React.FC = () => {
       <Header title="Cobrança" color={color}>
         <HeaderButton
           show
-          handleClick={() => history.push('/Vault')}
+          handleClick={() => push('/Vault')}
           type="button"
           icon={IconVault}
           color={color}
@@ -88,7 +86,7 @@ const Invoice: React.FC = () => {
         />
         <HeaderButton
           show
-          handleClick={() => history.push('/Financial')}
+          handleClick={() => push('/Financial')}
           type="button"
           icon={IconFinancial}
           color={color}

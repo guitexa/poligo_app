@@ -27,6 +27,8 @@ interface DataForm {
 }
 
 const SignUp: React.FC = () => {
+  const { push } = useHistory();
+
   const [permission, setPermission] = useState('');
 
   const formRef = useRef<FormHandles>(null);
@@ -34,8 +36,6 @@ const SignUp: React.FC = () => {
   const { checkToken } = useAuth();
 
   const { addToast } = useToast();
-
-  const history = useHistory();
 
   const signUpMaterialTheme = createMuiTheme({
     palette: {
@@ -104,7 +104,7 @@ const SignUp: React.FC = () => {
           description: 'Usuário cadastrado com sucesso!',
         });
 
-        history.push('/');
+        push('/');
       } catch (err) {
         if (err instanceof Yup.ValidationError) {
           const errors = getValidationErrors(err);
@@ -127,7 +127,7 @@ const SignUp: React.FC = () => {
         });
       }
     },
-    [addToast, checkToken, history, permission]
+    [addToast, checkToken, permission, push]
   );
 
   return (

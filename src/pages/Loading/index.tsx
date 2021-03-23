@@ -31,14 +31,6 @@ const Loading: React.FC = () => {
     push('/Financial');
   }
 
-  if (user.permissions === 'Financial') {
-    push('/Invoice');
-  }
-
-  if (user.permissions === 'Financial') {
-    push('/Vault');
-  }
-
   if (user.permissions === 'Reception') {
     push('/Reception');
   }

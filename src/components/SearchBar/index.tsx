@@ -79,7 +79,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
         .catch(() => {
           addToast({
             type: 'error',
-            description: '#0230 - Erro ao carregar os vendedores cadastrados',
+            description: '#0230 - Erro ao carregar informações',
           });
         });
     }
@@ -100,7 +100,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
         .catch(() => {
           addToast({
             type: 'error',
-            description: '#0230 - Erro ao carregar os técnicos cadastrados',
+            description: '#0230 - Erro ao carregar informações',
           });
         });
     }
@@ -121,8 +121,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
         .catch(() => {
           addToast({
             type: 'error',
-            description:
-              '#0230 - Erro ao carregar as contas bancárias cadastrados',
+            description: '#0230 - Erro ao carregar informações',
           });
         });
     }
@@ -380,10 +379,16 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
                   >
                     <MenuItem value="">&nbsp;</MenuItem>
                     <MenuItem
-                      value="Agendado"
+                      value="Aguardando"
                       style={{ justifyContent: 'center' }}
                     >
                       <FaRegClock className={faRegClock} />
+                    </MenuItem>
+                    <MenuItem
+                      value="Agendado"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <FaCalendarAlt className={faCalendarAlt} />
                     </MenuItem>
                     <MenuItem
                       value="Execução"

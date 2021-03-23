@@ -189,7 +189,7 @@ const NewProduct: React.FC<NewProductProps> = ({
       .catch(() => {
         addToast({
           type: 'error',
-          description: '#0180 - Erro ao carregar os serviços cadastradas',
+          description: '#0180 - Erro ao carregar os serviços cadastrados',
         });
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps

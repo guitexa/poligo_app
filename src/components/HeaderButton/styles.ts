@@ -3,6 +3,7 @@ import styled from 'styled-components';
 interface ContainerProps {
   color: string;
   inUse?: boolean;
+  size?: string;
 }
 
 export const Container = styled.button<ContainerProps>`
@@ -20,7 +21,7 @@ export const Container = styled.button<ContainerProps>`
 
   img {
     width: 27px;
-    height: 17px;
+    height: ${({ size }) => size || '17px'};
     filter: ${({ color, inUse }) =>
       inUse && color === '#004A82'
         ? 'brightness(0) saturate(100%) invert(13%) sepia(58%) saturate(5486%) hue-rotate(193deg) brightness(94%) contrast(104%)'

@@ -177,6 +177,10 @@ export const DataForm = styled.div`
       color: #c00000;
     }
 
+    .faCalendarAlt {
+      color: #19518a;
+    }
+
     .ioThumbsDown {
       color: #c00000;
     }

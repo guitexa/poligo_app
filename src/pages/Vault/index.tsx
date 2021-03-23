@@ -30,8 +30,6 @@ const Vault: React.FC = () => {
     clearAllResults,
   } = useFinancialsSearch();
 
-  const history = useHistory();
-
   // Função executada ao abrir a página
   useEffect(() => {
     // Verifica se existe um token válido
@@ -79,14 +77,14 @@ const Vault: React.FC = () => {
         />
         <HeaderButton
           show
-          handleClick={() => history.push('/Invoice')}
+          handleClick={() => push('/Invoice')}
           type="button"
           icon={IconInvoice}
           color={color}
         />
         <HeaderButton
           show
-          handleClick={() => history.push('/Financial')}
+          handleClick={() => push('/Financial')}
           type="button"
           icon={IconFinancial}
           color={color}

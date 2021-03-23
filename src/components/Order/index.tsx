@@ -25,6 +25,7 @@ import {
   FaTimes,
   FaEdit,
   FaTrashAlt,
+  FaCalendarAlt,
 } from 'react-icons/fa';
 import { BiCalendarX } from 'react-icons/bi';
 import { GoAlert } from 'react-icons/go';
@@ -198,6 +199,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         fontSize: '15px',
         margin: '0 4px 0 -2px',
       },
+      faCalendarAlt: {
+        color: '#19518A',
+        margin: '0 4px 0 0',
+      },
       biCalendarX: {
         color: '#c00000',
         fontSize: '16px',
@@ -226,6 +231,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     faRegClock,
     riDraftFill,
     faTimes,
+    faCalendarAlt,
     goAlert,
     biCalendarX,
     ioThumbsDown,
@@ -250,6 +256,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             '&[class*="faTimes"]': {
               margin: '0 10px 0px -4px',
               fontSize: '20px',
+            },
+            '&[class*="faCalendarAlt"]': {
+              margin: '0 10px 0px -4px',
+              fontSize: '17px',
             },
             '&[class*="riDraftFill"]': {
               margin: '0 10px -1px -3px',
@@ -277,6 +287,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
               '&[class*="faTimes"]': {
                 margin: '0 10px 0px -4px',
                 fontSize: '20px',
+              },
+              '&[class*="faCalendarAlt"]': {
+                margin: '0 10px 0px -4px',
+                fontSize: '17px',
               },
               '&[class*="riDraftFill"]': {
                 margin: '0 10px -1px -3px',
@@ -306,6 +320,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                 margin: '0 10px 0px -4px',
                 fontSize: '20px',
               },
+              '&[class*="faCalendarAlt"]': {
+                margin: '0 10px 0px -4px',
+                fontSize: '17px',
+              },
               '&[class*="riDraftFill"]': {
                 margin: '0 10px -1px -3px',
                 fontSize: '17px',
@@ -332,6 +350,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                 '&[class*="faTimes"]': {
                   margin: '0 10px 0px -4px',
                   fontSize: '20px',
+                },
+                '&[class*="faCalendarAlt"]': {
+                  margin: '0 10px 0px -4px',
+                  fontSize: '17px',
                 },
                 '&[class*="riDraftFill"]': {
                   margin: '0 10px -1px -3px',
@@ -476,17 +498,24 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   const updateStatusOrder = useCallback(
     async (e: ChangeEvent<{ value: unknown }>) => {
       if (e.target.value === 'Aprovado') {
-        // Se o valor recebido for 'Aprovado' atualiza também a data de aprovação
+        /**
+         * Se o valor recebido for 'Aprovado' atualiza
+         * a data de aprovação, status_delivery e status_billing
+         */
 
         // Armazena o valor recebido no estado
         orderData.status_order = e.target.value;
         orderData.approved_at = String(new Date(Date.now()));
         orderData.formatted_approved_at = formatToDate(new Date(Date.now()));
+        orderData.status_delivery = 'Aguardando';
+        orderData.status_billing = 'Aguardando';
 
         // Envia atualização para o component searchResults
         toUpdateSearchResults({
           order_id,
           status_order: e.target.value,
+          status_delivery: 'Aguardando',
+          status_billing: 'Aguardando',
         });
 
         // Define que o banco de dados deve ser atualizado
@@ -559,17 +588,17 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         setOrderUpdated(true);
       }
       // Se possui técnico executante verifica se existe valor recebido
-      else if (!e.target.value) {
+      else if (e.target.value === 'Aguardando') {
         // Se não houver valor recebido limpa o status e remove técnico executante
 
         // Armazena o valor recebido no estado
-        orderData.status_delivery = '';
+        orderData.status_delivery = 'Aguardando';
         orderData.technical = undefined;
 
         // Envia atualização para o component searchResults
         toUpdateSearchResults({
           order_id,
-          status_delivery: '',
+          status_delivery: 'Aguardando',
           technical: null,
         });
 
@@ -625,8 +654,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função para atualizar o status do faturamento
   const updateStatusBilling = useCallback(
     async (e: ChangeEvent<{ value: unknown }>) => {
-      // Verifica o valor recebido se é diferente de Faturado
-      if (e.target.value !== 'Faturado' && e.target.value !== 'Cancelado') {
+      // Verifica o valor recebido se é diferente de Cancelado
+      if (e.target.value !== 'Cancelado') {
         // Armazena o valor recebido no estado
         orderData.status_billing = e.target.value;
 
@@ -666,22 +695,6 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
               description: '#0190 - Erro ao atualizar o status do pedido',
             });
           });
-      }
-      // Se o status recebido por Faturado então altera o status_payment para Aguardando
-      else if (e.target.value === 'Faturado') {
-        // Armazena o valor recebido no estado
-        orderData.status_billing = e.target.value;
-        orderData.status_payment = 'Aguardando';
-
-        // Envia atualização para o component searchResults
-        toUpdateSearchResults({
-          order_id,
-          status_billing: e.target.value,
-          status_payment: 'Aguardando',
-        });
-
-        // Define que o banco de dados deve ser atualizado
-        setOrderUpdated(true);
       }
     },
     [addToast, orderData, order_id, toUpdateSearchResults]
@@ -1631,6 +1644,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       if (
         !orderData?.delivery_date &&
         !!orderData?.status_delivery &&
+        orderData?.status_delivery !== 'Aguardando' &&
         orderData?.status_delivery !== 'Cancelado' &&
         orderData?.status_delivery !== 'Pendência'
       ) {
@@ -2195,9 +2209,16 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                       <p />
                     )}
                     {from !== 'TechnicalArea' &&
-                      orderData.status_delivery === 'Agendado' && (
+                      orderData.status_delivery === 'Aguardando' && (
                         <div className="status">
                           <FaRegClock className={faRegClock} />
+                          <span>Aguardando área técnica</span>
+                        </div>
+                      )}
+                    {from !== 'TechnicalArea' &&
+                      orderData.status_delivery === 'Agendado' && (
+                        <div className="status">
+                          <FaCalendarAlt className={faCalendarAlt} />
                           <span>Agendado com o cliente</span>
                         </div>
                       )}
@@ -2255,29 +2276,32 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                               updateStatusDelivery(e);
                             }}
                           >
-                            {(!orderData.status_delivery ||
-                              user.permissions === 'Admin') && (
-                              <MenuItem value="">
-                                -- Selecione um status --
-                              </MenuItem>
-                            )}
+                            <MenuItem
+                              value="Aguardando"
+                              disabled={user.permissions !== 'Admin'}
+                            >
+                              <FaRegClock className={faRegClock} />
+                              Aguardando área técnica
+                            </MenuItem>
                             <MenuItem
                               value="Agendado"
                               disabled={
                                 (!!orderData.status_delivery &&
+                                  orderData.status_delivery !== 'Aguardando' &&
                                   orderData.status_delivery !== 'Pendência' &&
                                   orderData.status_delivery !== 'Agendado' &&
                                   user.permissions !== 'Admin') ||
                                 orderData.status_order === 'Cancelado'
                               }
                             >
-                              <FaRegClock className={faRegClock} />
+                              <FaCalendarAlt className={faCalendarAlt} />
                               Agendado com o cliente
                             </MenuItem>
                             <MenuItem
                               value="Execução"
                               disabled={
                                 (!!orderData.status_delivery &&
+                                  orderData.status_delivery !== 'Aguardando' &&
                                   orderData.status_delivery !== 'Agendado' &&
                                   orderData.status_delivery !== 'Pendência' &&
                                   orderData.status_delivery !== 'Execução' &&
@@ -2292,6 +2316,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                               value="Concluído"
                               disabled={
                                 (!!orderData.status_delivery &&
+                                  orderData.status_delivery !== 'Aguardando' &&
                                   orderData.status_delivery !== 'Agendado' &&
                                   orderData.status_delivery !== 'Execução' &&
                                   orderData.status_delivery !== 'Pendência' &&
@@ -2307,6 +2332,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                               value="Entregue"
                               disabled={
                                 (!!orderData.status_delivery &&
+                                  orderData.status_delivery !== 'Aguardando' &&
                                   orderData.status_delivery !== 'Agendado' &&
                                   orderData.status_delivery !== 'Execução' &&
                                   orderData.status_delivery !== 'Concluído' &&
@@ -2335,6 +2361,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                               value="Cancelado"
                               disabled={
                                 (!!orderData.status_delivery &&
+                                  orderData.status_delivery !== 'Aguardando' &&
                                   orderData.status_delivery !== 'Agendado' &&
                                   orderData.status_delivery !== 'Execução' &&
                                   orderData.status_delivery !== 'Concluído' &&
@@ -2399,7 +2426,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                       orderData.status_billing === 'Aguardando' && (
                         <div className="status">
                           <FaRegClock className={faRegClock} />
-                          <span>Aguardando para Faturar</span>
+                          <span>Aguardando para faturar</span>
                         </div>
                       )}
                     {from !== 'Billing' &&
@@ -2431,23 +2458,12 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                               updateStatusBilling(e);
                             }}
                           >
-                            {(!orderData.status_billing ||
-                              user.permissions === 'Admin') && (
-                              <MenuItem value="">
-                                -- Selecione um status --
-                              </MenuItem>
-                            )}
                             <MenuItem
                               value="Aguardando"
-                              disabled={
-                                (!!orderData.status_billing &&
-                                  orderData.status_billing !== 'Aguardando' &&
-                                  user.permissions !== 'Admin') ||
-                                orderData.status_order === 'Cancelado'
-                              }
+                              disabled={user.permissions !== 'Admin'}
                             >
                               <FaRegClock className={faRegClock} />
-                              Aguardando para Faturar
+                              Aguardando para faturar
                             </MenuItem>
                             <MenuItem
                               value="Faturado"

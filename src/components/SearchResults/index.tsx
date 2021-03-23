@@ -89,7 +89,7 @@ export interface OrderData {
   delivery_date?: string | null;
   formatted_delivery_date?: string;
   status_delivery?:
-    | ''
+    | 'Aguardando'
     | 'Agendado'
     | 'Execução'
     | 'Concluído'
@@ -100,13 +100,7 @@ export interface OrderData {
   payment_way?: string;
   due_date?: string;
   status_billing?: '' | 'Aguardando' | 'Faturado' | 'Cancelado' | unknown;
-  status_payment?:
-    | ''
-    | 'Aguardando'
-    | 'Pago'
-    | 'Vencido'
-    | 'Cancelado'
-    | unknown;
+  status_payment?: 'Aguardando' | 'Pago' | 'Vencido' | 'Cancelado' | unknown;
   created_at: string;
   company: CompanyData;
   seller: User;
@@ -394,7 +388,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
           .catch(() => {
             addToast({
               type: 'error',
-              description: '#0240 - Erro ao carregar os pedidos cadastrados',
+              description: '#0230 - Erro ao carregar informações',
             });
           });
 
@@ -414,7 +408,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
           .catch(() => {
             addToast({
               type: 'error',
-              description: '#0240 - Erro ao carregar os pedidos cadastrados',
+              description: '#0230 - Erro ao carregar informações',
             });
           });
       }
@@ -466,7 +460,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
           .catch(() => {
             addToast({
               type: 'error',
-              description: '#0250 - Erro ao realizar a pesquisa',
+              description: '#0240 - Erro ao realizar a pesquisa',
             });
           });
       }
@@ -504,8 +498,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
           .catch(() => {
             addToast({
               type: 'error',
-              description:
-                '#0240 - Erro ao carregar os lançamentos financeiros cadastrados',
+              description: '#0230 - Erro ao carregar informações',
             });
           });
 
@@ -525,8 +518,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
           .catch(() => {
             addToast({
               type: 'error',
-              description:
-                '#0240 - Erro ao carregar os lançamentos financeiros cadastrados',
+              description: '#0230 - Erro ao carregar informações',
             });
           });
       }
@@ -574,7 +566,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
           .catch(() => {
             addToast({
               type: 'error',
-              description: '#0250 - Erro ao realizar a pesquisa',
+              description: '#0240 - Erro ao realizar a pesquisa',
             });
           });
       }
@@ -724,8 +716,11 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
     if (val === 'Rascunho') {
       return <RiDraftFill className="riDraftFill" />;
     }
-    if (val === 'Aguardando' || val === 'Agendado') {
+    if (val === 'Aguardando') {
       return <FaRegClock className="faRegClock" />;
+    }
+    if (val === 'Agendado') {
+      return <FaCalendarAlt className="faCalendarAlt" />;
     }
     if (val === 'Execução') {
       return <HiOutlineRefresh className="hiRefresh" />;

@@ -16,6 +16,8 @@ interface HeaderButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   show: boolean;
   // Indica que a página que este botão abre está aberta
   inUse?: boolean;
+  // Recebe opcionalmente um tamanho para o ícone
+  size?: string;
   // Recebe uma função para executar quando o component receber um click
   handleClick(e: React.MouseEvent<HTMLButtonElement, MouseEvent>): void;
 }
@@ -28,6 +30,7 @@ const HeaderButton: React.FC<HeaderButtonProps> = ({
   add,
   show,
   inUse,
+  size,
   handleClick,
   ...rest
 }) => {
@@ -40,6 +43,7 @@ const HeaderButton: React.FC<HeaderButtonProps> = ({
           {...rest}
           onClick={inUse ? () => {} : handleClick}
           inUse={inUse}
+          size={size}
         >
           {/* Se o icon recebido for uma imagem renderiza desta forma */}
           {typeof icon === 'string' ? (

@@ -10,6 +10,7 @@ import SignUp from '../pages/SignUp';
 import Comercial from '../pages/Comercial';
 import TechnicalArea from '../pages/TechnicalArea';
 import Billing from '../pages/Billing';
+import BillingInvoice from '../pages/BillingInvoice';
 import Financial from '../pages/Financial';
 import Invoice from '../pages/Invoice';
 import Vault from '../pages/Vault';
@@ -25,6 +26,7 @@ const Routes: React.FC = () => (
     <Route path="/Comercial" component={Comercial} isPrivate />
     <Route path="/TechnicalArea" component={TechnicalArea} isPrivate />
     <Route path="/Billing" component={Billing} isPrivate />
+    <Route path="/BillingInvoice" component={BillingInvoice} isPrivate />
     <Route path="/Financial" component={Financial} isPrivate />
     <Route path="/Invoice" component={Invoice} isPrivate />
     <Route path="/Vault" component={Vault} isPrivate />
