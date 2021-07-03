@@ -1,12 +1,12 @@
 <p align="center">
-    <img alt="POLIGO" src="https://i.imgur.com/QnGTmJV.png" width=60%/>
+    <img alt="POLIGO" src="https://i.imgur.com/sXR5NmF.png" width=60%/>
 </p>
 
 <br />
 
 <p align="center">
   <a href="https://youtu.be/pnWwL9wWrgg" target="_blank">
-    <img alt="Project working" src="https://i.imgur.com/LR8G3K7.png" width="70%" />
+    <img alt="Project working" src="https://i.imgur.com/zHFBeKn.png" width="70%" />
   </a>
 </p>
 
@@ -32,7 +32,7 @@
 
 ## 📜 About the project
 
-This is a private project. The purpose is use it to improve business on [WR Medicina e Segurança do Trabalho](https://www.wrseg.com.br/). However, this project can be commercialized to all occupational safety and health clinicals on Brazil.
+This is a private project. The purpose is use it to improve business on [WR Medicina e Segurança do Trabalho](https://www.wrseg.com.br/). However, this project can be commercialized to all companies that need a system to manage their business.
 
 ## ⚙️ Install and Usage on Localhost
 
