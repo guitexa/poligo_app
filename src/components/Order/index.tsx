@@ -2501,7 +2501,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                       orderData.status_payment === 'Aguardando' && (
                         <div className="status">
                           <FaRegClock className={faRegClock} />
-                          <span>Aguardando Pagamento</span>
+                          <span>Aguardando pagamento</span>
                         </div>
                       )}
                     {from !== 'Billing' && orderData.status_payment === 'Pago' && (
@@ -2557,7 +2557,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                               }
                             >
                               <FaRegClock className={faRegClock} />
-                              Aguardando Pagamento
+                              Aguardando pagamento
                             </MenuItem>
                             <MenuItem
                               value="Pago"
