@@ -309,7 +309,7 @@ export const TitleProductDescription = styled.div`
 `;
 
 export const TitleProductValue = styled.div`
-  width: 15%;
+  width: 10%;
   max-width: 200px;
   text-align: left;
 `;
@@ -375,7 +375,7 @@ export const ProductDescription = styled.button`
 `;
 
 export const ProductValue = styled.div`
-  width: 15%;
+  width: 10%;
   max-width: 200px;
   display: flex;
   justify-content: space-between;
@@ -410,10 +410,6 @@ export const ProductValue = styled.div`
 
     svg {
       color: transparent;
-    }
-
-    .faEdit {
-      width: 23px;
     }
 
     .faTrashAlt {

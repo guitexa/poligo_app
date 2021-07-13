@@ -23,7 +23,6 @@ import {
   FaCheckCircle,
   FaRegClock,
   FaTimes,
-  FaEdit,
   FaTrashAlt,
   FaCalendarAlt,
 } from 'react-icons/fa';
@@ -2795,19 +2794,6 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                             (from === 'Comercial' &&
                               user.permissions === 'Admin')) && (
                             <div>
-                              <button
-                                className="edit-product"
-                                type="button"
-                                onClick={() => handleSelectProduct(product)}
-                              >
-                                <MaterialTooltip
-                                  title="Alterar"
-                                  arrow
-                                  placement="left"
-                                >
-                                  <FaEdit className="faEdit" />
-                                </MaterialTooltip>
-                              </button>
                               <button
                                 className="delete-product"
                                 type="button"
