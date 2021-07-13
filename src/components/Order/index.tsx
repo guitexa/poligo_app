@@ -445,6 +445,11 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           description: '#0170 - Erro ao carregar o pedido',
         });
       });
+
+    toUpdateSearchResults({
+      order_id,
+      update_database: true,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order_id]);
 
@@ -498,10 +503,32 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   const updateStatusOrder = useCallback(
     async (e: ChangeEvent<{ value: unknown }>) => {
       if (e.target.value === 'Aprovado') {
-        /**
-         * Se o valor recebido for 'Aprovado' atualiza
-         * a data de aprovação, status_delivery e status_billing
-         */
+        // Verifica se o pedido possui CNPJ/CPF/CEI
+        if (!orderData.company?.cnpj_cpf) {
+          // Se não possui CNPJ/CPF/CEI define um erro
+          addToast({
+            type: 'error',
+            description:
+              'Não é possível aprovar um pedido sem CNPJ ou CPF ou CEI',
+          });
+
+          companyCnpjCpfRef.current?.setErrors({
+            companyCnpjCpfData: 'CNPJ/CPF/CEI inválido',
+          });
+
+          return;
+        }
+
+        // Verifica se o pedido possui algum serviço cadastrado
+        if (!orderData.orders_products?.length) {
+          // Se não possui serviço define um erro
+          addToast({
+            type: 'error',
+            description: 'Não é possível aprovar um pedido sem serviço',
+          });
+
+          return;
+        }
 
         // Armazena o valor recebido no estado
         orderData.status_order = e.target.value;
@@ -531,11 +558,24 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             // Armazena o valor recebido no estado
             orderData.status_order = e.target.value;
 
+            if (orderData.status_delivery === 'Aguardando') {
+              orderData.status_delivery = '';
+            }
+
+            if (orderData.status_billing === 'Aguardando') {
+              orderData.status_billing = '';
+            }
+
             // Envia atualização para o component searchResults
             toUpdateSearchResults({
               order_id,
               status_order: e.target.value,
+              status_delivery: '',
+              status_billing: '',
             });
+
+            // Define que o banco de dados deve ser atualizado
+            setOrderUpdated(true);
 
             addToast({
               type: 'success',
@@ -1104,11 +1144,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       if (orderData?.company.cnpj_cpf !== clearCompanyCnpjCpfData) {
         // Verifica se o valor recebido é um CNPJ ou CPF válido ou se não possui valor recebido
         if (
-          !clearCompanyCnpjCpfData ||
-          (clearCompanyCnpjCpfData &&
-            !isCNPJ(clearCompanyCnpjCpfData) &&
-            !isCPF(clearCompanyCnpjCpfData) &&
-            !isCEI(clearCompanyCnpjCpfData))
+          clearCompanyCnpjCpfData &&
+          !isCNPJ(clearCompanyCnpjCpfData) &&
+          !isCPF(clearCompanyCnpjCpfData) &&
+          !isCEI(clearCompanyCnpjCpfData)
         ) {
           // Define um erro
           companyCnpjCpfRef.current?.setErrors({
@@ -1139,6 +1178,20 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
               : clearCompanyCnpjCpfData.length === 11
               ? formatToCPF(clearCompanyCnpjCpfData)
               : convertToCEI(clearCompanyCnpjCpfData);
+
+          // Define que o banco de dados deve ser atualizado
+          setCompanyUpdated(true);
+
+          // Limpa os erros
+          companyCnpjCpfRef.current?.setErrors({});
+          setCounterErrors((state) =>
+            state.filter((e) => e !== 'companyCnpjCpf')
+          );
+        }
+        // Verifica se o usuário está limpando o campo
+        else if (!companyCnpjCpfData) {
+          // Armazena o valor recebido no estado
+          orderData.company.cnpj_cpf = '';
 
           // Define que o banco de dados deve ser atualizado
           setCompanyUpdated(true);
@@ -1692,41 +1745,6 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       setCounterErrors((state) => state.filter((e) => e !== 'deliveryDate'));
     }
 
-    // Verifica o módulo que o usuário está acessando esse pedido
-    if (from === 'Comercial') {
-      // Verifica se o pedido possui CNPJ/CPF e status do pedido
-      if (
-        !orderData.company?.cnpj_cpf &&
-        orderData?.status_order === 'Aprovado'
-      ) {
-        // Se não possui CNPJ/CPF e possuir status Aprovado define um erro
-        addToast({
-          type: 'error',
-          description: 'Favor preencher um CNPJ ou CPF',
-        });
-
-        companyCnpjCpfRef.current?.setErrors({
-          companyCnpjCpfData: 'CNPJ/CPF inválido',
-        });
-
-        return;
-      }
-
-      // Verifica se o pedido possui algum serviço e status do pedido
-      if (
-        !orderData.orders_products?.length &&
-        orderData?.status_order === 'Aprovado'
-      ) {
-        // Se não possui serviço e possuir status Aprovado define um erro
-        addToast({
-          type: 'error',
-          description: 'Favor adicionar um serviço',
-        });
-
-        return;
-      }
-    }
-
     if (newOrderOpen) {
       overlapNewOrderOpen(false);
     }
@@ -1772,9 +1790,6 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     counterErrors,
     orderData?.delivery_date,
     orderData.status_delivery,
-    orderData.company?.cnpj_cpf,
-    orderData?.status_order,
-    orderData.orders_products?.length,
     addToast,
     overlapNewOrderOpen,
     orderUpdated,
@@ -1936,12 +1951,48 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                       </>
                     ) : (
                       <>
-                        <p>{orderData.company.name}</p>
-                        <p>{orderData.company.formatted_cnpj_cpf}</p>
-                        <p>{orderData.company.contact_name}</p>
-                        <p>{orderData.company.email}</p>
-                        <p>{orderData.company.formatted_phone}</p>
-                        <p>{orderData.company.formatted_mobile}</p>
+                        <p>
+                          {orderData.company.name ? (
+                            orderData.company.name
+                          ) : (
+                            <br />
+                          )}
+                        </p>
+                        <p>
+                          {orderData.company.formatted_cnpj_cpf ? (
+                            orderData.company.formatted_cnpj_cpf
+                          ) : (
+                            <br />
+                          )}
+                        </p>
+                        <p>
+                          {orderData.company.contact_name ? (
+                            orderData.company.contact_name
+                          ) : (
+                            <br />
+                          )}
+                        </p>
+                        <p>
+                          {orderData.company.email ? (
+                            orderData.company.email
+                          ) : (
+                            <br />
+                          )}
+                        </p>
+                        <p>
+                          {orderData.company.formatted_phone ? (
+                            orderData.company.formatted_phone
+                          ) : (
+                            <br />
+                          )}
+                        </p>
+                        <p>
+                          {orderData.company.formatted_mobile ? (
+                            orderData.company.formatted_mobile
+                          ) : (
+                            <br />
+                          )}
+                        </p>
                       </>
                     )}
                   </DataForm>
@@ -1956,10 +2007,16 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                     <p>Data de aprovação:</p>
                   </TitlesForm>
                   <DataForm>
-                    <p>{orderData.order_number}</p>
-                    <p>{orderData.seller.name}</p>
-                    <p>{from !== 'TechnicalArea' && totalValue}</p>
-                    <p>{orderData.created_at}</p>
+                    <p>
+                      {orderData.order_number ? orderData.order_number : <br />}
+                    </p>
+                    <p>
+                      {orderData.seller.name ? orderData.seller.name : <br />}
+                    </p>
+                    <p>{from !== 'TechnicalArea' ? totalValue : <br />}</p>
+                    <p>
+                      {orderData.created_at ? orderData.created_at : <br />}
+                    </p>
                     {from !== 'Comercial' &&
                       orderData.status_order === 'Rascunho' && (
                         <div className="status">
@@ -2076,8 +2133,11 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                       </Status>
                     )}
                     <p>
-                      {orderData.status_order === 'Aprovado' &&
-                        orderData.formatted_approved_at}
+                      {orderData.status_order === 'Aprovado' ? (
+                        orderData.formatted_approved_at
+                      ) : (
+                        <br />
+                      )}
                     </p>
                   </DataForm>
                 </OrdersProductsContainer>
@@ -2157,27 +2217,81 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                             />
                           )}
                         </Form>
-                        <p>{orderData?.formatted_delivery_date}</p>
+                        <p>
+                          {orderData?.formatted_delivery_date ? (
+                            orderData?.formatted_delivery_date
+                          ) : (
+                            <br />
+                          )}
+                        </p>
                       </>
                     )}
                     {from === 'Comercial' && !!orderData.status_delivery && (
                       <>
-                        <p>{orderData?.delivery_conditions}</p>
-                        <p>{orderData?.formatted_requested_delivery_date}</p>
-                        <p>{orderData?.formatted_delivery_date}</p>
+                        <p>
+                          {orderData?.delivery_conditions ? (
+                            orderData?.delivery_conditions
+                          ) : (
+                            <br />
+                          )}
+                        </p>
+                        <p>
+                          {orderData?.formatted_requested_delivery_date ? (
+                            orderData?.formatted_requested_delivery_date
+                          ) : (
+                            <br />
+                          )}
+                        </p>
+                        <p>
+                          {orderData?.formatted_delivery_date ? (
+                            orderData?.formatted_delivery_date
+                          ) : (
+                            <br />
+                          )}
+                        </p>
                       </>
                     )}
                     {from === 'Billing' && (
                       <>
-                        <p>{orderData?.delivery_conditions}</p>
-                        <p>{orderData?.formatted_requested_delivery_date}</p>
-                        <p>{orderData?.formatted_delivery_date}</p>
+                        <p>
+                          {orderData?.delivery_conditions ? (
+                            orderData?.delivery_conditions
+                          ) : (
+                            <br />
+                          )}
+                        </p>
+                        <p>
+                          {orderData?.formatted_requested_delivery_date ? (
+                            orderData?.formatted_requested_delivery_date
+                          ) : (
+                            <br />
+                          )}
+                        </p>
+                        <p>
+                          {orderData?.formatted_delivery_date ? (
+                            orderData?.formatted_delivery_date
+                          ) : (
+                            <br />
+                          )}
+                        </p>
                       </>
                     )}
                     {from === 'TechnicalArea' && (
                       <>
-                        <p>{orderData?.delivery_conditions}</p>
-                        <p>{orderData?.formatted_requested_delivery_date}</p>
+                        <p>
+                          {orderData?.delivery_conditions ? (
+                            orderData?.delivery_conditions
+                          ) : (
+                            <br />
+                          )}
+                        </p>
+                        <p>
+                          {orderData?.formatted_requested_delivery_date ? (
+                            orderData?.formatted_requested_delivery_date
+                          ) : (
+                            <br />
+                          )}
+                        </p>
                         <Form
                           ref={deliveryDateRef}
                           onSubmit={submitDeliveryDate}
@@ -2206,7 +2320,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                       </>
                     )}
                     {from !== 'TechnicalArea' && !orderData.status_delivery && (
-                      <p />
+                      <p>
+                        <br />
+                      </p>
                     )}
                     {from !== 'TechnicalArea' &&
                       orderData.status_delivery === 'Aguardando' && (
@@ -2411,17 +2527,33 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                       (from !== 'TechnicalArea' &&
                         !!orderData.status_billing)) && (
                       <>
-                        <p>{orderData?.payment_way}</p>
-                        <p>{orderData?.due_date}</p>
+                        <p>
+                          {orderData?.payment_way ? (
+                            orderData?.payment_way
+                          ) : (
+                            <br />
+                          )}
+                        </p>
+                        <p>
+                          {orderData?.due_date ? orderData?.due_date : <br />}
+                        </p>
                       </>
                     )}
                     {from === 'TechnicalArea' && (
                       <>
-                        <p />
-                        <p />
+                        <p>
+                          <br />
+                        </p>
+                        <p>
+                          <br />
+                        </p>
                       </>
                     )}
-                    {from !== 'Billing' && !orderData.status_billing && <p />}
+                    {from !== 'Billing' && !orderData.status_billing && (
+                      <p>
+                        <br />
+                      </p>
+                    )}
                     {from !== 'Billing' &&
                       orderData.status_billing === 'Aguardando' && (
                         <div className="status">
@@ -2496,7 +2628,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                         </FormControl>
                       </Status>
                     )}
-                    {from !== 'Billing' && !orderData.status_payment && <p />}
+                    {from !== 'Billing' && !orderData.status_payment && (
+                      <p>
+                        <p>
+                          <br />
+                        </p>
+                      </p>
+                    )}
                     {from !== 'Billing' &&
                       orderData.status_payment === 'Aguardando' && (
                         <div className="status">

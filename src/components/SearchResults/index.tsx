@@ -123,6 +123,7 @@ export interface UpdateSearchResultsData {
   order_product_delete?: string;
   company_id?: string;
   company_name?: string;
+  update_database?: boolean;
 }
 
 export interface BankAccount {
@@ -183,7 +184,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
 
   const ordersSearch = useOrdersSearch();
   const financialsSearch = useFinancialsSearch();
-  const { orderOpen, overlapOrderOpen, newOrderOpen } = useOverlap();
+  const { orderOpen, overlapOrderOpen } = useOverlap();
   const { user, checkToken } = useAuth();
   const { addToast } = useToast();
 
@@ -341,6 +342,11 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
       // Limpa o estado
       ordersSearch.toUpdateSearchResults({} as UpdateSearchResultsData);
     }
+
+    if (ordersSearch.updateSearchResults.update_database === true) {
+      setUpdateResults(updateResults + 1);
+    }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ordersSearch.updateSearchResults.order_id]);
 
@@ -593,7 +599,6 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
     financialsSearch.company_name,
     financialsSearch.bank_account,
     financialsSearch.status_financial,
-    newOrderOpen,
     take,
     from,
     updateResults,
