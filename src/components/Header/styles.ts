@@ -124,6 +124,7 @@ export const Menu = styled.div<MenuProps>`
       color: #fff;
       transition: 0.2s all;
       border-radius: 0 4px 4px 0;
+      margin: 1px 0;
 
       img {
         width: 40px;
