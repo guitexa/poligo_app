@@ -30,6 +30,7 @@ export const ModalContainer = styled.div`
   top: 50%;
   transform: translate(-50%, -50%);
   padding: 10px 20px 20px 20px;
+  border-radius: 4px;
   display: flex;
   justify-content: center;
   align-items: center;

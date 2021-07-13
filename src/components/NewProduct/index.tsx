@@ -540,7 +540,6 @@ const NewProduct: React.FC<NewProductProps> = ({
                 </Product>
                 <Description>
                   <TextField
-                    id="multiline-flexible"
                     name="descriptionData"
                     placeholder="Descrição do serviço"
                     multiline
@@ -680,7 +679,6 @@ const NewProduct: React.FC<NewProductProps> = ({
                 </Product>
                 <Description>
                   <TextField
-                    id="multiline-flexible"
                     name="descriptionData"
                     placeholder="Descrição do serviço"
                     multiline

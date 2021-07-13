@@ -127,7 +127,6 @@ export const DataForm = styled.div`
   p {
     font-size: 13px;
     line-height: 1.6em;
-    height: 1.6em;
     color: #222;
     flex: 1;
     text-align: left;

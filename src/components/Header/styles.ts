@@ -123,6 +123,7 @@ export const Menu = styled.div<MenuProps>`
       text-decoration: none;
       color: #fff;
       transition: 0.2s all;
+      border-radius: 0 4px 4px 0;
 
       img {
         width: 40px;
@@ -154,6 +155,7 @@ export const Menu = styled.div<MenuProps>`
       opacity: initial;
       outline: none;
       border: none;
+      border-radius: 0 4px 4px 0;
 
       img {
         margin-left: 5px;
