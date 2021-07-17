@@ -24,7 +24,6 @@ export const Background = styled.div`
 
 export const ModalContainer = styled.div`
   position: absolute;
-  width: 60vw;
   background: #ffffff;
   left: 50%;
   top: 50%;
@@ -95,73 +94,10 @@ export const Content = styled.div<ContentProps>`
   }
 `;
 
-export const Product = styled.div`
-  width: 100%;
-
-  .MuiAutocomplete-root {
-    width: 100%;
-  }
-
-  .MuiFormLabel-root.Mui-focused {
-    color: ${({ color }) => color};
-  }
-
-  label {
-    line-height: 0px;
-    margin-left: 2px;
-    font-size: 1rem;
-  }
-
-  .MuiInputLabel-formControl {
-    transform: translate(1px, 15.5px) scale(1);
-  }
-  .MuiInputLabel-shrink {
-    transform: translate(0px, -2px) scale(0.7);
-  }
-
-  .MuiAutocomplete-inputRoot .MuiAutocomplete-input {
-    min-width: 200px;
-  }
-
-  .MuiAutocomplete-endAdornment {
-    top: calc(50% - 14px);
-    margin-right: 2px;
-  }
-
-  .MuiInputBase-input {
-    font-size: 1rem;
-    height: 2em;
-    padding: 0px 30px 0 3px;
-  }
-
-  .MuiAutocomplete-inputRoot[class*='MuiInput-root'] {
-    padding: 0;
-
-    .MuiAutocomplete-input:first-child {
-      padding: 0 0 0 4px;
-      margin-bottom: -1px;
-    }
-  }
-
-  label + .MuiInput-formControl {
-    margin-top: 0;
-  }
-`;
-
-export const Description = styled.div`
-  width: 100%;
-  margin: 10px 0;
-
-  .MuiInputBase-input::placeholder {
-    font-size: 1rem;
-    opacity: 0.6;
-  }
-`;
-
 export const Value = styled.div`
   width: 25%;
   min-width: 100px;
-  margin: 10px 0;
+  margin: 10px 0 20px 0;
   max-width: 150px;
 
   .MuiFormControl-root {
