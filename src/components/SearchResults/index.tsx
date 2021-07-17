@@ -61,6 +61,16 @@ interface ProductData {
   name: string;
 }
 
+// Interface do método de pagamento
+export interface PaymentMethodData {
+  id: string;
+  name: string | unknown;
+  split_max: string;
+  split_interval: string;
+  first_payment: string;
+  interest_rate: string;
+}
+
 // Interface do order_product
 export interface OrderProductData {
   id: string;
@@ -84,6 +94,7 @@ export interface OrderData {
   approved_at?: string | null;
   formatted_approved_at?: string;
   delivery_conditions?: string;
+  technical_obs?: string;
   requested_delivery_date?: string | null;
   formatted_requested_delivery_date?: string;
   delivery_date?: string | null;
@@ -97,8 +108,10 @@ export interface OrderData {
     | 'Pendência'
     | 'Cancelado'
     | unknown;
-  payment_way?: string;
-  due_date?: string;
+  payment_way?: '' | 'À vista' | 'Faturado' | 'Parcelado' | unknown;
+  payment_method?: PaymentMethodData;
+  due_date?: string | null;
+  formatted_due_date?: string;
   status_billing?: '' | 'Aguardando' | 'Faturado' | 'Cancelado' | unknown;
   status_payment?: 'Aguardando' | 'Pago' | 'Vencido' | 'Cancelado' | unknown;
   created_at: string;
@@ -117,6 +130,7 @@ export interface UpdateSearchResultsData {
   status_billing?: string | unknown;
   status_payment?: string | unknown;
   delivery_date?: string | undefined;
+  due_date?: string | undefined;
   technical?: User | null;
   order_product_add?: OrderProductData;
   order_product_update?: OrderProductData;

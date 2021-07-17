@@ -30,10 +30,11 @@ import { BiCalendarX } from 'react-icons/bi';
 import { GoAlert } from 'react-icons/go';
 import { RiDraftFill } from 'react-icons/ri';
 import { IoMdThumbsDown } from 'react-icons/io';
+import { MdOpenInNew } from 'react-icons/md';
 import { HiOutlineRefresh } from 'react-icons/hi';
 import { Form } from '@unform/web';
 import { FormHandles } from '@unform/core';
-import { formatISO, isValid, parseISO } from 'date-fns';
+import { formatISO, isValid, parseISO, isBefore, endOfDay } from 'date-fns';
 import {
   formatToCNPJ,
   formatToCPF,
@@ -60,12 +61,18 @@ import api from '../../services/api';
 
 import MaterialTooltip from '../MaterialTooltip';
 import NewProduct from '../NewProduct';
+import SplitPaymentWay from '../SplitPaymentWay';
 import ProductView from '../ProductView';
 import InputAsText from '../InputAsText';
 import InputAsTextWithMask from '../InputAsTextWithMask';
 import HeaderButton from '../HeaderButton';
 
-import { OrderData, OrderProductData, CompanyData } from '../SearchResults';
+import {
+  OrderData,
+  OrderProductData,
+  CompanyData,
+  PaymentMethodData,
+} from '../SearchResults';
 
 import {
   OrderOverlap,
@@ -90,20 +97,23 @@ import {
   ProductName,
   ProductDescription,
   ProductValue,
+  PaymentWay,
+  PaymentMethod,
 } from './styles';
 
 interface InputData {
-  deliveryConditionsData: string;
-  requestedDeliveryDateData: string;
-  deliveryDateData: string;
-  paymentWayData: string;
-  dueDateData: string;
-  companyNameData: string;
-  companyCnpjCpfData: string;
-  companyNameContactData: string;
-  companyEmailData: string;
-  companyPhoneData: string;
-  companyMobilePhoneData: string;
+  deliveryConditionsData?: string;
+  technicalObsData?: string;
+  requestedDeliveryDateData?: string;
+  deliveryDateData?: string;
+  paymentWayData?: string;
+  dueDateData?: string;
+  companyNameData?: string;
+  companyCnpjCpfData?: string;
+  companyNameContactData?: string;
+  companyEmailData?: string;
+  companyPhoneData?: string;
+  companyMobilePhoneData?: string;
 }
 
 interface OrderProps {
@@ -146,10 +156,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Armazena se existe algum erro em algum campo
   const [counterErrors, setCounterErrors] = useState<string[]>([]);
 
+  // Armazena dos meios de pagamentos cadastrados
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodData[]>([]);
+
   const deliveryConditionsRef = useRef<FormHandles>(null);
+  const technicalObsRef = useRef<FormHandles>(null);
   const requestedDeliveryDateRef = useRef<FormHandles>(null);
   const deliveryDateRef = useRef<FormHandles>(null);
-  const paymentWayRef = useRef<FormHandles>(null);
   const dueDateRef = useRef<FormHandles>(null);
   const companyNameRef = useRef<FormHandles>(null);
   const companyCnpjCpfRef = useRef<FormHandles>(null);
@@ -163,10 +176,12 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     newProductOpen,
     productViewOpen,
     newOrderOpen,
+    splitPaymentWayOpen,
     overlapOrderOpen,
     overlapNewProductOpen,
     overlapProductViewOpen,
     overlapNewOrderOpen,
+    overlapSplitPaymentWayOpen,
   } = useOverlap();
   const { addToast } = useToast();
   const { user, checkToken } = useAuth();
@@ -220,6 +235,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         color: '#000',
         margin: '0 4px 0 0',
       },
+      mdOpenInNew: {
+        color: '#000',
+        fontSize: '15px',
+      },
     })
   );
 
@@ -235,6 +254,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     biCalendarX,
     ioThumbsDown,
     hiRefresh,
+    mdOpenInNew,
   } = useStyles();
 
   const orderMaterialTheme = createMuiTheme({
@@ -389,6 +409,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           created_at,
           requested_delivery_date,
           delivery_date,
+          due_date,
+          payment_method,
           orders_products,
           total_value,
           ...rest
@@ -414,6 +436,11 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             formatted_delivery_date: delivery_date
               ? formatToDate(parseISO(delivery_date))
               : '',
+            due_date,
+            formatted_due_date: due_date
+              ? formatToDate(parseISO(due_date))
+              : '',
+            payment_method,
             company: {
               ...company,
               formatted_cnpj_cpf: company.cnpj_cpf
@@ -497,6 +524,23 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addNewOrderProduct.id]);
+
+  // Função que busca os métodos de pagamento cadastrados no banco de dados
+  useEffect(() => {
+    checkToken();
+    api
+      .get<PaymentMethodData[]>('/payment-methods')
+      .then((response) => {
+        setPaymentMethods(response.data);
+      })
+      .catch(() => {
+        addToast({
+          type: 'error',
+          description:
+            '#0260 - Erro ao carregar os meios de pagamentos cadastrados',
+        });
+      });
+  }, [addToast, checkToken, setPaymentMethods]);
 
   // Função para atualizar o status do pedido e/ou a data de aprovação
   const updateStatusOrder = useCallback(
@@ -609,43 +653,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função para atualizar o status da área técnica e/ou o técnico executante
   const updateStatusDelivery = useCallback(
     async (e: ChangeEvent<{ value: unknown }>) => {
-      if (!orderData.technical) {
-        // Se não possui técnico executante, define o usuário como técnico executante
-
-        // Armazena o valor recebido no estado
-        orderData.status_delivery = e.target.value;
-        orderData.technical = user;
-
-        // Envia atualização para o component searchResults
-        toUpdateSearchResults({
-          order_id,
-          status_delivery: e.target.value,
-          technical: user,
-        });
-
-        // Define que o banco de dados deve ser atualizado
-        setOrderUpdated(true);
-      }
-      // Se possui técnico executante verifica se existe valor recebido
-      else if (e.target.value === 'Aguardando') {
-        // Se não houver valor recebido limpa o status e remove técnico executante
-
-        // Armazena o valor recebido no estado
-        orderData.status_delivery = 'Aguardando';
-        orderData.technical = undefined;
-
-        // Envia atualização para o component searchResults
-        toUpdateSearchResults({
-          order_id,
-          status_delivery: 'Aguardando',
-          technical: null,
-        });
-
-        // Define que o banco de dados deve ser atualizado
-        setOrderUpdated(true);
-      }
       // Se o status for Cancelado vai atualizar a API direto
-      else if (e.target.value === 'Cancelado') {
+      if (e.target.value === 'Cancelado') {
         await api
           .patch<OrderData>(`/orders/${order_id}`, {
             status_delivery: e.target.value,
@@ -672,7 +681,24 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             });
           });
       }
-      // Se houver valor recebido, altera o status e mantem o técnico executante
+      // Verifica se possui técnico executante
+      else if (!orderData.technical) {
+        // Armazena o valor recebido no estado
+        orderData.status_delivery = e.target.value;
+        // Se não possui técnico executante, define o usuário como técnico executante
+        orderData.technical = user;
+
+        // Envia atualização para o component searchResults
+        toUpdateSearchResults({
+          order_id,
+          status_delivery: e.target.value,
+          technical: user,
+        });
+
+        // Define que o banco de dados deve ser atualizado
+        setOrderUpdated(true);
+      }
+      // Se houver técnico cadastrado, altera apenas o status
       else {
         // Armazena o valor recebido no estado
         orderData.status_delivery = e.target.value;
@@ -686,8 +712,63 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         // Define que o banco de dados deve ser atualizado
         setOrderUpdated(true);
       }
+
+      // Verifica o status para definir alertas para preencher a data de entrega
+      if (
+        !orderData?.delivery_date &&
+        e.target.value !== 'Aguardando' &&
+        e.target.value !== 'Cancelado' &&
+        e.target.value !== 'Pendência'
+      ) {
+        // Se não possui data define um erro conforme status
+        if (e.target.value === 'Concluído') {
+          addToast({
+            type: 'warning',
+            description: 'Favor preencher a data de conclusão',
+          });
+
+          deliveryDateRef.current?.setErrors({
+            deliveryDateData: 'Favor preencher a data de conclusão',
+          });
+
+          // Define que possui erros na edição do pedido
+          if (!counterErrors.find((err) => err === 'deliveryDate')) {
+            setCounterErrors((state) => [...state, 'deliveryDate']);
+          }
+        } else if (e.target.value === 'Entregue') {
+          // Se não possui data define um erro conforme status
+          addToast({
+            type: 'warning',
+            description: 'Favor preencher a data de entrega',
+          });
+
+          deliveryDateRef.current?.setErrors({
+            deliveryDateData: 'Favor preencher a data de entrega',
+          });
+
+          // Define que possui erros na edição do pedido
+          if (!counterErrors.find((err) => err === 'deliveryDate')) {
+            setCounterErrors((state) => [...state, 'deliveryDate']);
+          }
+        } else {
+          // Se não possui data e possui status define um erro
+          addToast({
+            type: 'warning',
+            description: 'Favor preencher a data de entrega prevista',
+          });
+
+          deliveryDateRef.current?.setErrors({
+            deliveryDateData: 'Favor preencher a data de entrega prevista',
+          });
+
+          // Define que possui erros na edição do pedido
+          if (!counterErrors.find((err) => err === 'deliveryDate')) {
+            setCounterErrors((state) => [...state, 'deliveryDate']);
+          }
+        }
+      }
     },
-    [addToast, orderData, order_id, toUpdateSearchResults, user]
+    [addToast, counterErrors, orderData, order_id, toUpdateSearchResults, user]
   );
 
   // Função para atualizar o status do faturamento
@@ -698,7 +779,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         // Armazena o valor recebido no estado
         orderData.status_billing = e.target.value;
 
-        // Envia atualização para o component searchResults
+        // // Envia atualização para o component searchResults
         toUpdateSearchResults({
           order_id,
           status_billing: e.target.value,
@@ -790,17 +871,25 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função para atualizar as condições de pagamento
   const submitDeliveryConditions = useCallback(
     ({ deliveryConditionsData }: InputData) => {
-      // Remove espaços em branco no final, no início da string e duplo espaço
-      const clearDeliveryConditionsData = deliveryConditionsData
-        .trimEnd()
-        .trimStart()
-        .split(/\s+/)
-        .join(' ');
+      if (deliveryConditionsData) {
+        // Remove espaços em branco no final, no início da string e duplo espaço
+        const clearDeliveryConditionsData = deliveryConditionsData
+          .trimEnd()
+          .trimStart()
+          .split(/\s+/)
+          .join(' ');
 
-      // Verifica se o valor recebido é diferente do existente
-      if (orderData.delivery_conditions !== clearDeliveryConditionsData) {
+        // Verifica se o valor recebido é diferente do existente
+        if (orderData.delivery_conditions !== clearDeliveryConditionsData) {
+          // Armazena o valor recebido no estado
+          orderData.delivery_conditions = clearDeliveryConditionsData;
+
+          // Define que o banco de dados deve ser atualizado
+          setOrderUpdated(true);
+        }
+      } else {
         // Armazena o valor recebido no estado
-        orderData.delivery_conditions = clearDeliveryConditionsData;
+        orderData.delivery_conditions = '';
 
         // Define que o banco de dados deve ser atualizado
         setOrderUpdated(true);
@@ -840,18 +929,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           // Converte a data para o formato de data do Javascript
           const newRequestedDeliveryDateData = new Date(year, month, day);
 
-          // Converte a data para o formato de data brasileiro
-          const formattedNewRequestedDeliveryDateData = formatToDate(
-            newRequestedDeliveryDateData
-          );
-
           // Verifica se a data recebida é válida
           if (isValid(newRequestedDeliveryDateData)) {
             // Armazena o valor recebido no estado
             orderData.requested_delivery_date = formatISO(
               newRequestedDeliveryDateData
             );
-            orderData.formatted_requested_delivery_date = formattedNewRequestedDeliveryDateData;
+            orderData.formatted_requested_delivery_date = requestedDeliveryDateData;
 
             // Define que o banco de dados deve ser atualizado
             setOrderUpdated(true);
@@ -873,7 +957,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             });
 
             // Define que possui erros na edição do pedido
-            if (!counterErrors.find((e) => e === 'requestedDeliveryDate')) {
+            if (!counterErrors.find((err) => err === 'requestedDeliveryDate')) {
               setCounterErrors((state) => [...state, 'requestedDeliveryDate']);
             }
           }
@@ -932,16 +1016,11 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           // Converte a data para o formato de data do Javascript
           const newDeliveryDateData = new Date(year, month, day);
 
-          // Converte a data para o formato de data brasileiro
-          const formattedNewDeliveryDateData = formatToDate(
-            newDeliveryDateData
-          );
-
           // Verifica se a data recebida é válida
           if (isValid(newDeliveryDateData)) {
             // Armazena o valor recebido no estado
             orderData.delivery_date = formatISO(newDeliveryDateData);
-            orderData.formatted_delivery_date = formattedNewDeliveryDateData;
+            orderData.formatted_delivery_date = deliveryDateData;
 
             // Envia atualização para o component searchResults
             toUpdateSearchResults({
@@ -969,13 +1048,34 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             });
 
             // Define que possui erros na edição do pedido
-
-            if (!counterErrors.find((e) => e === 'deliveryDate')) {
+            if (!counterErrors.find((err) => err === 'deliveryDate')) {
               setCounterErrors((state) => [...state, 'deliveryDate']);
             }
           }
         }
-        // Se não possui valor então remove a data
+        // Se não possui valor verifica o status
+        else if (
+          !!orderData?.status_delivery &&
+          orderData?.status_delivery !== 'Aguardando' &&
+          orderData?.status_delivery !== 'Cancelado' &&
+          orderData?.status_delivery !== 'Pendência'
+        ) {
+          // Se é uma data inválida define um erro
+          deliveryDateRef.current?.setErrors({
+            deliveryDateData: 'Data inválida',
+          });
+
+          addToast({
+            type: 'error',
+            description: 'Data inválida',
+          });
+
+          // Define que possui erros na edição do pedido
+          if (!counterErrors.find((err) => err === 'deliveryDate')) {
+            setCounterErrors((state) => [...state, 'deliveryDate']);
+          }
+        }
+        // De acordo com o status é liberado para remover a data
         else {
           // Limpa o estado
           orderData.delivery_date = null;
@@ -1012,20 +1112,28 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     deliveryDateRef.current?.submitForm();
   }, []);
 
-  // Função para atualizar a forma de pagamento
-  const submitPaymentWay = useCallback(
-    ({ paymentWayData }: InputData) => {
-      // Remove espaços em branco no final, no início da string e duplo espaço
-      const clearPaymentWayData = paymentWayData
-        .trimEnd()
-        .trimStart()
-        .split(/\s+/)
-        .join(' ');
+  // Função para atualizar as observações da área técnica
+  const submitTechnicalObs = useCallback(
+    ({ technicalObsData }: InputData) => {
+      if (technicalObsData) {
+        // Remove espaços em branco no final, no início da string e duplo espaço
+        const clearTechnicalObsData = technicalObsData
+          .trimEnd()
+          .trimStart()
+          .split(/\s+/)
+          .join(' ');
 
-      // Verifica se o valor recebido é diferente do existente
-      if (orderData.payment_way !== clearPaymentWayData) {
+        // Verifica se o valor recebido é diferente do existente
+        if (orderData.technical_obs !== clearTechnicalObsData) {
+          // Armazena o valor recebido no estado
+          orderData.technical_obs = clearTechnicalObsData;
+
+          // Define que o banco de dados deve ser atualizado
+          setOrderUpdated(true);
+        }
+      } else {
         // Armazena o valor recebido no estado
-        orderData.payment_way = clearPaymentWayData;
+        orderData.technical_obs = '';
 
         // Define que o banco de dados deve ser atualizado
         setOrderUpdated(true);
@@ -1034,31 +1142,117 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     [orderData]
   );
 
-  // Função para executar a função submitPaymentWay
-  const onPaymentWaySubmit = useCallback(() => {
-    paymentWayRef.current?.submitForm();
+  // Função para executar a função submitTechnicalObs
+  const onTechnicalObsSubmit = useCallback(() => {
+    technicalObsRef.current?.submitForm();
   }, []);
 
   // Função para atualizar o vencimento
   const submitDueDate = useCallback(
     ({ dueDateData }: InputData) => {
-      // Remove espaços em branco no final, no início da string e duplo espaço
-      const clearDueDateData = dueDateData
-        .trimEnd()
-        .trimStart()
-        .split(/\s+/)
-        .join(' ');
-
       // Verifica se o valor recebido é diferente do existente
-      if (orderData.due_date !== clearDueDateData) {
-        // Armazena o valor recebido no estado
-        orderData.due_date = clearDueDateData;
+      if (orderData.formatted_due_date !== dueDateData) {
+        // Verifica se possui valor recebido
+        if (dueDateData) {
+          // Converte o valor recebido para formato americano
+          const convertedDueDateData = convertDate(dueDateData);
 
-        // Define que o banco de dados deve ser atualizado
-        setOrderUpdated(true);
+          // Separa os valores de ano, mês e dia do valor convertido
+          const year = new Date(convertedDueDateData).getFullYear();
+          const month = new Date(convertedDueDateData).getMonth();
+          const day = new Date(convertedDueDateData).getDate() + 1;
+
+          // Converte a data para o formato de data do Javascript
+          const newDueDateData = new Date(year, month, day);
+
+          // Verifica se a data recebida é menor que hoje
+          if (isBefore(endOfDay(newDueDateData), Date.now())) {
+            dueDateRef.current?.setErrors({
+              dueDateData:
+                'Não é possível definir uma data de vencimento passada',
+            });
+
+            addToast({
+              type: 'error',
+              description:
+                'Não é possível definir uma data de vencimento passada',
+            });
+          }
+
+          // Verifica se a data recebida é válida
+          if (isValid(newDueDateData)) {
+            // Armazena o valor recebido no estado
+            orderData.due_date = formatISO(newDueDateData);
+            orderData.formatted_due_date = dueDateData;
+
+            // Envia atualização para o component searchResults
+            toUpdateSearchResults({
+              order_id,
+              due_date: dueDateData,
+            });
+
+            // Define que o banco de dados deve ser atualizado
+            setOrderUpdated(true);
+
+            // Limpa os erros
+            dueDateRef.current?.setErrors({});
+            setCounterErrors((state) => state.filter((e) => e !== 'dueDate'));
+          } else {
+            // Se é uma data inválida define um erro
+            dueDateRef.current?.setErrors({
+              dueDateData: 'Data inválida',
+            });
+
+            addToast({
+              type: 'error',
+              description: 'Data inválida',
+            });
+
+            // Define que possui erros na edição do pedido
+
+            if (!counterErrors.find((err) => err === 'dueDate')) {
+              setCounterErrors((state) => [...state, 'dueDate']);
+            }
+          }
+        }
+        // Verifica se não possui forma de pagamento para remover a data
+        else if (!orderData?.payment_way) {
+          // Limpa o estado
+          orderData.due_date = null;
+          orderData.formatted_due_date = '';
+
+          // Envia atualização para o component searchResults
+          toUpdateSearchResults({
+            order_id,
+            due_date: '',
+          });
+
+          // Define que o banco de dados deve ser atualizado
+          setOrderUpdated(true);
+
+          // Limpa os erros
+          dueDateRef.current?.setErrors({});
+          setCounterErrors((state) => state.filter((e) => e !== 'dueDate'));
+        } else {
+          // Se possui uma forma de pagamento define um erro
+          dueDateRef.current?.setErrors({
+            dueDateData: 'Data inválida para pagamento à vista',
+          });
+
+          addToast({
+            type: 'error',
+            description: 'Data inválida para pagamento à vista',
+          });
+        }
+      }
+      // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
+      else if (orderData.formatted_due_date === dueDateData) {
+        // Limpa os erros
+        dueDateRef.current?.setErrors({});
+        setCounterErrors((state) => state.filter((e) => e !== 'dueDate'));
       }
     },
-    [orderData]
+    [addToast, counterErrors, orderData, order_id, toUpdateSearchResults]
   );
 
   // Função para executar a função submitDueDate
@@ -1066,37 +1260,131 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     dueDateRef.current?.submitForm();
   }, []);
 
+  // Função para atualizar a forma de pagamento
+  const updatePaymentWay = useCallback(
+    (e: ChangeEvent<{ value: unknown }>) => {
+      // Verifica se está no módulo Comercial e se tem permissão para alterar
+      if (
+        ((from === 'Comercial' &&
+          !orderData.status_billing &&
+          !orderData.status_payment) ||
+          (from === 'Comercial' && user.permissions === 'Admin')) &&
+        e.target.value === 'À vista'
+      ) {
+        // Envia a data de hoje como sugestão inicial
+        submitDueDate({
+          dueDateData: formatToDate(new Date(Date.now())),
+        });
+      } else if (
+        ((from === 'Comercial' &&
+          !orderData.status_billing &&
+          !orderData.status_payment) ||
+          (from === 'Comercial' && user.permissions === 'Admin')) &&
+        e.target.value === 'Faturado'
+      ) {
+        // Define a data do próximo vencimento conforme cadastro do cliente
+        // Armazena o valor recebido no estado
+        orderData.due_date = formatISO(new Date(2300, 1, 1));
+        orderData.formatted_due_date = '01/01/2300';
+      } else if (
+        ((from === 'Comercial' &&
+          !orderData.status_billing &&
+          !orderData.status_payment) ||
+          (from === 'Comercial' && user.permissions === 'Admin')) &&
+        e.target.value === 'Parcelado'
+      ) {
+        overlapSplitPaymentWayOpen(!splitPaymentWayOpen);
+        // Define a data recebida na tela de parcelamento
+        // Armazena o valor recebido no estado
+        orderData.due_date = formatISO(new Date(2500, 1, 1));
+        orderData.formatted_due_date = '11/11/2500';
+      } else if (
+        ((from === 'Comercial' &&
+          !orderData.status_billing &&
+          !orderData.status_payment) ||
+          (from === 'Comercial' && user.permissions === 'Admin')) &&
+        !e.target.value
+      ) {
+        // Limpa o estado
+        orderData.due_date = null;
+        orderData.formatted_due_date = '';
+      } else {
+        // overlapSplitPaymentWayViewOpen(!splitPaymentWayViewOpen);
+      }
+      // Armazena o valor recebido no estado
+      orderData.payment_way = e.target.value;
+
+      toUpdateSearchResults({
+        order_id,
+      });
+
+      // Define que o banco de dados deve ser atualizado
+      setOrderUpdated(true);
+    },
+    [
+      from,
+      orderData,
+      order_id,
+      overlapSplitPaymentWayOpen,
+      splitPaymentWayOpen,
+      submitDueDate,
+      toUpdateSearchResults,
+      user.permissions,
+    ]
+  );
+
+  // console.log(orderData.payment_method && orderData.payment_method);
+
+  // Função para atualizar o meio de pagamento
+  const handleSelectPaymentMethod = useCallback(
+    (e: ChangeEvent<{ value: unknown }>) => {
+      // if (orderData.payment_method) {
+      // Verifica se está no módulo Comercial e se tem permissão para alterar
+      if (
+        (from === 'Comercial' &&
+          !orderData.status_billing &&
+          !orderData.status_payment) ||
+        (from === 'Comercial' && user.permissions === 'Admin')
+      ) {
+        const [payMethod] = paymentMethods.filter(
+          (item) => item.id === e.target.value
+        );
+
+        // Armazena o valor recebido no estado
+        orderData.payment_method = payMethod;
+
+        toUpdateSearchResults({
+          order_id,
+        });
+
+        // Define que o banco de dados deve ser atualizado
+        setOrderUpdated(true);
+      }
+      // }
+    },
+    [
+      from,
+      orderData,
+      order_id,
+      paymentMethods,
+      toUpdateSearchResults,
+      user.permissions,
+    ]
+  );
+
   // Função para atualizar o nome da empresa
   const submitCompanyName = useCallback(
     ({ companyNameData }: InputData) => {
-      // Remove espaços em branco no final, no início da string e duplo espaço
-      const clearCompanyNameData = companyNameData
-        .trimEnd()
-        .trimStart()
-        .split(/\s+/)
-        .join(' ');
+      if (companyNameData) {
+        // Remove espaços em branco no final, no início da string e duplo espaço
+        const clearCompanyNameData = companyNameData
+          .trimEnd()
+          .trimStart()
+          .split(/\s+/)
+          .join(' ');
 
-      // Verifica se o valor recebido é diferente do existente
-      if (orderData?.company.name !== clearCompanyNameData) {
-        // Verifica se o valor recebido é um nome válido
-        if (!clearCompanyNameData) {
-          // Define um erro
-          companyNameRef.current?.setErrors({
-            companyNameData: 'Favor digitar um nome válido',
-          });
-
-          // Define que possui um erro na edição do cliente
-          if (!counterErrors.find((e) => e === 'companyName')) {
-            setCounterErrors((state) => [...state, 'companyName']);
-          }
-
-          addToast({
-            type: 'error',
-            description: 'Favor digitar um nome válido',
-          });
-        }
-        // Se houver nome de cliente válido o valor será atualizado
-        else {
+        // Verifica se o valor recebido é diferente do existente
+        if (orderData?.company.name !== clearCompanyNameData) {
           // Armazena o valor recebido no estado
           orderData.company.name = clearCompanyNameData;
 
@@ -1114,12 +1402,28 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           companyNameRef.current?.setErrors({});
           setCounterErrors((state) => state.filter((e) => e !== 'companyName'));
         }
+        // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
+        else if (orderData?.company.name === clearCompanyNameData) {
+          // Limpa os erros
+          companyNameRef.current?.setErrors({});
+          setCounterErrors((state) => state.filter((e) => e !== 'companyName'));
+        }
       }
-      // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
-      else if (orderData?.company.name === clearCompanyNameData) {
-        // Limpa os erros
-        companyNameRef.current?.setErrors({});
-        setCounterErrors((state) => state.filter((e) => e !== 'companyName'));
+      // Se não houver valor recebido será definido um erro
+      else {
+        companyNameRef.current?.setErrors({
+          companyNameData: 'Favor digitar um nome válido',
+        });
+
+        // Define que possui um erro na edição do cliente
+        if (!counterErrors.find((err) => err === 'companyName')) {
+          setCounterErrors((state) => [...state, 'companyName']);
+        }
+
+        addToast({
+          type: 'error',
+          description: 'Favor digitar um nome válido',
+        });
       }
     },
     [addToast, counterErrors, orderData, order_id, toUpdateSearchResults]
@@ -1130,71 +1434,66 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     companyNameRef.current?.submitForm();
   }, []);
 
-  // Função para atualizar o CNPJ/CPF da empresa
+  // Função para atualizar o CNPJ/CPF/CEI da empresa
   const submitCompanyCnpjCpf = useCallback(
     ({ companyCnpjCpfData }: InputData) => {
-      // Remove os caracteres especiais do valor recebido
-      const clearCompanyCnpjCpfData = companyCnpjCpfData
-        .replace(/[^\w\s]/gi, '')
-        .trimEnd()
-        .trimStart();
+      if (companyCnpjCpfData) {
+        // Remove os caracteres especiais do valor recebido
+        const clearCompanyCnpjCpfData = companyCnpjCpfData
+          .replace(/[^\w\s]/gi, '')
+          .trimEnd()
+          .trimStart();
 
-      // Verifica se o valor recebido é diferente do existente
-      if (orderData?.company.cnpj_cpf !== clearCompanyCnpjCpfData) {
-        // Verifica se o valor recebido é um CNPJ ou CPF válido ou se não possui valor recebido
-        if (
-          clearCompanyCnpjCpfData &&
-          !isCNPJ(clearCompanyCnpjCpfData) &&
-          !isCPF(clearCompanyCnpjCpfData) &&
-          !isCEI(clearCompanyCnpjCpfData)
-        ) {
-          // Define um erro
-          companyCnpjCpfRef.current?.setErrors({
-            companyCnpjCpfData: 'Favor digitar um CPF ou CNPJ válido',
-          });
+        // Verifica se o valor recebido é diferente do existente
+        if (orderData?.company.cnpj_cpf !== clearCompanyCnpjCpfData) {
+          // Verifica se o valor recebido é válido
+          if (
+            !isCNPJ(clearCompanyCnpjCpfData) &&
+            !isCPF(clearCompanyCnpjCpfData) &&
+            !isCEI(clearCompanyCnpjCpfData)
+          ) {
+            // Define um erro
+            companyCnpjCpfRef.current?.setErrors({
+              companyCnpjCpfData: 'Favor digitar um CNPJ ou CPF ou CEI válido',
+            });
 
-          // Define que possui um erro na edição do cliente
-          if (!counterErrors.find((e) => e === 'companyCnpjCpf')) {
-            setCounterErrors((state) => [...state, 'companyCnpjCpf']);
+            // Define que possui um erro na edição do cliente
+            if (!counterErrors.find((err) => err === 'companyCnpjCpf')) {
+              setCounterErrors((state) => [...state, 'companyCnpjCpf']);
+            }
+
+            addToast({
+              type: 'error',
+              description: 'Favor digitar um CNPJ ou CPF ou CEI válido',
+            });
           }
+          // Se houver CNPJ ou CPF ou CEI válido os valores serão atualizados
+          else if (
+            isCNPJ(clearCompanyCnpjCpfData) ||
+            isCPF(clearCompanyCnpjCpfData) ||
+            isCEI(clearCompanyCnpjCpfData)
+          ) {
+            // Armazena o valor recebido no estado
+            orderData.company.cnpj_cpf = clearCompanyCnpjCpfData;
+            orderData.company.formatted_cnpj_cpf =
+              clearCompanyCnpjCpfData.length === 14
+                ? formatToCNPJ(clearCompanyCnpjCpfData)
+                : clearCompanyCnpjCpfData.length === 11
+                ? formatToCPF(clearCompanyCnpjCpfData)
+                : convertToCEI(clearCompanyCnpjCpfData);
 
-          addToast({
-            type: 'error',
-            description: 'Favor digitar um CPF ou CNPJ válido',
-          });
+            // Define que o banco de dados deve ser atualizado
+            setCompanyUpdated(true);
+
+            // Limpa os erros
+            companyCnpjCpfRef.current?.setErrors({});
+            setCounterErrors((state) =>
+              state.filter((e) => e !== 'companyCnpjCpf')
+            );
+          }
         }
-        // Se houver CNPJ ou CPF válido os valores serão atualizados
-        else if (
-          isCNPJ(clearCompanyCnpjCpfData) ||
-          isCPF(clearCompanyCnpjCpfData) ||
-          isCEI(clearCompanyCnpjCpfData)
-        ) {
-          // Armazena o valor recebido no estado
-          orderData.company.cnpj_cpf = clearCompanyCnpjCpfData;
-          orderData.company.formatted_cnpj_cpf =
-            clearCompanyCnpjCpfData.length === 14
-              ? formatToCNPJ(clearCompanyCnpjCpfData)
-              : clearCompanyCnpjCpfData.length === 11
-              ? formatToCPF(clearCompanyCnpjCpfData)
-              : convertToCEI(clearCompanyCnpjCpfData);
-
-          // Define que o banco de dados deve ser atualizado
-          setCompanyUpdated(true);
-
-          // Limpa os erros
-          companyCnpjCpfRef.current?.setErrors({});
-          setCounterErrors((state) =>
-            state.filter((e) => e !== 'companyCnpjCpf')
-          );
-        }
-        // Verifica se o usuário está limpando o campo
-        else if (!companyCnpjCpfData) {
-          // Armazena o valor recebido no estado
-          orderData.company.cnpj_cpf = '';
-
-          // Define que o banco de dados deve ser atualizado
-          setCompanyUpdated(true);
-
+        // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
+        else if (orderData?.company.cnpj_cpf) {
           // Limpa os erros
           companyCnpjCpfRef.current?.setErrors({});
           setCounterErrors((state) =>
@@ -1202,13 +1501,22 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           );
         }
       }
-      // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
-      else if (orderData?.company.cnpj_cpf === clearCompanyCnpjCpfData) {
-        // Limpa os erros
-        companyCnpjCpfRef.current?.setErrors({});
-        setCounterErrors((state) =>
-          state.filter((e) => e !== 'companyCnpjCpf')
-        );
+      // Verifica se o usuário está limpando o campo
+      else {
+        // Define um erro
+        companyCnpjCpfRef.current?.setErrors({
+          companyCnpjCpfData: 'Favor digitar um CNPJ ou CPF ou CEI válido',
+        });
+
+        // Define que possui um erro na edição do cliente
+        if (!counterErrors.find((err) => err === 'companyCnpjCpf')) {
+          setCounterErrors((state) => [...state, 'companyCnpjCpf']);
+        }
+
+        addToast({
+          type: 'error',
+          description: 'Favor digitar um CNPJ ou CPF ou CEI válido',
+        });
       }
     },
     [addToast, counterErrors, orderData]
@@ -1222,33 +1530,16 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função para atualizar o nome do responsável pela empresa
   const submitCompanyNameContact = useCallback(
     ({ companyNameContactData }: InputData) => {
-      // Remove espaços em branco no final, no início da string e duplo espaço
-      const clearCompanyNameContactData = companyNameContactData
-        .trimEnd()
-        .trimStart()
-        .split(/\s+/)
-        .join(' ');
+      if (companyNameContactData) {
+        // Remove espaços em branco no final, no início da string e duplo espaço
+        const clearCompanyNameContactData = companyNameContactData
+          .trimEnd()
+          .trimStart()
+          .split(/\s+/)
+          .join(' ');
 
-      // Verifica se o valor recebido é diferente do existente
-      if (orderData?.company.contact_name !== clearCompanyNameContactData) {
-        // Verifica se o valor recebido é um nome de responsável válido
-        if (!clearCompanyNameContactData) {
-          companyNameContactRef.current?.setErrors({
-            companyNameContactData: 'Favor digitar um nome válido',
-          });
-
-          // Define que possui um erro na edição do cliente
-          if (!counterErrors.find((e) => e === 'companyNameContact')) {
-            setCounterErrors((state) => [...state, 'companyNameContact']);
-          }
-
-          addToast({
-            type: 'error',
-            description: 'Favor digitar um nome válido',
-          });
-        }
-        // Se houver nome de responsável válido o valor será atualizado
-        else {
+        // Verifica se o valor recebido é diferente do existente
+        if (orderData?.company.contact_name !== clearCompanyNameContactData) {
           // Armazena o valor recebido no estado
           orderData.company.contact_name = formatToCapitalized(
             clearCompanyNameContactData,
@@ -1266,16 +1557,32 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             state.filter((e) => e !== 'companyNameContact')
           );
         }
+        // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
+        else if (
+          orderData?.company.contact_name === clearCompanyNameContactData
+        ) {
+          // Limpa os erros
+          companyNameContactRef.current?.setErrors({});
+          setCounterErrors((state) =>
+            state.filter((e) => e !== 'companyNameContact')
+          );
+        }
       }
-      // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
-      else if (
-        orderData?.company.contact_name === clearCompanyNameContactData
-      ) {
-        // Limpa os erros
-        companyNameContactRef.current?.setErrors({});
-        setCounterErrors((state) =>
-          state.filter((e) => e !== 'companyNameContact')
-        );
+      // Se não houver valor recebido será definido um erro
+      else {
+        companyNameContactRef.current?.setErrors({
+          companyNameContactData: 'Favor digitar um nome válido',
+        });
+
+        // Define que possui um erro na edição do cliente
+        if (!counterErrors.find((err) => err === 'companyNameContact')) {
+          setCounterErrors((state) => [...state, 'companyNameContact']);
+        }
+
+        addToast({
+          type: 'error',
+          description: 'Favor digitar um nome válido',
+        });
       }
     },
     [addToast, counterErrors, orderData]
@@ -1289,42 +1596,54 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função para atualizar o e-mail da empresa
   const submitCompanyEmail = useCallback(
     ({ companyEmailData }: InputData) => {
-      // Remove espaços em branco no final, no início da string e duplo espaço
-      const clearCompanyEmailData = companyEmailData
-        .trimEnd()
-        .trimStart()
-        .split(/\s+/)
-        .join(' ');
+      if (companyEmailData) {
+        // Remove espaços em branco no final, no início da string e duplo espaço
+        const clearCompanyEmailData = companyEmailData
+          .trimEnd()
+          .trimStart()
+          .split(/\s+/)
+          .join(' ');
 
-      // Verifica se o valor recebido é diferente do existente
-      if (
-        orderData?.company.email !== clearCompanyEmailData.toLocaleLowerCase()
-      ) {
-        // Verifica se o valor recebido é um e-mail válido
-        if (!isEmail(clearCompanyEmailData) || !clearCompanyEmailData) {
-          // Define um erro
-          companyEmailRef.current?.setErrors({
-            companyEmailData: 'Favor digitar um e-mail válido',
-          });
+        // Verifica se o valor recebido é diferente do existente
+        if (
+          orderData?.company.email !== clearCompanyEmailData.toLocaleLowerCase()
+        ) {
+          // Verifica se o valor recebido é um e-mail válido
+          if (!isEmail(clearCompanyEmailData)) {
+            // Define um erro
+            companyEmailRef.current?.setErrors({
+              companyEmailData: 'Favor digitar um e-mail válido',
+            });
 
-          // Define que possui um erro na edição do cliente
-          if (!counterErrors.find((e) => e === 'companyEmail')) {
-            setCounterErrors((state) => [...state, 'companyEmail']);
+            // Define que possui um erro na edição do cliente
+            if (!counterErrors.find((err) => err === 'companyEmail')) {
+              setCounterErrors((state) => [...state, 'companyEmail']);
+            }
+
+            addToast({
+              type: 'error',
+              description: 'Favor digitar um e-mail válido',
+            });
           }
+          // Se houver e-mail válido o valor será atualizado
+          else {
+            // Armazena o valor recebido no estado
+            orderData.company.email = clearCompanyEmailData.toLocaleLowerCase();
 
-          addToast({
-            type: 'error',
-            description: 'Favor digitar um e-mail válido',
-          });
+            // Define que o banco de dados deve ser atualizado
+            setCompanyUpdated(true);
+
+            // Limpa os erros
+            companyEmailRef.current?.setErrors({});
+            setCounterErrors((state) =>
+              state.filter((e) => e !== 'companyEmail')
+            );
+          }
         }
-        // Se houver e-mail válido o valor será atualizado
-        else {
-          // Armazena o valor recebido no estado
-          orderData.company.email = clearCompanyEmailData.toLocaleLowerCase();
-
-          // Define que o banco de dados deve ser atualizado
-          setCompanyUpdated(true);
-
+        // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
+        else if (
+          orderData?.company.email === clearCompanyEmailData.toLocaleLowerCase()
+        ) {
           // Limpa os erros
           companyEmailRef.current?.setErrors({});
           setCounterErrors((state) =>
@@ -1332,13 +1651,21 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           );
         }
       }
-      // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
-      else if (
-        orderData?.company.email === clearCompanyEmailData.toLocaleLowerCase()
-      ) {
-        // Limpa os erros
-        companyEmailRef.current?.setErrors({});
-        setCounterErrors((state) => state.filter((e) => e !== 'companyEmail'));
+      // Se não houver valor recebido será definido um erro
+      else {
+        companyEmailRef.current?.setErrors({
+          companyEmailData: 'Favor digitar um e-mail válido',
+        });
+
+        // Define que possui um erro na edição do cliente
+        if (!counterErrors.find((err) => err === 'companyEmail')) {
+          setCounterErrors((state) => [...state, 'companyEmail']);
+        }
+
+        addToast({
+          type: 'error',
+          description: 'Favor digitar um e-mail válido',
+        });
       }
     },
     [addToast, counterErrors, orderData]
@@ -1351,76 +1678,52 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função para atualizar o telefone da empresa
   const submitCompanyPhone = useCallback(
     ({ companyPhoneData }: InputData) => {
-      // Remove os caracteres especiais do valor recebido
-      const clearCompanyPhoneData = companyPhoneData
-        .replace(/[^\w]/gi, '')
-        .trimEnd()
-        .trimStart();
+      if (companyPhoneData) {
+        // Remove os caracteres especiais do valor recebido
+        const clearCompanyPhoneData = companyPhoneData
+          .replace(/[^\w]/gi, '')
+          .trimEnd()
+          .trimStart();
 
-      // Verifica se o valor recebido é diferente do existente
-      if (orderData?.company.phone !== clearCompanyPhoneData) {
-        // Verifica se o valor recebido é um telefone válido
-        if (clearCompanyPhoneData && !isPhone(clearCompanyPhoneData)) {
-          // Define um erro
-          companyPhoneRef.current?.setErrors({
-            companyPhoneData: 'Favor digitar um telefone válido',
-          });
+        // Verifica se o valor recebido é diferente do existente
+        if (orderData?.company.phone !== clearCompanyPhoneData) {
+          // Verifica se o valor recebido é um telefone válido
+          if (!isPhone(clearCompanyPhoneData)) {
+            // Define um erro
+            companyPhoneRef.current?.setErrors({
+              companyPhoneData: 'Favor digitar um telefone válido',
+            });
 
-          // Define que possui um erro na edição do cliente
-          if (!counterErrors.find((e) => e === 'companyPhone')) {
-            setCounterErrors((state) => [...state, 'companyPhone']);
+            // Define que possui um erro na edição do cliente
+            if (!counterErrors.find((err) => err === 'companyPhone')) {
+              setCounterErrors((state) => [...state, 'companyPhone']);
+            }
+
+            addToast({
+              type: 'error',
+              description: 'Favor digitar um telefone válido',
+            });
           }
+          // Se o valor recebido for um telefone válido será atualizado
+          else if (isPhone(clearCompanyPhoneData)) {
+            // Armazena o valor recebido no estado
+            orderData.company.phone = clearCompanyPhoneData;
+            orderData.company.formatted_phone = formatToPhone(
+              clearCompanyPhoneData
+            );
 
-          addToast({
-            type: 'error',
-            description: 'Favor digitar um telefone válido',
-          });
-        }
-        // Verifica se o celular já não está vazio
-        else if (!clearCompanyPhoneData && !orderData?.company.mobile) {
-          // Define um erro
-          companyPhoneRef.current?.setErrors({
-            companyPhoneData: 'Favor digitar um telefone ou celular válido',
-          });
+            // Define que o banco de dados deve ser atualizado
+            setCompanyUpdated(true);
 
-          // Define que possui um erro na edição do cliente
-          if (!counterErrors.find((e) => e === 'companyPhone')) {
-            setCounterErrors((state) => [...state, 'companyPhone']);
+            // Limpa os erros
+            companyPhoneRef.current?.setErrors({});
+            setCounterErrors((state) =>
+              state.filter((e) => e !== 'companyPhone')
+            );
           }
-
-          addToast({
-            type: 'error',
-            description: 'Favor digitar um telefone ou celular válido',
-          });
         }
-        // Se o valor recebido for um telefone válido será atualizado
-        else if (isPhone(clearCompanyPhoneData)) {
-          // Armazena o valor recebido no estado
-          orderData.company.phone = clearCompanyPhoneData;
-          orderData.company.formatted_phone = formatToPhone(
-            clearCompanyPhoneData
-          );
-
-          // Define que o banco de dados deve ser atualizado
-          setCompanyUpdated(true);
-
-          // Limpa os erros
-          companyPhoneRef.current?.setErrors({});
-          setCounterErrors((state) =>
-            state.filter((e) => e !== 'companyPhone')
-          );
-        }
-        // Se não houver valor recebido e houver telefone celular, será atualizado
-        else if (!clearCompanyPhoneData && !!orderData?.company.mobile) {
-          // Armazena o valor recebido no estado
-          orderData.company.phone = clearCompanyPhoneData;
-          orderData.company.formatted_phone = formatToPhone(
-            clearCompanyPhoneData
-          );
-
-          // Define que o banco de dados deve ser atualizado
-          setCompanyUpdated(true);
-
+        // Limpa possíveis erros
+        else {
           // Limpa os erros
           companyPhoneRef.current?.setErrors({});
           setCounterErrors((state) =>
@@ -1428,8 +1731,32 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           );
         }
       }
-      // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
-      else if (orderData?.company.phone === clearCompanyPhoneData) {
+      // Verifica se o celular já não está vazio
+      else if (!orderData?.company.mobile) {
+        // Define um erro
+        companyPhoneRef.current?.setErrors({
+          companyPhoneData: 'Favor digitar um telefone válido, ou um celular',
+        });
+
+        // Define que possui um erro na edição do cliente
+        if (!counterErrors.find((err) => err === 'companyPhone')) {
+          setCounterErrors((state) => [...state, 'companyPhone']);
+        }
+
+        addToast({
+          type: 'error',
+          description: 'Favor digitar um telefone válido, ou um celular',
+        });
+      }
+      // Se não houver valor recebido e houver telefone celular limpa o campo
+      else {
+        // Armazena o valor recebido no estado
+        orderData.company.phone = '';
+        orderData.company.formatted_phone = '';
+
+        // Define que o banco de dados deve ser atualizado
+        setCompanyUpdated(true);
+
         // Limpa os erros
         companyPhoneRef.current?.setErrors({});
         setCounterErrors((state) => state.filter((e) => e !== 'companyPhone'));
@@ -1446,80 +1773,52 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função para atualizar o celular da empresa
   const submitCompanyMobilePhone = useCallback(
     ({ companyMobilePhoneData }: InputData) => {
-      // Remove os caracteres especiais do valor recebido
-      const clearCompanyMobilePhoneData = companyMobilePhoneData
-        .replace(/[^\w]/gi, '')
-        .trimEnd()
-        .trimStart();
+      if (companyMobilePhoneData) {
+        // Remove os caracteres especiais do valor recebido
+        const clearCompanyMobilePhoneData = companyMobilePhoneData
+          .replace(/[^\w]/gi, '')
+          .trimEnd()
+          .trimStart();
 
-      // Verifica se o valor recebido é diferente do existente
-      if (orderData?.company.mobile !== clearCompanyMobilePhoneData) {
-        // Verifica se o valor recebido é um telefone válido
-        if (
-          clearCompanyMobilePhoneData &&
-          !isPhone(clearCompanyMobilePhoneData)
-        ) {
-          // Define um erro
-          companyMobilePhoneRef.current?.setErrors({
-            companyMobilePhoneData: 'Favor digitar um telefone válido',
-          });
+        // Verifica se o valor recebido é diferente do existente
+        if (orderData?.company.mobile !== clearCompanyMobilePhoneData) {
+          // Verifica se o valor recebido é um telefone válido
+          if (!isPhone(clearCompanyMobilePhoneData)) {
+            // Define um erro
+            companyMobilePhoneRef.current?.setErrors({
+              companyMobilePhoneData: 'Favor digitar um celular válido',
+            });
 
-          // Define que possui um erro na edição do cliente
-          if (!counterErrors.find((e) => e === 'companyMobilePhone')) {
-            setCounterErrors((state) => [...state, 'companyMobilePhone']);
+            // Define que possui um erro na edição do cliente
+            if (!counterErrors.find((err) => err === 'companyMobilePhone')) {
+              setCounterErrors((state) => [...state, 'companyMobilePhone']);
+            }
+
+            addToast({
+              type: 'error',
+              description: 'Favor digitar um celular válido',
+            });
           }
+          // Se o valor recebido for um telefone válido será atualizado
+          else if (isPhone(clearCompanyMobilePhoneData)) {
+            // Armazena o valor recebido no estado
+            orderData.company.mobile = clearCompanyMobilePhoneData;
+            orderData.company.formatted_mobile = formatToPhone(
+              clearCompanyMobilePhoneData
+            );
 
-          addToast({
-            type: 'error',
-            description: 'Favor digitar um telefone válido',
-          });
-        }
-        // Verifica se o telefone fixo já não está vazio
-        else if (!clearCompanyMobilePhoneData && !orderData?.company.phone) {
-          // Define um erro
-          companyMobilePhoneRef.current?.setErrors({
-            companyMobilePhoneData:
-              'Favor digitar um celular ou telefone válido',
-          });
+            // Define que o banco de dados deve ser atualizado
+            setCompanyUpdated(true);
 
-          // Define que possui um erro na edição do cliente
-          if (!counterErrors.find((e) => e === 'companyMobilePhone')) {
-            setCounterErrors((state) => [...state, 'companyMobilePhone']);
+            // Limpa os erros
+            companyMobilePhoneRef.current?.setErrors({});
+            setCounterErrors((state) =>
+              state.filter((e) => e !== 'companyMobilePhone')
+            );
           }
-
-          addToast({
-            type: 'error',
-            description: 'Favor digitar um telefone ou celular válido',
-          });
         }
-        // Se o valor recebido for um telefone válido será atualizado
-        else if (isPhone(clearCompanyMobilePhoneData)) {
-          // Armazena o valor recebido no estado
-          orderData.company.mobile = clearCompanyMobilePhoneData;
-          orderData.company.formatted_mobile = formatToPhone(
-            clearCompanyMobilePhoneData
-          );
-
-          // Define que o banco de dados deve ser atualizado
-          setCompanyUpdated(true);
-
-          // Limpa os erros
-          companyMobilePhoneRef.current?.setErrors({});
-          setCounterErrors((state) =>
-            state.filter((e) => e !== 'companyMobilePhone')
-          );
-        }
-        // Se não houver valor recebido e houver telefone fixo, será atualizado
-        else if (!clearCompanyMobilePhoneData && !!orderData?.company.phone) {
-          // Armazena o valor recebido no estado
-          orderData.company.mobile = clearCompanyMobilePhoneData;
-          orderData.company.formatted_mobile = formatToPhone(
-            clearCompanyMobilePhoneData
-          );
-
-          // Define que o banco de dados deve ser atualizado
-          setCompanyUpdated(true);
-
+        // Limpa possíveis erros
+        else {
           // Limpa os erros
           companyMobilePhoneRef.current?.setErrors({});
           setCounterErrors((state) =>
@@ -1527,8 +1826,33 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           );
         }
       }
-      // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
-      else if (orderData?.company.mobile === clearCompanyMobilePhoneData) {
+      // Verifica se o telefone fixo já não está vazio
+      else if (!orderData?.company.phone) {
+        // Define um erro
+        companyMobilePhoneRef.current?.setErrors({
+          companyMobilePhoneData:
+            'Favor digitar um celular válido, ou um telefone fixo',
+        });
+
+        // Define que possui um erro na edição do cliente
+        if (!counterErrors.find((err) => err === 'companyMobilePhone')) {
+          setCounterErrors((state) => [...state, 'companyMobilePhone']);
+        }
+
+        addToast({
+          type: 'error',
+          description: 'Favor digitar um celular válido, ou um telefone fixo',
+        });
+      }
+      // Se não houver valor recebido e houver telefone fixo limpa o campo
+      else {
+        // Armazena o valor recebido no estado
+        orderData.company.mobile = '';
+        orderData.company.formatted_mobile = '';
+
+        // Define que o banco de dados deve ser atualizado
+        setCompanyUpdated(true);
+
         // Limpa os erros
         companyMobilePhoneRef.current?.setErrors({});
         setCounterErrors((state) =>
@@ -1627,6 +1951,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     ]
   );
 
+  const handleOpenSplitPaymentWay = useCallback(() => {
+    overlapSplitPaymentWayOpen(!splitPaymentWayOpen);
+  }, [overlapSplitPaymentWayOpen, splitPaymentWayOpen]);
+
   // Função que atualiza o pedido no banco de dados
   const handleSubmitOrderToUpdate = useCallback(async () => {
     await api
@@ -1638,10 +1966,12 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         status_billing: orderData?.status_billing,
         status_payment: orderData?.status_payment,
         delivery_conditions: orderData?.delivery_conditions,
+        technical_obs: orderData?.technical_obs,
         requested_delivery_date: orderData?.requested_delivery_date,
         delivery_date: orderData?.delivery_date,
         payment_way: orderData?.payment_way,
         due_date: orderData?.due_date,
+        payment_method_id: orderData.payment_method?.id || null,
       })
       .then(() => {
         addToast({
@@ -1690,70 +2020,12 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
 
   // Função que faz validações ao fechar a order
   const handleCloseOrder = useCallback(() => {
-    // Verifica o módulo que o usuário está acessando esse pedido
-    if (from === 'TechnicalArea') {
-      // Verifica se o pedido possui data de entrega e status de entrega
-      if (
-        !orderData?.delivery_date &&
-        !!orderData?.status_delivery &&
-        orderData?.status_delivery !== 'Aguardando' &&
-        orderData?.status_delivery !== 'Cancelado' &&
-        orderData?.status_delivery !== 'Pendência'
-      ) {
-        if (orderData.status_delivery === 'Concluído') {
-          // Se não possui data e possui status define um erro
-          addToast({
-            type: 'error',
-            description: 'Favor preencher a data de conclusão',
-          });
-
-          deliveryDateRef.current?.setErrors({
-            deliveryDateData: 'Data inválida',
-          });
-
-          return;
-        }
-        if (orderData.status_delivery === 'Entregue') {
-          // Se não possui data e possui status define um erro
-          addToast({
-            type: 'error',
-            description: 'Favor preencher a data de entrega',
-          });
-
-          deliveryDateRef.current?.setErrors({
-            deliveryDateData: 'Data inválida',
-          });
-
-          return;
-        }
-        // Se não possui data e possui status define um erro
-        addToast({
-          type: 'error',
-          description: 'Favor preencher a data de entrega prevista',
-        });
-
-        deliveryDateRef.current?.setErrors({
-          deliveryDateData: 'Data inválida',
-        });
-
-        return;
-      }
-
-      // Limpa os erros
-      deliveryDateRef.current?.setErrors({});
-      setCounterErrors((state) => state.filter((e) => e !== 'deliveryDate'));
-    }
-
     if (newOrderOpen) {
       overlapNewOrderOpen(false);
     }
 
     // Verifica se não existe erros nos campos
-    if (
-      counterErrors.length === 0 ||
-      counterErrors.includes('companyCnpjCpf') ||
-      counterErrors.includes('deliveryDate')
-    ) {
+    if (counterErrors.length === 0) {
       checkToken();
       // Se houve alteração no pedido vai atualizar
       if (orderUpdated && !companyUpdated) {
@@ -1784,11 +2056,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       });
     }
   }, [
-    from,
     newOrderOpen,
     counterErrors,
-    orderData?.delivery_date,
-    orderData.status_delivery,
     addToast,
     overlapNewOrderOpen,
     orderUpdated,
@@ -1809,6 +2078,11 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
 
   return (
     <OrderOverlap>
+      {splitPaymentWayOpen && (
+        <ModalOverlap>
+          <SplitPaymentWay color={color} order_id={order_id} />
+        </ModalOverlap>
+      )}
       {newProductOpen && (
         <ModalOverlap>
           <NewProduct
@@ -1835,7 +2109,12 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       {orderData?.company && orderData?.seller && (
         <>
           <HeaderButton
-            show={orderOpen && !newProductOpen && !productViewOpen}
+            show={
+              orderOpen &&
+              !splitPaymentWayOpen &&
+              !newProductOpen &&
+              !productViewOpen
+            }
             handleClick={() => handleCloseOrder()}
             type="button"
             icon={FaTimes}
@@ -2061,14 +2340,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                       <Status>
                         <FormControl className={formControl}>
                           <Select
-                            labelId="demo-simple-select-label"
-                            id="data-select"
                             value={orderData.status_order}
                             defaultValue=""
                             displayEmpty
-                            onChange={(e: ChangeEvent<{ value: unknown }>) => {
-                              updateStatusOrder(e);
-                            }}
+                            onChange={updateStatusOrder}
                           >
                             <MenuItem
                               value="Rascunho"
@@ -2173,6 +2448,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                         : 'Data de entrega prevista:'}
                     </p>
                     <p>Status área técnica:</p>
+                    <p>Observações da área técnica:</p>
                   </TitlesForm>
                   <DataForm>
                     {from === 'Comercial' && !orderData.status_delivery && (
@@ -2378,121 +2654,143 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                           <span>Cancelado</span>
                         </div>
                       )}
+                    {from !== 'TechnicalArea' && (
+                      <p>
+                        {orderData?.technical_obs ? (
+                          orderData?.technical_obs
+                        ) : (
+                          <br />
+                        )}
+                      </p>
+                    )}
                     {from === 'TechnicalArea' && (
-                      <Status>
-                        <FormControl className={formControl}>
-                          <Select
-                            labelId="demo-simple-select-label"
-                            id="data-select"
-                            value={orderData.status_delivery}
-                            defaultValue=""
-                            displayEmpty
-                            onChange={(e: ChangeEvent<{ value: unknown }>) => {
-                              updateStatusDelivery(e);
-                            }}
-                          >
-                            <MenuItem
-                              value="Aguardando"
-                              disabled={user.permissions !== 'Admin'}
+                      <>
+                        <Status>
+                          <FormControl className={formControl}>
+                            <Select
+                              value={orderData.status_delivery}
+                              defaultValue=""
+                              displayEmpty
+                              onChange={updateStatusDelivery}
                             >
-                              <FaRegClock className={faRegClock} />
-                              Aguardando área técnica
-                            </MenuItem>
-                            <MenuItem
-                              value="Agendado"
-                              disabled={
-                                (!!orderData.status_delivery &&
-                                  orderData.status_delivery !== 'Aguardando' &&
-                                  orderData.status_delivery !== 'Pendência' &&
-                                  orderData.status_delivery !== 'Agendado' &&
-                                  user.permissions !== 'Admin') ||
-                                orderData.status_order === 'Cancelado'
-                              }
-                            >
-                              <FaCalendarAlt className={faCalendarAlt} />
-                              Agendado com o cliente
-                            </MenuItem>
-                            <MenuItem
-                              value="Execução"
-                              disabled={
-                                (!!orderData.status_delivery &&
-                                  orderData.status_delivery !== 'Aguardando' &&
-                                  orderData.status_delivery !== 'Agendado' &&
-                                  orderData.status_delivery !== 'Pendência' &&
-                                  orderData.status_delivery !== 'Execução' &&
-                                  user.permissions !== 'Admin') ||
-                                orderData.status_order === 'Cancelado'
-                              }
-                            >
-                              <HiOutlineRefresh className={hiRefresh} />
-                              Em execução
-                            </MenuItem>
-                            <MenuItem
-                              value="Concluído"
-                              disabled={
-                                (!!orderData.status_delivery &&
-                                  orderData.status_delivery !== 'Aguardando' &&
-                                  orderData.status_delivery !== 'Agendado' &&
-                                  orderData.status_delivery !== 'Execução' &&
-                                  orderData.status_delivery !== 'Pendência' &&
-                                  orderData.status_delivery !== 'Concluído' &&
-                                  user.permissions !== 'Admin') ||
-                                orderData.status_order === 'Cancelado'
-                              }
-                            >
-                              <FaRegCheckCircle className={faGrayCheck} />
-                              Concluído
-                            </MenuItem>
-                            <MenuItem
-                              value="Entregue"
-                              disabled={
-                                (!!orderData.status_delivery &&
-                                  orderData.status_delivery !== 'Aguardando' &&
-                                  orderData.status_delivery !== 'Agendado' &&
-                                  orderData.status_delivery !== 'Execução' &&
-                                  orderData.status_delivery !== 'Concluído' &&
-                                  orderData.status_delivery !== 'Pendência' &&
-                                  orderData.status_delivery !== 'Entregue' &&
-                                  user.permissions !== 'Admin') ||
-                                orderData.status_order === 'Cancelado'
-                              }
-                            >
-                              <FaCheckCircle className={faGreenCheck} />
-                              Entregue
-                            </MenuItem>
-                            <MenuItem
-                              value="Pendência"
-                              disabled={
-                                (!!orderData.status_delivery &&
-                                  orderData.status_delivery === 'Entregue' &&
-                                  user.permissions !== 'Admin') ||
-                                orderData.status_order === 'Cancelado'
-                              }
-                            >
-                              <GoAlert className={goAlert} />
-                              Pendência do cliente
-                            </MenuItem>
-                            <MenuItem
-                              value="Cancelado"
-                              disabled={
-                                (!!orderData.status_delivery &&
-                                  orderData.status_delivery !== 'Aguardando' &&
-                                  orderData.status_delivery !== 'Agendado' &&
-                                  orderData.status_delivery !== 'Execução' &&
-                                  orderData.status_delivery !== 'Concluído' &&
-                                  orderData.status_delivery !== 'Entregue' &&
-                                  orderData.status_delivery !== 'Pendência' &&
-                                  orderData.status_delivery !== 'Cancelado' &&
-                                  user.permissions !== 'Admin') ||
-                                orderData.status_order !== 'Cancelado'
-                              }
-                            >
-                              <FaTimes className={faTimes} />
-                              Cancelado
-                            </MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Status>
+                              <MenuItem
+                                value="Aguardando"
+                                disabled={user.permissions !== 'Admin'}
+                              >
+                                <FaRegClock className={faRegClock} />
+                                Aguardando área técnica
+                              </MenuItem>
+                              <MenuItem
+                                value="Agendado"
+                                disabled={
+                                  (!!orderData.status_delivery &&
+                                    orderData.status_delivery !==
+                                      'Aguardando' &&
+                                    orderData.status_delivery !== 'Pendência' &&
+                                    orderData.status_delivery !== 'Agendado' &&
+                                    user.permissions !== 'Admin') ||
+                                  orderData.status_order === 'Cancelado'
+                                }
+                              >
+                                <FaCalendarAlt className={faCalendarAlt} />
+                                Agendado com o cliente
+                              </MenuItem>
+                              <MenuItem
+                                value="Execução"
+                                disabled={
+                                  (!!orderData.status_delivery &&
+                                    orderData.status_delivery !==
+                                      'Aguardando' &&
+                                    orderData.status_delivery !== 'Agendado' &&
+                                    orderData.status_delivery !== 'Pendência' &&
+                                    orderData.status_delivery !== 'Execução' &&
+                                    user.permissions !== 'Admin') ||
+                                  orderData.status_order === 'Cancelado'
+                                }
+                              >
+                                <HiOutlineRefresh className={hiRefresh} />
+                                Em execução
+                              </MenuItem>
+                              <MenuItem
+                                value="Concluído"
+                                disabled={
+                                  (!!orderData.status_delivery &&
+                                    orderData.status_delivery !==
+                                      'Aguardando' &&
+                                    orderData.status_delivery !== 'Agendado' &&
+                                    orderData.status_delivery !== 'Execução' &&
+                                    orderData.status_delivery !== 'Pendência' &&
+                                    orderData.status_delivery !== 'Concluído' &&
+                                    user.permissions !== 'Admin') ||
+                                  orderData.status_order === 'Cancelado'
+                                }
+                              >
+                                <FaRegCheckCircle className={faGrayCheck} />
+                                Concluído
+                              </MenuItem>
+                              <MenuItem
+                                value="Entregue"
+                                disabled={
+                                  (!!orderData.status_delivery &&
+                                    orderData.status_delivery !==
+                                      'Aguardando' &&
+                                    orderData.status_delivery !== 'Agendado' &&
+                                    orderData.status_delivery !== 'Execução' &&
+                                    orderData.status_delivery !== 'Concluído' &&
+                                    orderData.status_delivery !== 'Pendência' &&
+                                    orderData.status_delivery !== 'Entregue' &&
+                                    user.permissions !== 'Admin') ||
+                                  orderData.status_order === 'Cancelado'
+                                }
+                              >
+                                <FaCheckCircle className={faGreenCheck} />
+                                Entregue
+                              </MenuItem>
+                              <MenuItem
+                                value="Pendência"
+                                disabled={
+                                  (!!orderData.status_delivery &&
+                                    orderData.status_delivery === 'Entregue' &&
+                                    user.permissions !== 'Admin') ||
+                                  orderData.status_order === 'Cancelado'
+                                }
+                              >
+                                <GoAlert className={goAlert} />
+                                Pendência do cliente
+                              </MenuItem>
+                              <MenuItem
+                                value="Cancelado"
+                                disabled={
+                                  (!!orderData.status_delivery &&
+                                    orderData.status_delivery !==
+                                      'Aguardando' &&
+                                    orderData.status_delivery !== 'Agendado' &&
+                                    orderData.status_delivery !== 'Execução' &&
+                                    orderData.status_delivery !== 'Concluído' &&
+                                    orderData.status_delivery !== 'Entregue' &&
+                                    orderData.status_delivery !== 'Pendência' &&
+                                    orderData.status_delivery !== 'Cancelado' &&
+                                    user.permissions !== 'Admin') ||
+                                  orderData.status_order !== 'Cancelado'
+                                }
+                              >
+                                <FaTimes className={faTimes} />
+                                Cancelado
+                              </MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Status>
+                        <Form
+                          ref={technicalObsRef}
+                          onSubmit={submitTechnicalObs}
+                        >
+                          <InputAsText
+                            name="technicalObsData"
+                            onBlur={onTechnicalObsSubmit}
+                            defaultValue={orderData.technical_obs}
+                          />
+                        </Form>
+                      </>
                     )}
                   </DataForm>
                 </DeliveryData>
@@ -2500,46 +2798,125 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                   <TitlesForm>
                     <p>Forma de pagamento:</p>
                     <p>Vencimento:</p>
+                    <p>Meio de pagamento:</p>
                     <p>Status faturamento:</p>
                     <p>Status financeiro:</p>
                   </TitlesForm>
                   <DataForm>
                     {from === 'Comercial' && !orderData.status_billing && (
                       <>
-                        <Form ref={paymentWayRef} onSubmit={submitPaymentWay}>
-                          <InputAsText
-                            name="paymentWayData"
-                            onBlur={onPaymentWaySubmit}
-                            defaultValue={orderData.payment_way}
-                          />
-                        </Form>
-                        <Form ref={dueDateRef} onSubmit={submitDueDate}>
-                          <InputAsText
-                            name="dueDateData"
-                            onBlur={onDueDateSubmit}
-                            defaultValue={orderData.due_date}
-                          />
-                        </Form>
+                        <PaymentWay
+                          paymentWay={orderData.payment_way as string}
+                        >
+                          <FormControl className={formControl}>
+                            <Select
+                              value={orderData.payment_way}
+                              defaultValue=""
+                              displayEmpty
+                              onChange={updatePaymentWay}
+                            >
+                              <MenuItem value="">&nbsp;</MenuItem>
+                              <MenuItem value="À vista">À vista</MenuItem>
+                              <MenuItem value="Faturado">Faturado</MenuItem>
+                              <MenuItem value="Parcelado">Parcelado</MenuItem>
+                            </Select>
+                          </FormControl>
+                          {orderData.payment_way === 'Parcelado' && (
+                            <button
+                              className="split-payment-way"
+                              type="button"
+                              onClick={handleOpenSplitPaymentWay}
+                            >
+                              <MaterialTooltip
+                                title="Ver parcelamento"
+                                arrow
+                                placement="top"
+                              >
+                                <MdOpenInNew className={mdOpenInNew} />
+                              </MaterialTooltip>
+                            </button>
+                          )}
+                        </PaymentWay>
+                        {orderData?.formatted_due_date &&
+                          orderData?.payment_way === 'À vista' && (
+                            <Form ref={dueDateRef} onSubmit={submitDueDate}>
+                              <InputAsTextWithMask
+                                name="dueDateData"
+                                onBlur={onDueDateSubmit}
+                                defaultValue={orderData.formatted_due_date}
+                                mask="99/99/9999"
+                                maskChar={null}
+                                styled={{ width: '6em' }}
+                              />
+                            </Form>
+                          )}
+                        {orderData?.formatted_due_date &&
+                          orderData?.payment_way === 'Faturado' && (
+                            <p>{orderData.formatted_due_date}</p>
+                          )}
+                        {orderData?.formatted_due_date &&
+                          orderData?.payment_way === 'Parcelado' && (
+                            <p>{orderData.formatted_due_date}</p>
+                          )}
+                        {!orderData?.formatted_due_date &&
+                          !orderData?.payment_way && (
+                            <p>
+                              <br />
+                            </p>
+                          )}
+                        <PaymentMethod>
+                          <FormControl className={formControl}>
+                            <Select
+                              value={
+                                orderData.payment_method
+                                  ? orderData.payment_method.id
+                                  : ''
+                              }
+                              defaultValue=""
+                              displayEmpty
+                              onChange={handleSelectPaymentMethod}
+                            >
+                              <MenuItem value="">&nbsp;</MenuItem>
+                              {paymentMethods.map((payment) => (
+                                <MenuItem value={payment.id} key={payment.id}>
+                                  {payment.name as string}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </PaymentMethod>
                       </>
                     )}
                     {(from === 'Billing' ||
                       (from !== 'TechnicalArea' &&
                         !!orderData.status_billing)) && (
                       <>
+                        {orderData.payment_way ? (
+                          <p>{orderData.payment_way as string}</p>
+                        ) : (
+                          <br />
+                        )}
                         <p>
-                          {orderData?.payment_way ? (
-                            orderData?.payment_way
+                          {orderData?.formatted_due_date ? (
+                            orderData?.formatted_due_date
                           ) : (
                             <br />
                           )}
                         </p>
-                        <p>
-                          {orderData?.due_date ? orderData?.due_date : <br />}
-                        </p>
+                        {orderData.payment_method ? (
+                          <p>{orderData.payment_method.name as string}</p>
+                        ) : (
+                          <p>
+                            <br />
+                          </p>
+                        )}
                       </>
                     )}
                     {from === 'TechnicalArea' && (
                       <>
+                        <p>
+                          <br />
+                        </p>
                         <p>
                           <br />
                         </p>
@@ -2580,14 +2957,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                       <Status>
                         <FormControl className={formControl}>
                           <Select
-                            labelId="demo-simple-select-label"
-                            id="data-select"
                             value={orderData.status_billing}
                             defaultValue=""
                             displayEmpty
-                            onChange={(e: ChangeEvent<{ value: unknown }>) => {
-                              updateStatusBilling(e);
-                            }}
+                            onChange={updateStatusBilling}
                           >
                             <MenuItem
                               value="Aguardando"
@@ -2629,9 +3002,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                     )}
                     {from !== 'Billing' && !orderData.status_payment && (
                       <p>
-                        <p>
-                          <br />
-                        </p>
+                        <br />
                       </p>
                     )}
                     {from !== 'Billing' &&
@@ -2669,14 +3040,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                       <Status>
                         <FormControl className={formControl}>
                           <Select
-                            labelId="demo-simple-select-label"
-                            id="data-select"
                             value={orderData.status_payment}
                             defaultValue=""
                             displayEmpty
-                            onChange={(e: ChangeEvent<{ value: unknown }>) => {
-                              updateStatusPayment(e);
-                            }}
+                            onChange={updateStatusPayment}
                           >
                             {(!orderData.status_payment ||
                               user.permissions === 'Admin') && (

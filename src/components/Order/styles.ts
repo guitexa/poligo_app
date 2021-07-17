@@ -21,6 +21,10 @@ interface AddProductButtonProps {
   color: string;
 }
 
+interface PaymentWayProps {
+  paymentWay: string;
+}
+
 export const OrderOverlap = styled.div`
   .headerButton {
     position: absolute;
@@ -216,6 +220,99 @@ export const OrdersProductsContainer = styled.div`
 
 export const Status = styled.div`
   padding: 2px 0 3px 0;
+
+  .MuiListItem-root.Mui-selected,
+  .MuiListItem-root.Mui-selected:hover {
+    background-color: #222;
+  }
+
+  .MuiFormControl-root {
+    min-width: 50px;
+    margin: 0;
+  }
+
+  .MuiInput-underline::before,
+  .MuiInput-underline::after,
+  .MuiInput-underline:hover,
+  .MuiInput-underline:hover:not(.Mui-disabled)::before {
+    border: none;
+  }
+
+  .MuiInputBase-input {
+    font-size: 13px;
+    height: 1.3em;
+    padding: 0px 30px 0 0;
+    margin-bottom: -3px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  .MuiSelect-icon {
+    margin-right: 2px;
+  }
+
+  .MuiSelect-select:focus {
+    background: transparent;
+  }
+`;
+
+export const PaymentWay = styled.div<PaymentWayProps>`
+  ${({ paymentWay }) =>
+    paymentWay === 'Parcelado'
+      ? css`
+          padding: 0 0 1px 0;
+        `
+      : css`
+          padding: 0 0 4px 0;
+        `};
+
+  .split-payment-way {
+    cursor: pointer;
+    border: none;
+    outline: none;
+    line-height: 0;
+    background: transparent;
+  }
+
+  .MuiListItem-root.Mui-selected,
+  .MuiListItem-root.Mui-selected:hover {
+    background-color: #222;
+  }
+
+  .MuiFormControl-root {
+    min-width: 50px;
+    margin: 0;
+  }
+
+  .MuiInput-underline::before,
+  .MuiInput-underline::after,
+  .MuiInput-underline:hover,
+  .MuiInput-underline:hover:not(.Mui-disabled)::before {
+    border: none;
+  }
+
+  .MuiInputBase-input {
+    font-size: 13px;
+    height: 1.3em;
+    padding: 0px 30px 0 0;
+    margin-bottom: -3px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  .MuiSelect-icon {
+    margin-right: 2px;
+  }
+
+  .MuiSelect-select:focus {
+    background: transparent;
+  }
+`;
+
+export const PaymentMethod = styled.div`
+  padding: 2px 0 0 0;
 
   .MuiListItem-root.Mui-selected,
   .MuiListItem-root.Mui-selected:hover {

@@ -5,7 +5,6 @@ import { useAuth } from '../../hooks/auth';
 import { useOverlap } from '../../hooks/overlap';
 import { useOrdersSearch } from '../../hooks/orders_search';
 import IconBilling from '../../assets/icons/icon-billing.svg';
-import IconBillingInvoice from '../../assets/icons/icon-billing-invoice.svg';
 
 import Header from '../../components/Header';
 import SearchBar from '../../components/SearchBar';
@@ -77,14 +76,6 @@ const Billing: React.FC = () => {
   return (
     <Container>
       <Header title="Faturamento" color={color}>
-        <HeaderButton
-          show={!orderOpen}
-          handleClick={() => push('/BillingInvoice')}
-          type="button"
-          icon={IconBillingInvoice}
-          color={color}
-          size="19px"
-        />
         <HeaderButton
           add
           show={!orderOpen}

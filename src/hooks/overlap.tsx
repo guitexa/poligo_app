@@ -5,10 +5,12 @@ interface OverlapContextData {
   newOrderOpen: boolean;
   newProductOpen: boolean;
   productViewOpen: boolean;
+  splitPaymentWayOpen: boolean;
   overlapOrderOpen(state: boolean): void;
   overlapNewOrderOpen(state: boolean): void;
   overlapNewProductOpen(state: boolean): void;
   overlapProductViewOpen(state: boolean): void;
+  overlapSplitPaymentWayOpen(state: boolean): void;
 }
 
 const OverlapContext = createContext<OverlapContextData>(
@@ -24,6 +26,8 @@ export const OverlapProvider: React.FC = ({ children }) => {
   const [newProductOpen, setNewProductOpen] = useState(false);
   // Armazena se o component ProductView está aberto
   const [productViewOpen, setProductViewOpen] = useState(false);
+  // Armazena se o component ProductView está aberto
+  const [splitPaymentWayOpen, setSplitPaymentWayOpen] = useState(false);
 
   // Função para alterar o estado do component Order
   const overlapOrderOpen = useCallback(() => {
@@ -45,6 +49,11 @@ export const OverlapProvider: React.FC = ({ children }) => {
     setProductViewOpen(!productViewOpen);
   }, [productViewOpen]);
 
+  // Função para alterar o estado do component SplitPaymentWay
+  const overlapSplitPaymentWayOpen = useCallback(() => {
+    setSplitPaymentWayOpen(!splitPaymentWayOpen);
+  }, [splitPaymentWayOpen]);
+
   return (
     <OverlapContext.Provider
       value={{
@@ -52,10 +61,12 @@ export const OverlapProvider: React.FC = ({ children }) => {
         newOrderOpen,
         newProductOpen,
         productViewOpen,
+        splitPaymentWayOpen,
         overlapOrderOpen,
         overlapNewOrderOpen,
         overlapNewProductOpen,
         overlapProductViewOpen,
+        overlapSplitPaymentWayOpen,
       }}
     >
       {children}
