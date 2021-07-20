@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
 
 import { useAuth } from '../../hooks/auth';
-// import { useOverlap } from '../../hooks/overlap';
+import { useOverlap } from '../../hooks/overlap';
 import { useFinancialsSearch } from '../../hooks/financials_search';
 
 import IconFinancial from '../../assets/icons/icon-financial.svg';
@@ -18,7 +18,7 @@ import { Container } from './styles';
 const Financial: React.FC = () => {
   const { push } = useHistory();
   const { user, checkToken } = useAuth();
-  // const { orderOpen, overlapOrderOpen } = useOverlap();
+  const { closeAllOverlaps } = useOverlap();
   const {
     due_date,
     replan_date,
@@ -57,9 +57,7 @@ const Financial: React.FC = () => {
     }
 
     // Verifica se o component Order está aberto e fecha
-    // if (orderOpen) {
-    //   overlapOrderOpen(false);
-    // }
+    closeAllOverlaps();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

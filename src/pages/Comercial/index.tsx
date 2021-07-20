@@ -19,7 +19,7 @@ const Comercial: React.FC = () => {
     orderOpen,
     newOrderOpen,
     overlapNewOrderOpen,
-    overlapOrderOpen,
+    closeAllOverlaps,
   } = useOverlap();
   const { push } = useHistory();
   const { user, checkToken } = useAuth();
@@ -65,10 +65,8 @@ const Comercial: React.FC = () => {
       clearAllResults();
     }
 
-    // Verifica se o component Order está aberto e fecha
-    if (orderOpen) {
-      overlapOrderOpen(false);
-    }
+    // Função para fechar todos os overlaps
+    closeAllOverlaps();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

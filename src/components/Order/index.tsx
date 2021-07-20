@@ -2123,7 +2123,11 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           />
           <Container>
             <ThemeProvider theme={orderMaterialTheme}>
-              <PrimaryContent isModalOpen={newProductOpen || productViewOpen}>
+              <PrimaryContent
+                isBlurred={
+                  splitPaymentWayOpen || newProductOpen || productViewOpen
+                }
+              >
                 <CompanyContainer>
                   <TitlesForm>
                     <p>Razão social:</p>
@@ -2416,7 +2420,11 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                   </DataForm>
                 </OrdersProductsContainer>
               </PrimaryContent>
-              <SecondaryContent isModalOpen={newProductOpen || productViewOpen}>
+              <SecondaryContent
+                isBlurred={
+                  splitPaymentWayOpen || newProductOpen || productViewOpen
+                }
+              >
                 {((from === 'Comercial' &&
                   !orderData.status_delivery &&
                   !orderData.status_billing &&
@@ -2865,25 +2873,23 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                             </p>
                           )}
                         <PaymentMethod>
-                          <FormControl className={formControl}>
-                            <Select
-                              value={
-                                orderData.payment_method
-                                  ? orderData.payment_method.id
-                                  : ''
-                              }
-                              defaultValue=""
-                              displayEmpty
-                              onChange={handleSelectPaymentMethod}
-                            >
-                              <MenuItem value="">&nbsp;</MenuItem>
-                              {paymentMethods.map((payment) => (
-                                <MenuItem value={payment.id} key={payment.id}>
-                                  {payment.name as string}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
+                          <Select
+                            value={
+                              orderData.payment_method
+                                ? orderData.payment_method.id
+                                : ''
+                            }
+                            defaultValue=""
+                            displayEmpty
+                            onChange={handleSelectPaymentMethod}
+                          >
+                            <MenuItem value="">&nbsp;</MenuItem>
+                            {paymentMethods.map((payment) => (
+                              <MenuItem value={payment.id} key={payment.id}>
+                                {payment.name as string}
+                              </MenuItem>
+                            ))}
+                          </Select>
                         </PaymentMethod>
                       </>
                     )}
@@ -3115,7 +3121,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                 </BillingData>
               </SecondaryContent>
               <ProductsOrderContent
-                isModalOpen={newProductOpen || productViewOpen}
+                isBlurred={
+                  splitPaymentWayOpen || newProductOpen || productViewOpen
+                }
               >
                 <TitleRow>
                   <TitleProductName>SERVIÇO</TitleProductName>

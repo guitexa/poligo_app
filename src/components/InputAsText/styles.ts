@@ -6,7 +6,6 @@ interface InputProps {
 
 export const Container = styled.div<InputProps>`
   width: 100%;
-  background-color: #fff;
   display: flex;
   align-items: center;
   border: none;

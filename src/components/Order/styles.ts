@@ -2,15 +2,15 @@ import styled, { css } from 'styled-components';
 import { shade } from 'polished';
 
 interface PrimaryContentProps {
-  isModalOpen: boolean;
+  isBlurred: boolean;
 }
 
 interface SecondaryContentProps {
-  isModalOpen: boolean;
+  isBlurred: boolean;
 }
 
 interface ProductsOrderContentProps {
-  isModalOpen: boolean;
+  isBlurred: boolean;
 }
 
 interface ProductRowProps {
@@ -65,8 +65,8 @@ export const PrimaryContent = styled.div<PrimaryContentProps>`
   align-items: center;
   transition: 0.2s all;
 
-  ${({ isModalOpen }) =>
-    isModalOpen &&
+  ${({ isBlurred }) =>
+    isBlurred &&
     css`
       filter: blur(2px);
     `};
@@ -79,8 +79,8 @@ export const SecondaryContent = styled.div<SecondaryContentProps>`
   position: relative;
   transition: 0.2s all;
 
-  ${({ isModalOpen }) =>
-    isModalOpen &&
+  ${({ isBlurred }) =>
+    isBlurred &&
     css`
       filter: blur(2px);
     `};
@@ -377,8 +377,8 @@ export const ProductsOrderContent = styled.div<ProductsOrderContentProps>`
   overflow-y: auto;
   transition: 0.2s all;
 
-  ${({ isModalOpen }) =>
-    isModalOpen &&
+  ${({ isBlurred }) =>
+    isBlurred &&
     css`
       filter: blur(2px);
     `};

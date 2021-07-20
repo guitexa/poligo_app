@@ -11,6 +11,7 @@ interface OverlapContextData {
   overlapNewProductOpen(state: boolean): void;
   overlapProductViewOpen(state: boolean): void;
   overlapSplitPaymentWayOpen(state: boolean): void;
+  closeAllOverlaps(): void;
 }
 
 const OverlapContext = createContext<OverlapContextData>(
@@ -28,6 +29,15 @@ export const OverlapProvider: React.FC = ({ children }) => {
   const [productViewOpen, setProductViewOpen] = useState(false);
   // Armazena se o component ProductView está aberto
   const [splitPaymentWayOpen, setSplitPaymentWayOpen] = useState(false);
+
+  // Função para fechar todos os overlaps
+  const closeAllOverlaps = useCallback(() => {
+    setOrderOpen(false);
+    setNewOrderOpen(false);
+    setNewProductOpen(false);
+    setProductViewOpen(false);
+    setSplitPaymentWayOpen(false);
+  }, []);
 
   // Função para alterar o estado do component Order
   const overlapOrderOpen = useCallback(() => {
@@ -67,6 +77,7 @@ export const OverlapProvider: React.FC = ({ children }) => {
         overlapNewProductOpen,
         overlapProductViewOpen,
         overlapSplitPaymentWayOpen,
+        closeAllOverlaps,
       }}
     >
       {children}

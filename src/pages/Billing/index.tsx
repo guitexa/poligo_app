@@ -16,7 +16,7 @@ import { Container } from './styles';
 const Billing: React.FC = () => {
   const { push } = useHistory();
   const { user, checkToken } = useAuth();
-  const { orderOpen, overlapOrderOpen } = useOverlap();
+  const { orderOpen, closeAllOverlaps } = useOverlap();
   const {
     approved_at,
     created_at,
@@ -63,10 +63,8 @@ const Billing: React.FC = () => {
       clearAllResults();
     }
 
-    // Verifica se o component Order está aberto e fecha
-    if (orderOpen) {
-      overlapOrderOpen(false);
-    }
+    // Função para fechar todos os overlaps
+    closeAllOverlaps();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
