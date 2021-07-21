@@ -1917,7 +1917,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     orderData,
     updateOrderProduct,
     addNewOrderProduct,
-    handleDeleteOrderProductItem,
+    orderData.orders_products,
   ]);
 
   // Função para definir estado com o order_product selecionado
