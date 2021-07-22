@@ -153,49 +153,6 @@ export const DataForm = styled.div`
     svg {
       font-size: 13px;
     }
-
-    .faGrayCheck {
-      color: #555;
-    }
-
-    .faGreenCheck {
-      color: #1b914f;
-    }
-
-    .faRegClock {
-      color: #555;
-    }
-
-    .riDraftFill {
-      color: #999;
-    }
-
-    .faTimes {
-      color: #f00;
-      font-size: 15px;
-      margin-left: -2px;
-    }
-
-    .biCalendarX {
-      color: #c00000;
-    }
-
-    .faCalendarAlt {
-      color: #19518a;
-    }
-
-    .ioThumbsDown {
-      color: #c00000;
-    }
-
-    .goAlert {
-      color: #ffa602;
-      margin-left: -1px;
-    }
-
-    .hiRefresh {
-      color: #000;
-    }
   }
 `;
 
@@ -250,6 +207,35 @@ export const Status = styled.div`
 
   .MuiSelect-icon {
     margin-right: 2px;
+  }
+
+  .MuiSelect-select:focus {
+    background: transparent;
+  }
+`;
+
+export const StatusProductItem = styled.div`
+  .MuiFormControl-root {
+    width: 35px;
+    margin: 0;
+    height: 23px;
+  }
+
+  .MuiInput-underline::before,
+  .MuiInput-underline::after,
+  .MuiInput-underline:hover,
+  .MuiInput-underline:hover:not(.Mui-disabled)::before {
+    border: none;
+  }
+
+  .MuiInputBase-input {
+    margin: 0;
+    padding: 0 10px;
+  }
+
+  .MuiSelect-icon {
+    /* margin-right: 2px; */
+    display: none;
   }
 
   .MuiSelect-select:focus {
@@ -386,7 +372,7 @@ export const ProductsOrderContent = styled.div<ProductsOrderContentProps>`
 
 export const TitleRow = styled.div`
   width: 100%;
-  padding: 15px;
+  padding: 0 15px 0 0;
   display: flex;
   height: 35px;
   align-items: center;
@@ -413,15 +399,30 @@ export const TitleProductValue = styled.div`
 
 export const ProductRow = styled.div<ProductRowProps>`
   width: 100%;
-  padding: 0 15px;
+  padding: 0 15px 0 0;
   display: flex;
   height: 24px;
   align-items: center;
   justify-content: flex-start;
   font-size: 13px;
 
+  .faDividePay,
+  .hiRefreshPay {
+    color: #000;
+    margin-top: 4px;
+  }
+
+  .hiRefreshPay {
+    font-size: 16px;
+  }
+
   &:hover {
     background: ${({ color }) => color};
+
+    .faDividePay,
+    .hiRefreshPay {
+      color: #fff;
+    }
 
     button {
       color: #fff;

@@ -25,13 +25,14 @@ import {
   FaTimes,
   FaTrashAlt,
   FaCalendarAlt,
+  FaDivide,
 } from 'react-icons/fa';
 import { BiCalendarX } from 'react-icons/bi';
 import { GoAlert } from 'react-icons/go';
 import { RiDraftFill } from 'react-icons/ri';
 import { IoMdThumbsDown } from 'react-icons/io';
 import { MdOpenInNew } from 'react-icons/md';
-import { HiOutlineRefresh } from 'react-icons/hi';
+import { HiOutlineRefresh, HiRefresh } from 'react-icons/hi';
 import { Form } from '@unform/web';
 import { FormHandles } from '@unform/core';
 import { formatISO, isValid, parseISO, isBefore, endOfDay } from 'date-fns';
@@ -91,6 +92,7 @@ import {
   ProductsOrderContent,
   TitleRow,
   ProductRow,
+  StatusProductItem,
   TitleProductName,
   TitleProductDescription,
   TitleProductValue,
@@ -292,6 +294,14 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
               margin: '0 10px -1px -4px',
               fontSize: '18px',
             },
+            '&[class*="hiRefreshPay"]': {
+              margin: '0 2px 0 2px',
+              fontSize: '18px',
+            },
+            '&[class*="faDividePay"]': {
+              margin: '0 2px 0 2px',
+              fontSize: '18px',
+            },
           },
           '&:hover': {
             backgroundColor: color,
@@ -321,6 +331,14 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
               },
               '&[class*="hiRefresh"]': {
                 margin: '0 10px -1px -4px',
+                fontSize: '18px',
+              },
+              '&[class*="hiRefreshPay"]': {
+                margin: '0 2px 0 2px',
+                fontSize: '18px',
+              },
+              '&[class*="faDividePay"]': {
+                margin: '0 2px 0 2px',
                 fontSize: '18px',
               },
             },
@@ -355,6 +373,14 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                 margin: '0 10px -1px -4px',
                 fontSize: '18px',
               },
+              '&[class*="hiRefreshPay"]': {
+                margin: '0 2px 0 2px',
+                fontSize: '18px',
+              },
+              '&[class*="faDividePay"]': {
+                margin: '0 2px 0 2px',
+                fontSize: '18px',
+              },
             },
             '&:hover': {
               backgroundColor: color,
@@ -384,6 +410,14 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                 },
                 '&[class*="hiRefresh"]': {
                   margin: '0 10px -1px -4px',
+                  fontSize: '18px',
+                },
+                '&[class*="hiRefreshPay"]': {
+                  margin: '0 2px 0 2px',
+                  fontSize: '18px',
+                },
+                '&[class*="faDividePay"]': {
+                  margin: '0 2px 0 2px',
                   fontSize: '18px',
                 },
               },
@@ -2916,6 +2950,21 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                             <br />
                           </p>
                         )}
+                        {orderData.payment_way === 'Parcelado' && (
+                          <button
+                            className="split-payment-way"
+                            type="button"
+                            onClick={handleOpenSplitPaymentWay}
+                          >
+                            <MaterialTooltip
+                              title="Ver parcelamento"
+                              arrow
+                              placement="top"
+                            >
+                              <MdOpenInNew className={mdOpenInNew} />
+                            </MaterialTooltip>
+                          </button>
+                        )}
                       </>
                     )}
                     {from === 'TechnicalArea' && (
@@ -3126,6 +3175,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                 }
               >
                 <TitleRow>
+                  <div style={{ width: '35px' }} />
                   <TitleProductName>SERVIÇO</TitleProductName>
                   <TitleProductDescription>
                     DESCRIÇÃO DO SERVIÇO
@@ -3138,6 +3188,28 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                   orderData.orders_products.length > 0 &&
                   orderData.orders_products.map((product) => (
                     <ProductRow color={color} key={product.id}>
+                      <StatusProductItem>
+                        <FormControl className={formControl}>
+                          <Select
+                            value={
+                              product.product.name === 'Contrato de Assessoria'
+                                ? '2'
+                                : ''
+                            }
+                            defaultValue=""
+                            displayEmpty
+                            onChange={() => {}}
+                          >
+                            <MenuItem value="">&nbsp;</MenuItem>
+                            <MenuItem value="1">
+                              <FaDivide className="faDividePay" />
+                            </MenuItem>
+                            <MenuItem value="2">
+                              <HiRefresh className="hiRefreshPay" />
+                            </MenuItem>
+                          </Select>
+                        </FormControl>
+                      </StatusProductItem>
                       <ProductName
                         type="button"
                         onClick={() => handleSelectProduct(product)}
