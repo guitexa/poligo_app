@@ -1,21 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { isToday, isValid, parseISO, isBefore, isAfter } from 'date-fns';
-import { RiDraftFill } from 'react-icons/ri';
-import {
-  FaCheckCircle,
-  FaRegCheckCircle,
-  FaRegClock,
-  FaTimes,
-  FaCalendarAlt,
-} from 'react-icons/fa';
-import { BiCalendarX } from 'react-icons/bi';
-import { GoAlert } from 'react-icons/go';
-import { IoMdThumbsDown } from 'react-icons/io';
-import { HiOutlineRefresh } from 'react-icons/hi';
+import { parseISO, isValid } from 'date-fns';
 import { FiChevronDown } from 'react-icons/fi';
-import { IconBaseProps } from 'react-icons';
 import { formatToDate } from 'brazilian-values';
-import convertDate from '../../utils/convertDate';
 
 import formatValue from '../../utils/formatValue';
 import { useOrdersSearch } from '../../hooks/orders_search';
@@ -25,6 +11,7 @@ import { useAuth, User } from '../../hooks/auth';
 import { useToast } from '../../hooks/toast';
 
 import Order from '../Order';
+import RowResult from './RowResult';
 import api from '../../services/api';
 
 import {
@@ -32,12 +19,6 @@ import {
   Container,
   SeparatedContent,
   Content,
-  RowResult,
-  DateField,
-  TextFlex,
-  TextWidth,
-  Value,
-  Status,
   LoadMore,
 } from './styles';
 
@@ -50,7 +31,7 @@ export interface CompanyData {
   contact_name: string;
   email?: string;
   phone: string;
-  formatted_phone: string;
+  formatted_phone?: string;
   mobile?: string;
   formatted_mobile?: string;
 }
@@ -90,6 +71,7 @@ export interface OrderData {
     | 'Reprovado'
     | 'Aprovado'
     | 'Cancelado'
+    | string
     | unknown;
   approved_at?: string | null;
   formatted_approved_at?: string;
@@ -118,26 +100,9 @@ export interface OrderData {
   company: CompanyData;
   seller: User;
   technical?: User;
-  total_value?: string;
+  total_value?: string | number;
   orders_products?: OrderProductData[];
-}
-
-// Interface do estado de atualização dos resultados
-export interface UpdateSearchResultsData {
-  order_id: string;
-  status_order?: string | unknown;
-  status_delivery?: string | unknown;
-  status_billing?: string | unknown;
-  status_payment?: string | unknown;
-  delivery_date?: string | undefined;
-  due_date?: string | undefined;
-  technical?: User | null;
-  order_product_add?: OrderProductData;
-  order_product_update?: OrderProductData;
-  order_product_delete?: string;
-  company_id?: string;
-  company_name?: string;
-  update_database?: boolean;
+  formatted_orders_products?: string[];
 }
 
 export interface BankAccount {
@@ -151,16 +116,35 @@ export interface FinancialData {
   order: OrderData;
   due_date: string;
   replan_date: string;
-  gross_value: number;
+  gross_value?: number;
   gross_value_string: string;
-  net_value: number;
+  formatted_gross_value: string;
+  net_value?: number;
   net_value_string: string;
-  paid_date: string;
-  paid_value: number;
-  paid_value_string: string;
+  formatted_net_value: string;
+  paid_date?: string;
+  paid_value?: number;
+  paid_value_string?: string;
+  formatted_paid_value?: string;
   company: CompanyData;
   category: string;
   bank_account: BankAccount;
+}
+
+// Interface do estado de atualização dos resultados
+export interface UpdateSearchResultsData {
+  order_id: string;
+  status_order?: string | unknown;
+  status_delivery?: string | unknown;
+  status_billing?: string | unknown;
+  status_payment?: string | unknown;
+  delivery_date?: string | undefined;
+  due_date?: string | undefined;
+  technical?: User | null;
+  company_id?: string;
+  company_name?: string;
+  update_database?: boolean;
+  total_value?: string | number;
 }
 
 interface SearchResultsProps {
@@ -254,9 +238,8 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
           ordersSearch.updateSearchResults.delivery_date.length > 0
         ) {
           // Se houver valor, formata a data e armazena no estado
-          searchOrdersResults[getOrderIndex].delivery_date = convertDate(
-            ordersSearch.updateSearchResults.delivery_date
-          );
+          searchOrdersResults[getOrderIndex].delivery_date =
+            ordersSearch.updateSearchResults.delivery_date;
         }
 
         // Verifica se recebeu ordersSearch.technical para ser atualizado
@@ -267,59 +250,6 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
           // Se houver valor armazena no estado
           searchOrdersResults[getOrderIndex].technical =
             ordersSearch.updateSearchResults.technical;
-        }
-
-        // Verifica se recebeu order_product_add para adicionar um novo produto
-        if (ordersSearch.updateSearchResults.order_product_add) {
-          searchOrdersResults[getOrderIndex].orders_products?.push(
-            ordersSearch.updateSearchResults.order_product_add
-          );
-        }
-
-        // Verifica se recebeu order_product_delete para remover um produto
-        if (ordersSearch.updateSearchResults.order_product_delete) {
-          // Busca no array de orders_products qual o item será removido
-          const getOrderProductIndex = searchOrdersResults[
-            getOrderIndex
-          ].orders_products?.findIndex(
-            (result) =>
-              result.id ===
-              ordersSearch.updateSearchResults.order_product_delete
-          );
-
-          // Verifica se existe o item no array para ser removido
-          if (getOrderProductIndex !== undefined) {
-            searchOrdersResults[getOrderIndex].orders_products?.splice(
-              getOrderProductIndex,
-              1
-            );
-          }
-        }
-
-        // Verifica se recebeu order_product_update para atualizar um produto
-        if (ordersSearch.updateSearchResults.order_product_update) {
-          // Busca no array de orders_products qual o item será atualizado
-          const getOrderProductIndex = searchOrdersResults[
-            getOrderIndex
-          ].orders_products?.findIndex(
-            (result) =>
-              result.id ===
-              ordersSearch.updateSearchResults.order_product_update?.id
-          );
-
-          // Verifica se existe o item no array
-          if (getOrderProductIndex !== undefined) {
-            // Remove o item com nome desatualizado
-            searchOrdersResults[getOrderIndex].orders_products?.splice(
-              getOrderProductIndex,
-              1
-            );
-
-            // Inclui o item que possui o nome atualizado
-            searchOrdersResults[getOrderIndex].orders_products?.push(
-              ordersSearch.updateSearchResults.order_product_update
-            );
-          }
         }
 
         // Verifica se recebeu company_id para atualizar o nome do cliente
@@ -372,7 +302,48 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
   // Função que atualiza os resultados a cada hora
   setInterval(() => setUpdateResults(updateResults + 1), 3600000);
 
-  // Função para realizar a pesquisa padrão ou então pesquisa com filtro
+  // Função para formatar os nomes de produtos para serem exibidos
+  const formatOrdersProducts = useCallback(
+    (orders_products: OrderProductData[]): string[] => {
+      // Ordena os itens do array por order de criação e formata com vírgula
+      const productsToString = orders_products
+        .sort((a, b) => {
+          if (a.created_at < b.created_at) return -1;
+          if (a.created_at > b.created_at) return 1;
+          return 0;
+        })
+        .map((item) => `${item.product && item.product.name}, `);
+
+      // Formata o último item do array removendo a vírgula no final
+      const lastItemFormatted = productsToString?.pop()?.slice(0, -2);
+      lastItemFormatted &&
+        productsToString &&
+        productsToString.push(lastItemFormatted);
+
+      return productsToString || [];
+    },
+    []
+  );
+
+  // Função para formatar o valor total do pedido para ser exibido
+  const formatTotalValue = useCallback(
+    (orders_products: OrderProductData[]): string => {
+      // Faz a soma de todos os valores dos orders_products deste pedido
+      const productsValues = orders_products
+        .map((e) => Number(e.product_value))
+        .reduce((accumulator, productValue) => {
+          return accumulator + productValue;
+        }, 0);
+
+      // Se houver valores realiza a formatação
+      return productsValues && productsValues > 0
+        ? formatValue(productsValues)
+        : formatValue(0);
+    },
+    []
+  );
+
+  // Função para realizar a pesquisa padrão ou pesquisa com filtro
   useEffect(() => {
     if (
       from === 'Comercial' ||
@@ -403,7 +374,29 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
             },
           })
           .then((response) => {
-            setSearchOrdersResults(response.data);
+            const formattedResponse = response.data.map((result) => {
+              const {
+                created_at,
+                approved_at,
+                delivery_date,
+                orders_products,
+                ...rest
+              } = result;
+
+              return {
+                ...rest,
+                created_at: formatToDate(parseISO(created_at)),
+                approved_at: approved_at && formatToDate(parseISO(approved_at)),
+                delivery_date:
+                  delivery_date && formatToDate(parseISO(delivery_date)),
+                total_value:
+                  orders_products && formatTotalValue(orders_products),
+                formatted_orders_products:
+                  orders_products && formatOrdersProducts(orders_products),
+              };
+            });
+
+            setSearchOrdersResults(formattedResponse);
           })
           .catch(() => {
             addToast({
@@ -421,7 +414,28 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
             },
           })
           .then((response) => {
-            setSearchErrorsResults(response.data);
+            const formattedResponse = response.data.map((result) => {
+              const {
+                created_at,
+                approved_at,
+                delivery_date,
+                orders_products,
+                ...rest
+              } = result;
+
+              return {
+                ...rest,
+                created_at: formatToDate(parseISO(created_at)),
+                approved_at: approved_at && formatToDate(parseISO(approved_at)),
+                delivery_date:
+                  delivery_date && formatToDate(parseISO(delivery_date)),
+                total_value:
+                  orders_products && formatTotalValue(orders_products),
+                formatted_orders_products:
+                  orders_products && formatOrdersProducts(orders_products),
+              };
+            });
+            setSearchErrorsResults(formattedResponse);
 
             setChangeResults('orders');
           })
@@ -473,7 +487,28 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
             },
           })
           .then((response) => {
-            setSearchOrdersResults(response.data);
+            const formattedResponse = response.data.map((result) => {
+              const {
+                created_at,
+                approved_at,
+                delivery_date,
+                orders_products,
+                ...rest
+              } = result;
+
+              return {
+                ...rest,
+                created_at: formatToDate(parseISO(created_at)),
+                approved_at: approved_at && formatToDate(parseISO(approved_at)),
+                delivery_date:
+                  delivery_date && formatToDate(parseISO(delivery_date)),
+                total_value:
+                  orders_products && formatTotalValue(orders_products),
+                formatted_orders_products:
+                  orders_products && formatOrdersProducts(orders_products),
+              };
+            });
+            setSearchOrdersResults(formattedResponse);
 
             setChangeResults('search-orders');
           })
@@ -511,7 +546,31 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
             },
           })
           .then((response) => {
-            setSearchFinancialsResults(response.data);
+            const formattedResponse = response.data.map((result) => {
+              const {
+                due_date,
+                replan_date,
+                gross_value,
+                net_value,
+                paid_date,
+                paid_value,
+                ...rest
+              } = result;
+
+              return {
+                ...rest,
+                due_date: formatToDate(parseISO(due_date)),
+                replan_date: formatToDate(parseISO(replan_date)),
+                formatted_gross_value: gross_value
+                  ? formatValue(gross_value)
+                  : '',
+                formatted_net_value: net_value ? formatValue(net_value) : '',
+                paid_date: paid_date && formatToDate(parseISO(paid_date)),
+                formatted_paid_value: paid_value ? formatValue(paid_value) : '',
+              };
+            });
+
+            setSearchFinancialsResults(formattedResponse);
 
             setChangeResults('financials');
           })
@@ -618,194 +677,6 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
     updateResults,
   ]);
 
-  // Função para formatar os nomes de produtos para serem exibidos
-  const productsToShow = useCallback(
-    (order_id: string): string[] => {
-      // Busca no array de resultados um pedido específico
-      const getOrderIndex = searchOrdersResults.findIndex(
-        (result) => result.id === order_id
-      );
-
-      if (searchOrdersResults[getOrderIndex]) {
-        // Ordena os itens do array por order de criação e formata com vírgula
-        const productsToString = searchOrdersResults[
-          getOrderIndex
-        ].orders_products
-          ?.sort((a, b) => {
-            if (a.created_at < b.created_at) return -1;
-            if (a.created_at > b.created_at) return 1;
-            return 0;
-          })
-          .map((item) => `${item.product && item.product.name}, `);
-
-        // Formata o último item do array removendo a vírgula no final
-        const lastItemFormatted = productsToString?.pop()?.slice(0, -2);
-        lastItemFormatted &&
-          productsToString &&
-          productsToString.push(lastItemFormatted);
-
-        return productsToString || [];
-      }
-
-      // Se não encontrar no searchOrdersResults procura no searchErrorsResults
-      const getOrderErrorIndex = searchErrorsResults.findIndex(
-        (result) => result.id === order_id
-      );
-
-      if (searchErrorsResults[getOrderErrorIndex]) {
-        // Ordena os itens do array por order de criação e formata com vírgula
-        const productsToString = searchErrorsResults[
-          getOrderErrorIndex
-        ].orders_products
-          ?.sort((a, b) => {
-            if (a.created_at < b.created_at) return -1;
-            if (a.created_at > b.created_at) return 1;
-            return 0;
-          })
-          .map((item) => `${item.product && item.product.name}, `);
-
-        // Formata o último item do array removendo a vírgula no final
-        const lastItemFormatted = productsToString?.pop()?.slice(0, -2);
-        lastItemFormatted &&
-          productsToString &&
-          productsToString.push(lastItemFormatted);
-
-        return productsToString || [];
-      }
-
-      return [];
-    },
-    [searchErrorsResults, searchOrdersResults]
-  );
-
-  // Função para formatar o valor total do pedido para ser exibido
-  const totalOrderValueToShow = useCallback(
-    (order_id: string): string => {
-      // Busca no array de resultados um pedido específico
-      const getOrderIndex = searchOrdersResults.findIndex(
-        (result) => result.id === order_id
-      );
-
-      if (searchOrdersResults[getOrderIndex]) {
-        // Faz a soma de todos os valores dos orders_products deste pedido
-        const productsValues = searchOrdersResults[
-          getOrderIndex
-        ].orders_products
-          ?.map((e) => Number(e.product_value))
-          .reduce((accumulator, productValue) => {
-            return accumulator + productValue;
-          }, 0);
-
-        // Se houver valores realiza a formatação
-        return productsValues && productsValues > 0
-          ? formatValue(productsValues)
-          : formatValue(0);
-      }
-
-      // Se não encontrar no searchOrdersResults procura no searchErrorsResults
-      const getOrderErrorIndex = searchErrorsResults.findIndex(
-        (result) => result.id === order_id
-      );
-
-      if (searchErrorsResults[getOrderErrorIndex]) {
-        // Faz a soma de todos os valores dos orders_products deste pedido
-        const productsValues = searchErrorsResults[
-          getOrderErrorIndex
-        ].orders_products
-          ?.map((e) => Number(e.product_value))
-          .reduce((accumulator, productValue) => {
-            return accumulator + productValue;
-          }, 0);
-
-        // Se houver valores realiza a formatação
-        return productsValues && productsValues > 0
-          ? formatValue(productsValues)
-          : formatValue(0);
-      }
-
-      return '';
-    },
-    [searchErrorsResults, searchOrdersResults]
-  );
-
-  // Função para exibir os ícones de status conforme valor recebido
-  const orderStatusReturn = useCallback((val: string | unknown):
-    | IconBaseProps
-    | undefined => {
-    if (val === 'Rascunho') {
-      return <RiDraftFill className="riDraftFill" />;
-    }
-    if (val === 'Aguardando') {
-      return <FaRegClock className="faRegClock" />;
-    }
-    if (val === 'Agendado') {
-      return <FaCalendarAlt className="faCalendarAlt" />;
-    }
-    if (val === 'Execução') {
-      return <HiOutlineRefresh className="hiRefresh" />;
-    }
-    if (val === 'Reprovado') {
-      return <IoMdThumbsDown className="ioThumbsDown" />;
-    }
-    if (val === 'Concluído') {
-      return <FaRegCheckCircle className="faGrayCheck" />;
-    }
-    if (
-      val === 'Aprovado' ||
-      val === 'Pago' ||
-      val === 'Entregue' ||
-      val === 'Faturado'
-    ) {
-      return <FaCheckCircle className="faGreenCheck" />;
-    }
-    if (val === 'Pendência') {
-      return <GoAlert className="goAlert" />;
-    }
-    if (val === 'Cancelado') {
-      return <FaTimes className="faTimes" />;
-    }
-    return undefined;
-  }, []);
-
-  const financialStatusReturn = useCallback(
-    (
-      due_date: string,
-      paid_date: string | unknown,
-      category: string
-    ): IconBaseProps | undefined => {
-      if (isToday(parseISO(due_date)) && !paid_date) {
-        // Hoje
-        return <GoAlert className="goAlert" />;
-      }
-      if (paid_date) {
-        // Pago
-        return <FaCheckCircle className="faGreenCheck" />;
-      }
-      if (
-        isBefore(parseISO(due_date), new Date()) &&
-        !paid_date &&
-        category !== 'Protesto'
-      ) {
-        // Vencido
-        return <BiCalendarX className="biCalendarX" />;
-      }
-      if (isAfter(parseISO(due_date), new Date()) && !paid_date) {
-        // Agendado
-        return <FaCalendarAlt className="faCalendarAlt" />;
-      }
-      if (
-        isBefore(parseISO(due_date), new Date()) &&
-        !paid_date &&
-        category === 'Protesto'
-      ) {
-        // Cancelado
-        return <FaTimes className="faTimes" />;
-      }
-      return undefined;
-    },
-    []
-  );
-
   // Função para abrir um pedido baseado no order_id recebido
   const handleOpenOrder = useCallback(
     (order_id: string | undefined) => {
@@ -841,73 +712,59 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
             /* Mostra container separado apenas se não tiver filtro */
             <SeparatedContent>
               <div>
+                {/* Verifica se a origem é o Comercial */}
                 {searchErrorsResults &&
+                  from === 'Comercial' &&
                   searchErrorsResults.map((search: OrderData) => (
                     <RowResult
-                      type="button"
+                      from={from}
                       color={color}
                       isCanceled
-                      onClick={() => handleOpenOrder(search.id)}
+                      handleClick={() => handleOpenOrder(search.id)}
                       key={search.id}
-                    >
-                      {from === 'TechnicalArea' ? (
-                        <DateField>
-                          {search?.approved_at
-                            ? formatToDate(parseISO(search.approved_at))
-                            : ''}
-                        </DateField>
-                      ) : (
-                        <DateField>
-                          {formatToDate(parseISO(search.created_at))}
-                        </DateField>
-                      )}
-                      <TextFlex flex="0.8">
-                        {search.company && search.company.name}
-                      </TextFlex>
-                      <TextFlex flex="1">{productsToShow(search.id)}</TextFlex>
-                      {(from === 'Comercial' || from === 'Billing') && (
-                        <>
-                          <TextWidth>
-                            {search.seller && search.seller.name}
-                          </TextWidth>
-                          <Value>
-                            {search.orders_products &&
-                            search.orders_products.length
-                              ? 'R$'
-                              : ''}
-                            {search.orders_products &&
-                            search.orders_products.length ? (
-                              <div>{totalOrderValueToShow(search.id)}</div>
-                            ) : (
-                              ''
-                            )}
-                          </Value>
-                        </>
-                      )}
-                      {from === 'TechnicalArea' && (
-                        <>
-                          <TextWidth>
-                            {search.technical ? search.technical.name : ''}
-                          </TextWidth>
-                          <DateField>
-                            {search.delivery_date
-                              ? formatToDate(parseISO(search.delivery_date))
-                              : ''}
-                          </DateField>
-                        </>
-                      )}
-                      <Status isCanceled>
-                        {from === 'Comercial' && search.status_order
-                          ? orderStatusReturn(search.status_order)
-                          : ''}
-                        {from === 'Billing' && search.status_billing
-                          ? orderStatusReturn(search.status_billing)
-                          : ''}
-                        {from === 'TechnicalArea' && search.status_delivery
-                          ? orderStatusReturn(search.status_delivery)
-                          : ''}
-                      </Status>
-                    </RowResult>
+                      date={search.created_at}
+                      companyName={search.company && search.company.name}
+                      products={search.formatted_orders_products}
+                      seller={search.seller && search.seller.name}
+                      value={search.total_value}
+                      status={search.status_order}
+                    />
+                  ))}
+                {/* Verifica se a origem é o TechnicalArea */}
+                {searchErrorsResults &&
+                  from === 'TechnicalArea' &&
+                  searchErrorsResults.map((search: OrderData) => (
+                    <RowResult
+                      from={from}
+                      color={color}
+                      isCanceled
+                      handleClick={() => handleOpenOrder(search.id)}
+                      key={search.id}
+                      date={search.created_at}
+                      companyName={search.company && search.company.name}
+                      products={search.formatted_orders_products}
+                      technical={search.technical && search.technical.name}
+                      deliveryDate={search.delivery_date}
+                      status={search.status_delivery}
+                    />
+                  ))}
+                {/* Verifica se a origem é o Billing */}
+                {searchErrorsResults &&
+                  from === 'Billing' &&
+                  searchErrorsResults.map((search: OrderData) => (
+                    <RowResult
+                      from={from}
+                      color={color}
+                      isCanceled
+                      handleClick={() => handleOpenOrder(search.id)}
+                      key={search.id}
+                      date={search.created_at}
+                      companyName={search.company && search.company.name}
+                      products={search.formatted_orders_products}
+                      seller={search.seller && search.seller.name}
+                      value={search.total_value}
+                      status={search.status_billing}
+                    />
                   ))}
               </div>
             </SeparatedContent>
@@ -918,36 +775,17 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
             {searchOrdersResults &&
               searchOrdersResults.map((search: OrderData) => (
                 <RowResult
-                  type="button"
+                  from={from}
                   color={color}
-                  isCanceled={false}
-                  onClick={() => handleOpenOrder(search.id)}
+                  handleClick={() => handleOpenOrder(search.id)}
                   key={search.id}
-                >
-                  <DateField>
-                    {formatToDate(parseISO(search.created_at))}
-                  </DateField>
-                  <TextFlex flex="0.8">
-                    {search.company && search.company.name}
-                  </TextFlex>
-                  <TextFlex flex="1">{productsToShow(search.id)}</TextFlex>
-                  <TextWidth>{search.seller && search.seller.name}</TextWidth>
-                  <Value>
-                    {search.orders_products && search.orders_products.length
-                      ? 'R$'
-                      : ''}
-                    {search.orders_products && search.orders_products.length ? (
-                      <div>{totalOrderValueToShow(search.id)}</div>
-                    ) : (
-                      ''
-                    )}
-                  </Value>
-                  <Status isCanceled={false}>
-                    {search.status_order
-                      ? orderStatusReturn(search.status_order)
-                      : ''}
-                  </Status>
-                </RowResult>
+                  date={search.created_at}
+                  companyName={search.company && search.company.name}
+                  products={search.formatted_orders_products}
+                  seller={search.seller && search.seller.name}
+                  value={search.total_value}
+                  status={search.status_order}
+                />
               ))}
             {searchOrdersResults.length > 0 &&
               searchOrdersResults.length === take && (
@@ -965,35 +803,17 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
             {searchOrdersResults &&
               searchOrdersResults.map((search: OrderData) => (
                 <RowResult
-                  type="button"
+                  from={from}
                   color={color}
-                  isCanceled={false}
-                  onClick={() => handleOpenOrder(search.id)}
+                  handleClick={() => handleOpenOrder(search.id)}
                   key={search.id}
-                >
-                  <DateField>
-                    {search?.approved_at
-                      ? formatToDate(parseISO(search.approved_at))
-                      : ''}
-                  </DateField>
-                  <TextFlex flex="0.8">
-                    {search.company && search.company.name}
-                  </TextFlex>
-                  <TextFlex flex="1">{productsToShow(search.id)}</TextFlex>
-                  <TextWidth>
-                    {search.technical ? search.technical.name : ''}
-                  </TextWidth>
-                  <DateField>
-                    {search.delivery_date
-                      ? formatToDate(parseISO(search.delivery_date))
-                      : ''}
-                  </DateField>
-                  <Status isCanceled={false}>
-                    {from === 'TechnicalArea' && search.status_delivery
-                      ? orderStatusReturn(search.status_delivery)
-                      : ''}
-                  </Status>
-                </RowResult>
+                  date={search.created_at}
+                  companyName={search.company && search.company.name}
+                  products={search.formatted_orders_products}
+                  technical={search.technical && search.technical.name}
+                  deliveryDate={search.delivery_date}
+                  status={search.status_delivery}
+                />
               ))}
             {searchOrdersResults.length > 0 &&
               searchOrdersResults.length === take && (
@@ -1011,36 +831,17 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
             {searchOrdersResults &&
               searchOrdersResults.map((search: OrderData) => (
                 <RowResult
-                  type="button"
+                  from={from}
                   color={color}
-                  isCanceled={false}
-                  onClick={() => handleOpenOrder(search.id)}
+                  handleClick={() => handleOpenOrder(search.id)}
                   key={search.id}
-                >
-                  <DateField>
-                    {formatToDate(parseISO(search.created_at))}
-                  </DateField>
-                  <TextFlex flex="0.8">
-                    {search.company && search.company.name}
-                  </TextFlex>
-                  <TextFlex flex="1">{productsToShow(search.id)}</TextFlex>
-                  <TextWidth>{search.seller && search.seller.name}</TextWidth>
-                  <Value>
-                    {search.orders_products && search.orders_products.length
-                      ? 'R$'
-                      : ''}
-                    {search.orders_products && search.orders_products.length ? (
-                      <div>{totalOrderValueToShow(search.id)}</div>
-                    ) : (
-                      ''
-                    )}
-                  </Value>
-                  <Status isCanceled={false}>
-                    {from === 'Billing' && search.status_billing
-                      ? orderStatusReturn(search.status_billing)
-                      : ''}
-                  </Status>
-                </RowResult>
+                  date={search.created_at}
+                  companyName={search.company && search.company.name}
+                  products={search.formatted_orders_products}
+                  seller={search.seller && search.seller.name}
+                  value={search.total_value}
+                  status={search.status_billing}
+                />
               ))}
             {searchOrdersResults.length > 0 &&
               searchOrdersResults.length === take && (
@@ -1070,78 +871,20 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
                 {searchTodayResults &&
                   searchTodayResults.map((search: FinancialData) => (
                     <RowResult
-                      type="button"
+                      from={from}
                       color={color}
-                      isCanceled={false}
-                      onClick={() => {}}
+                      handleClick={() => {}}
                       key={search.id}
-                      dueDate={
-                        isToday(parseISO(search.due_date)) &&
-                        !search.paid_date &&
-                        '#FFA60210'
-                      }
-                    >
-                      <DateField>
-                        {formatToDate(parseISO(search.due_date))}
-                      </DateField>
-                      <DateField>
-                        {formatToDate(parseISO(search.replan_date))}
-                      </DateField>
-                      <Value width="9.9%" negative={search.gross_value < 0}>
-                        {search.gross_value ? 'R$' : ''}
-                        {search.gross_value ? (
-                          <div>
-                            {search.gross_value
-                              ? formatValue(search.gross_value)
-                              : ''}
-                          </div>
-                        ) : (
-                          ''
-                        )}
-                      </Value>
-                      <Value width="9.9%" negative={search.net_value < 0}>
-                        {search.net_value ? 'R$' : ''}
-                        {search.net_value ? (
-                          <div>
-                            {search.net_value
-                              ? formatValue(search.net_value)
-                              : ''}
-                          </div>
-                        ) : (
-                          ''
-                        )}
-                      </Value>
-                      <DateField>
-                        {search.paid_date
-                          ? formatToDate(parseISO(search.paid_date))
-                          : ''}
-                      </DateField>
-                      <Value width="9.9%" negative={search.paid_value < 0}>
-                        {search.paid_value ? 'R$' : ''}
-                        {search.paid_value ? (
-                          <div>
-                            {search.paid_value
-                              ? formatValue(search.paid_value)
-                              : ''}
-                          </div>
-                        ) : (
-                          ''
-                        )}
-                      </Value>
-                      <TextFlex flex="1">
-                        {search.company && search.company.name}
-                      </TextFlex>
-                      <TextWidth width="9%">
-                        {search.bank_account && search.bank_account.name}
-                      </TextWidth>
-                      <Status isCanceled={false}>
-                        {financialStatusReturn(
-                          search.due_date,
-                          search.paid_date,
-                          search.category
-                        )}
-                      </Status>
-                    </RowResult>
+                      dueDate={search.due_date}
+                      replanDate={search.replan_date}
+                      grossValue={search.formatted_gross_value}
+                      netValue={search.formatted_net_value}
+                      paidDate={search.paid_date}
+                      paidValue={search.formatted_paid_value}
+                      companyName={search.company.name}
+                      bankAccount={search.bank_account.name}
+                      category={search.category}
+                    />
                   ))}
               </div>
             </SeparatedContent>
@@ -1152,76 +895,20 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
             {searchFinancialsResults &&
               searchFinancialsResults.map((search: FinancialData) => (
                 <RowResult
-                  type="button"
+                  from={from}
                   color={color}
-                  isCanceled={false}
-                  onClick={() => {}}
+                  handleClick={() => {}}
                   key={search.id}
-                  dueDate={
-                    isToday(parseISO(search.due_date)) &&
-                    !search.paid_date &&
-                    '#FFA60210'
-                  }
-                >
-                  <DateField>
-                    {formatToDate(parseISO(search.due_date))}
-                  </DateField>
-                  <DateField>
-                    {formatToDate(parseISO(search.replan_date))}
-                  </DateField>
-                  <Value width="9.9%" negative={search.gross_value < 0}>
-                    {search.gross_value ? 'R$' : ''}
-                    {search.gross_value ? (
-                      <div>
-                        {search.gross_value
-                          ? formatValue(search.gross_value)
-                          : ''}
-                      </div>
-                    ) : (
-                      ''
-                    )}
-                  </Value>
-                  <Value width="9.9%" negative={search.net_value < 0}>
-                    {search.net_value ? 'R$' : ''}
-                    {search.net_value ? (
-                      <div>
-                        {search.net_value ? formatValue(search.net_value) : ''}
-                      </div>
-                    ) : (
-                      ''
-                    )}
-                  </Value>
-                  <DateField>
-                    {search.paid_date
-                      ? formatToDate(parseISO(search.paid_date))
-                      : ''}
-                  </DateField>
-                  <Value width="9.9%" negative={search.paid_value < 0}>
-                    {search.paid_value ? 'R$' : ''}
-                    {search.paid_value ? (
-                      <div>
-                        {search.paid_value
-                          ? formatValue(search.paid_value)
-                          : ''}
-                      </div>
-                    ) : (
-                      ''
-                    )}
-                  </Value>
-                  <TextFlex flex="1">
-                    {search.company && search.company.name}
-                  </TextFlex>
-                  <TextWidth width="9%">
-                    {search.bank_account && search.bank_account.name}
-                  </TextWidth>
-                  <Status isCanceled={false}>
-                    {financialStatusReturn(
-                      search.due_date,
-                      search.paid_date,
-                      search.category
-                    )}
-                  </Status>
-                </RowResult>
+                  dueDate={search.due_date}
+                  replanDate={search.replan_date}
+                  grossValue={search.formatted_gross_value}
+                  netValue={search.formatted_net_value}
+                  paidDate={search.paid_date}
+                  paidValue={search.formatted_paid_value}
+                  companyName={search.company.name}
+                  bankAccount={search.bank_account.name}
+                  category={search.category}
+                />
               ))}
             {searchFinancialsResults.length > 0 &&
               searchFinancialsResults.length === take && (

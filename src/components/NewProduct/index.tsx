@@ -470,6 +470,9 @@ const NewProduct: React.FC<NewProductProps> = ({
                     handleHomeEndKeys={false}
                     id="input-selectedProduct"
                     value={selectedProduct}
+                    getOptionSelected={(option, value) =>
+                      option.name === value.name
+                    }
                     onChange={(event, newProduct) => {
                       if (newProduct?.inputValue) {
                         // Adiciona um novo produto
@@ -510,13 +513,13 @@ const NewProduct: React.FC<NewProductProps> = ({
                       if (inputValue) {
                         return inputValue;
                       }
-                      return name;
+                      return name || '';
                     }}
                     renderInput={(params) => (
                       <OriginalTextField
+                        {...params}
                         autoFocus
                         label="Serviço"
-                        {...params}
                       />
                     )}
                     renderOption={({ name }, { inputValue }) => {
@@ -609,6 +612,9 @@ const NewProduct: React.FC<NewProductProps> = ({
                     clearOnBlur={false}
                     handleHomeEndKeys={false}
                     value={selectedProduct}
+                    getOptionSelected={(option, value) =>
+                      option.name === value.name
+                    }
                     onChange={(event, newProduct) => {
                       if (newProduct?.inputValue) {
                         // Adiciona um novo serviço
@@ -649,12 +655,12 @@ const NewProduct: React.FC<NewProductProps> = ({
                       if (inputValue) {
                         return inputValue;
                       }
-                      return name;
+                      return name || '';
                     }}
                     renderInput={(params) => (
                       <OriginalTextField
-                        autoFocus
                         {...params}
+                        autoFocus
                         label="Serviço"
                       />
                     )}

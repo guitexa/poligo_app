@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import {
   InputLabel,
   Select,
@@ -82,8 +82,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
             description: '#0230 - Erro ao carregar informações',
           });
         });
-    }
-    if (from === 'TechnicalArea') {
+    } else if (from === 'TechnicalArea') {
       api
         .get<OrderData[]>('/orders/')
         .then((response) => {
@@ -103,8 +102,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
             description: '#0230 - Erro ao carregar informações',
           });
         });
-    }
-    if (from === 'Financial') {
+    } else if (from === 'Financial') {
       api
         .get<FinancialData[]>('/financials/')
         .then((response) => {
@@ -610,4 +608,4 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
   );
 };
 
-export default SearchBar;
+export default memo(SearchBar);

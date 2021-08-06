@@ -23,6 +23,11 @@ interface AddProductButtonProps {
 
 interface PaymentWayProps {
   paymentWay: string;
+  statusBilling: boolean;
+}
+
+interface PaymentMethodProps {
+  paymentMethod: boolean;
 }
 
 export const OrderOverlap = styled.div`
@@ -132,7 +137,6 @@ export const DataForm = styled.div`
     font-size: 13px;
     line-height: 1.6em;
     color: #222;
-    flex: 1;
     text-align: left;
 
     overflow: hidden;
@@ -234,7 +238,6 @@ export const StatusProductItem = styled.div`
   }
 
   .MuiSelect-icon {
-    /* margin-right: 2px; */
     display: none;
   }
 
@@ -244,14 +247,33 @@ export const StatusProductItem = styled.div`
 `;
 
 export const PaymentWay = styled.div<PaymentWayProps>`
-  ${({ paymentWay }) =>
-    paymentWay === 'Parcelado'
+  ${({ paymentWay, statusBilling }) =>
+    paymentWay === 'Parcelado' && !statusBilling
       ? css`
           padding: 0 0 1px 0;
         `
-      : css`
+      : paymentWay === 'Parcelado' && !!statusBilling
+      ? css`
+          display: flex;
+          justify-content: flex-start;
+          align-items: center;
+        `
+      : paymentWay !== 'Parcelado' && !statusBilling
+      ? css`
           padding: 0 0 4px 0;
-        `};
+        `
+      : ''};
+
+  label {
+    line-height: 0px;
+    margin-left: 2px;
+    font-size: 12px;
+    color: #888;
+  }
+
+  .MuiFormLabel-root {
+    transform: translate(0, 8px) scale(1);
+  }
 
   .split-payment-way {
     cursor: pointer;
@@ -259,6 +281,8 @@ export const PaymentWay = styled.div<PaymentWayProps>`
     outline: none;
     line-height: 0;
     background: transparent;
+    margin-left: ${({ paymentWay, statusBilling }) =>
+      paymentWay === 'Parcelado' && !!statusBilling && '10px'};
   }
 
   .MuiListItem-root.Mui-selected,
@@ -267,7 +291,7 @@ export const PaymentWay = styled.div<PaymentWayProps>`
   }
 
   .MuiFormControl-root {
-    min-width: 50px;
+    min-width: ${({ paymentWay }) => (paymentWay ? '50px' : '230px')};
     margin: 0;
   }
 
@@ -297,7 +321,7 @@ export const PaymentWay = styled.div<PaymentWayProps>`
   }
 `;
 
-export const PaymentMethod = styled.div`
+export const PaymentMethod = styled.div<PaymentMethodProps>`
   padding: 2px 0 0 0;
 
   .MuiListItem-root.Mui-selected,
@@ -305,8 +329,19 @@ export const PaymentMethod = styled.div`
     background-color: #222;
   }
 
+  label {
+    line-height: 0px;
+    margin-left: 2px;
+    font-size: 12px;
+    color: #888;
+  }
+
+  .MuiFormLabel-root {
+    transform: translate(0, 8px) scale(1);
+  }
+
   .MuiFormControl-root {
-    min-width: 50px;
+    min-width: ${({ paymentMethod }) => (paymentMethod ? '50px' : '220px')};
     margin: 0;
   }
 

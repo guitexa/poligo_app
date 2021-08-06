@@ -16,6 +16,7 @@ import {
   Theme,
   createMuiTheme,
   ThemeProvider,
+  InputLabel,
 } from '@material-ui/core';
 import {
   FaPlus,
@@ -73,6 +74,7 @@ import {
   OrderProductData,
   CompanyData,
   PaymentMethodData,
+  UpdateSearchResultsData,
 } from '../SearchResults';
 
 import {
@@ -151,6 +153,12 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
 
   // Armazena se houve alguma atualização no pedido
   const [orderUpdated, setOrderUpdated] = useState(false);
+
+  // Armazena se houve alguma atualização para enviar ao SearchResults
+  const [
+    updatesToSendToSearchResults,
+    setUpdatesToSendToSearchResults,
+  ] = useState<UpdateSearchResultsData>({} as UpdateSearchResultsData);
 
   // Armazena se houve alguma atualização no cliente
   const [companyUpdated, setCompanyUpdated] = useState(false);
@@ -506,10 +514,6 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         });
       });
 
-    toUpdateSearchResults({
-      order_id,
-      update_database: true,
-    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order_id]);
 
@@ -526,17 +530,21 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         orderData.orders_products[getOrderIndex] = updateOrderProduct;
 
         // Envia atualização para o component searchResults
-        toUpdateSearchResults({
+        setUpdatesToSendToSearchResults({
+          ...updatesToSendToSearchResults,
           order_id,
-          order_product_update: updateOrderProduct,
+          update_database: true,
         });
+
+        // Define que o banco de dados deve ser atualizado
+        setOrderUpdated(true);
       }
 
       // Limpa o estado
       setUpdateOrderProduct({} as OrderProductData); // Limpa o estado
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [updateOrderProduct.id]);
+  }, [updateOrderProduct]);
 
   // Se houver addNewOrderProduct significa que foi criado um novo order_product
   useEffect(() => {
@@ -548,20 +556,23 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       ];
 
       // Envia atualização para o component searchResults
-      toUpdateSearchResults({
+      setUpdatesToSendToSearchResults({
+        ...updatesToSendToSearchResults,
         order_id,
-        order_product_add: addNewOrderProduct,
+        update_database: true,
       });
+
+      // Define que o banco de dados deve ser atualizado
+      setOrderUpdated(true);
 
       // Limpa o estado
       setAddNewOrderProduct({} as OrderProductData);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addNewOrderProduct.id]);
+  }, [addNewOrderProduct]);
 
   // Função que busca os métodos de pagamento cadastrados no banco de dados
   useEffect(() => {
-    checkToken();
     api
       .get<PaymentMethodData[]>('/payment-methods')
       .then((response) => {
@@ -574,7 +585,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             '#0260 - Erro ao carregar os meios de pagamentos cadastrados',
         });
       });
-  }, [addToast, checkToken, setPaymentMethods]);
+  }, [addToast, setPaymentMethods]);
 
   // Função para atualizar o status do pedido e/ou a data de aprovação
   const updateStatusOrder = useCallback(
@@ -615,11 +626,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         orderData.status_billing = 'Aguardando';
 
         // Envia atualização para o component searchResults
-        toUpdateSearchResults({
+        setUpdatesToSendToSearchResults({
+          ...updatesToSendToSearchResults,
           order_id,
-          status_order: e.target.value,
-          status_delivery: 'Aguardando',
-          status_billing: 'Aguardando',
+          update_database: true,
         });
 
         // Define que o banco de dados deve ser atualizado
@@ -644,20 +654,14 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             }
 
             // Envia atualização para o component searchResults
-            toUpdateSearchResults({
+            setUpdatesToSendToSearchResults({
+              ...updatesToSendToSearchResults,
               order_id,
-              status_order: e.target.value,
-              status_delivery: '',
-              status_billing: '',
+              update_database: true,
             });
 
             // Define que o banco de dados deve ser atualizado
             setOrderUpdated(true);
-
-            addToast({
-              type: 'success',
-              description: 'Status do pedido atualizado com sucesso!',
-            });
           })
           .catch(() => {
             addToast({
@@ -666,13 +670,17 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             });
           });
       }
-      // Se o valor recebido for diferente de 'Aprovado' atualiza apenas o status
+      // Se o valor recebido for diferente de 'Aprovado' e diferente de 'Cancelado' atualiza apenas o status
       else {
         // Armazena o valor recebido no estado
-        orderData.status_order = e.target.value;
+        setOrderData({
+          ...orderData,
+          status_order: e.target.value,
+        });
 
         // Envia atualização para o component searchResults
-        toUpdateSearchResults({
+        setUpdatesToSendToSearchResults({
+          ...updatesToSendToSearchResults,
           order_id,
           status_order: e.target.value,
         });
@@ -681,7 +689,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         setOrderUpdated(true);
       }
     },
-    [addToast, orderData, order_id, toUpdateSearchResults]
+    [addToast, orderData, order_id, updatesToSendToSearchResults]
   );
 
   // Função para atualizar o status da área técnica e/ou o técnico executante
@@ -698,15 +706,14 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             orderData.status_delivery = e.target.value;
 
             // Envia atualização para o component searchResults
-            toUpdateSearchResults({
+            setUpdatesToSendToSearchResults({
+              ...updatesToSendToSearchResults,
               order_id,
-              status_delivery: e.target.value,
+              update_database: true,
             });
 
-            addToast({
-              type: 'success',
-              description: 'Status do pedido atualizado com sucesso!',
-            });
+            // Define que o banco de dados deve ser atualizado
+            setOrderUpdated(true);
           })
           .catch(() => {
             addToast({
@@ -722,12 +729,25 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         // Se não possui técnico executante, define o usuário como técnico executante
         orderData.technical = user;
 
-        // Envia atualização para o component searchResults
-        toUpdateSearchResults({
-          order_id,
-          status_delivery: e.target.value,
-          technical: user,
-        });
+        // Se o status for 'Entregue' vai atualizar os resultados
+        if (e.target.value === 'Entregue') {
+          // Envia atualização para o component searchResults
+          setUpdatesToSendToSearchResults({
+            ...updatesToSendToSearchResults,
+            order_id,
+            update_database: true,
+          });
+        }
+        // Se o status for diferente de 'Entregue' vai atualizar os resultados
+        else {
+          // Envia atualização para o component searchResults
+          setUpdatesToSendToSearchResults({
+            ...updatesToSendToSearchResults,
+            order_id,
+            status_delivery: e.target.value,
+            technical: user,
+          });
+        }
 
         // Define que o banco de dados deve ser atualizado
         setOrderUpdated(true);
@@ -737,11 +757,24 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         // Armazena o valor recebido no estado
         orderData.status_delivery = e.target.value;
 
-        // Envia atualização para o component searchResults
-        toUpdateSearchResults({
-          order_id,
-          status_delivery: e.target.value,
-        });
+        // Se o status for 'Entregue' vai atualizar os resultados
+        if (e.target.value === 'Entregue') {
+          // Envia atualização para o component searchResults
+          setUpdatesToSendToSearchResults({
+            ...updatesToSendToSearchResults,
+            order_id,
+            update_database: true,
+          });
+        }
+        // Se o status for diferente de 'Entregue' vai atualizar os resultados
+        else {
+          // Envia atualização para o component searchResults
+          setUpdatesToSendToSearchResults({
+            ...updatesToSendToSearchResults,
+            order_id,
+            status_delivery: e.target.value,
+          });
+        }
 
         // Define que o banco de dados deve ser atualizado
         setOrderUpdated(true);
@@ -802,7 +835,14 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         }
       }
     },
-    [addToast, counterErrors, orderData, order_id, toUpdateSearchResults, user]
+    [
+      addToast,
+      counterErrors,
+      orderData,
+      order_id,
+      updatesToSendToSearchResults,
+      user,
+    ]
   );
 
   // Função para atualizar o status do faturamento
@@ -813,10 +853,11 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         // Armazena o valor recebido no estado
         orderData.status_billing = e.target.value;
 
-        // // Envia atualização para o component searchResults
-        toUpdateSearchResults({
+        // Envia atualização para o component searchResults
+        setUpdatesToSendToSearchResults({
+          ...updatesToSendToSearchResults,
           order_id,
-          status_billing: e.target.value,
+          update_database: true,
         });
 
         // Define que o banco de dados deve ser atualizado
@@ -833,15 +874,14 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             orderData.status_billing = e.target.value;
 
             // Envia atualização para o component searchResults
-            toUpdateSearchResults({
+            setUpdatesToSendToSearchResults({
+              ...updatesToSendToSearchResults,
               order_id,
-              status_billing: e.target.value,
+              update_database: true,
             });
 
-            addToast({
-              type: 'success',
-              description: 'Status do pedido atualizado com sucesso!',
-            });
+            // Define que o banco de dados deve ser atualizado
+            setOrderUpdated(true);
           })
           .catch(() => {
             addToast({
@@ -851,7 +891,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           });
       }
     },
-    [addToast, orderData, order_id, toUpdateSearchResults]
+    [addToast, orderData, order_id, updatesToSendToSearchResults]
   );
 
   // Função para atualizar o status do financeiro
@@ -862,7 +902,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         orderData.status_payment = e.target.value;
 
         // Envia atualização para o component searchResults
-        toUpdateSearchResults({
+        setUpdatesToSendToSearchResults({
+          ...updatesToSendToSearchResults,
           order_id,
           status_payment: e.target.value,
         });
@@ -881,15 +922,14 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             orderData.status_payment = e.target.value;
 
             // Envia atualização para o component searchResults
-            toUpdateSearchResults({
+            setUpdatesToSendToSearchResults({
+              ...updatesToSendToSearchResults,
               order_id,
               status_payment: e.target.value,
             });
 
-            addToast({
-              type: 'success',
-              description: 'Status do pedido atualizado com sucesso!',
-            });
+            // Define que o banco de dados deve ser atualizado
+            setOrderUpdated(true);
           })
           .catch(() => {
             addToast({
@@ -899,7 +939,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           });
       }
     },
-    [addToast, orderData, order_id, toUpdateSearchResults]
+    [addToast, orderData, order_id, updatesToSendToSearchResults]
   );
 
   // Função para atualizar as condições de pagamento
@@ -933,9 +973,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   );
 
   // Função para executar a função submitDeliveryConditions
-  const onDeliveryConditionsSubmit = useCallback(() => {
+  function onDeliveryConditionsSubmit(): void {
     deliveryConditionsRef.current?.submitForm();
-  }, []);
+  }
 
   // Função para atualizar a data de entrega solicitada
   const submitRequestedDeliveryDate = useCallback(
@@ -1028,9 +1068,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   );
 
   // Função para executar a função submitRequestedDeliveryDate
-  const onRequestedDeliveryDateSubmit = useCallback(() => {
+  function onRequestedDeliveryDateSubmit(): void {
     requestedDeliveryDateRef.current?.submitForm();
-  }, [requestedDeliveryDateRef]);
+  }
 
   // Função para atualizar a data de entrega
   const submitDeliveryDate = useCallback(
@@ -1057,7 +1097,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             orderData.formatted_delivery_date = deliveryDateData;
 
             // Envia atualização para o component searchResults
-            toUpdateSearchResults({
+            setUpdatesToSendToSearchResults({
+              ...updatesToSendToSearchResults,
               order_id,
               delivery_date: deliveryDateData,
             });
@@ -1116,7 +1157,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           orderData.formatted_delivery_date = '';
 
           // Envia atualização para o component searchResults
-          toUpdateSearchResults({
+          setUpdatesToSendToSearchResults({
+            ...updatesToSendToSearchResults,
             order_id,
             delivery_date: '',
           });
@@ -1138,13 +1180,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         setCounterErrors((state) => state.filter((e) => e !== 'deliveryDate'));
       }
     },
-    [addToast, counterErrors, orderData, order_id, toUpdateSearchResults]
+    [addToast, counterErrors, orderData, order_id, updatesToSendToSearchResults]
   );
 
   // Função para executar a função submitDeliveryDate
-  const onDeliveryDateSubmit = useCallback(() => {
+  function onDeliveryDateSubmit(): void {
     deliveryDateRef.current?.submitForm();
-  }, []);
+  }
 
   // Função para atualizar as observações da área técnica
   const submitTechnicalObs = useCallback(
@@ -1177,9 +1219,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   );
 
   // Função para executar a função submitTechnicalObs
-  const onTechnicalObsSubmit = useCallback(() => {
+  function onTechnicalObsSubmit(): void {
     technicalObsRef.current?.submitForm();
-  }, []);
+  }
 
   // Função para atualizar o vencimento
   const submitDueDate = useCallback(
@@ -1220,7 +1262,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             orderData.formatted_due_date = dueDateData;
 
             // Envia atualização para o component searchResults
-            toUpdateSearchResults({
+            setUpdatesToSendToSearchResults({
+              ...updatesToSendToSearchResults,
               order_id,
               due_date: dueDateData,
             });
@@ -1256,7 +1299,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           orderData.formatted_due_date = '';
 
           // Envia atualização para o component searchResults
-          toUpdateSearchResults({
+          setUpdatesToSendToSearchResults({
+            ...updatesToSendToSearchResults,
             order_id,
             due_date: '',
           });
@@ -1286,13 +1330,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         setCounterErrors((state) => state.filter((e) => e !== 'dueDate'));
       }
     },
-    [addToast, counterErrors, orderData, order_id, toUpdateSearchResults]
+    [addToast, counterErrors, orderData, order_id, updatesToSendToSearchResults]
   );
 
   // Função para executar a função submitDueDate
-  const onDueDateSubmit = useCallback(() => {
+  function onDueDateSubmit(): void {
     dueDateRef.current?.submitForm();
-  }, []);
+  }
 
   // Função para atualizar a forma de pagamento
   const updatePaymentWay = useCallback(
@@ -1348,7 +1392,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       // Armazena o valor recebido no estado
       orderData.payment_way = e.target.value;
 
-      toUpdateSearchResults({
+      setUpdatesToSendToSearchResults({
+        ...updatesToSendToSearchResults,
         order_id,
       });
 
@@ -1362,12 +1407,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       overlapSplitPaymentWayOpen,
       splitPaymentWayOpen,
       submitDueDate,
-      toUpdateSearchResults,
+      updatesToSendToSearchResults,
       user.permissions,
     ]
   );
-
-  // console.log(orderData.payment_method && orderData.payment_method);
 
   // Função para atualizar o meio de pagamento
   const handleSelectPaymentMethod = useCallback(
@@ -1387,7 +1430,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         // Armazena o valor recebido no estado
         orderData.payment_method = payMethod;
 
-        toUpdateSearchResults({
+        setUpdatesToSendToSearchResults({
+          ...updatesToSendToSearchResults,
           order_id,
         });
 
@@ -1401,7 +1445,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       orderData,
       order_id,
       paymentMethods,
-      toUpdateSearchResults,
+      updatesToSendToSearchResults,
       user.permissions,
     ]
   );
@@ -1423,7 +1467,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           orderData.company.name = clearCompanyNameData;
 
           // Envia atualização para o component searchResults
-          toUpdateSearchResults({
+          setUpdatesToSendToSearchResults({
+            ...updatesToSendToSearchResults,
             order_id,
             company_name: clearCompanyNameData,
             company_id: orderData.company.id,
@@ -1460,13 +1505,19 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         });
       }
     },
-    [addToast, counterErrors, orderData, order_id, toUpdateSearchResults]
+    [
+      addToast,
+      counterErrors,
+      orderData.company,
+      order_id,
+      updatesToSendToSearchResults,
+    ]
   );
 
   // Função para executar a função submitCompanyName
-  const onCompanyNameSubmit = useCallback(() => {
+  function onCompanyNameSubmit(): void {
     companyNameRef.current?.submitForm();
-  }, []);
+  }
 
   // Função para atualizar o CNPJ/CPF/CEI da empresa
   const submitCompanyCnpjCpf = useCallback(
@@ -1557,9 +1608,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   );
 
   // Função para executar a função submitCompanyCnpjCpf
-  const onCompanyCnpjCpfSubmit = useCallback(() => {
+  function onCompanyCnpjCpfSubmit(): void {
     companyCnpjCpfRef.current?.submitForm();
-  }, []);
+  }
 
   // Função para atualizar o nome do responsável pela empresa
   const submitCompanyNameContact = useCallback(
@@ -1623,9 +1674,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   );
 
   // Função para executar a função submitCompanyNameContact
-  const onCompanyNameContactSubmit = useCallback(() => {
+  function onCompanyNameContactSubmit(): void {
     companyNameContactRef.current?.submitForm();
-  }, []);
+  }
 
   // Função para atualizar o e-mail da empresa
   const submitCompanyEmail = useCallback(
@@ -1705,9 +1756,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     [addToast, counterErrors, orderData]
   );
   // Função para executar a função submitCompanyEmail
-  const onCompanyEmailSubmit = useCallback(() => {
+  function onCompanyEmailSubmit(): void {
     companyEmailRef.current?.submitForm();
-  }, []);
+  }
 
   // Função para atualizar o telefone da empresa
   const submitCompanyPhone = useCallback(
@@ -1800,9 +1851,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   );
 
   // Função para executar a função submitCompanyPhone
-  const onCompanyPhoneSubmit = useCallback(() => {
+  function onCompanyPhoneSubmit(): void {
     companyPhoneRef.current?.submitForm();
-  }, []);
+  }
 
   // Função para atualizar o celular da empresa
   const submitCompanyMobilePhone = useCallback(
@@ -1898,14 +1949,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   );
 
   // Função para executar a função submitCompanyMobilePhone
-  const onCompanyMobilePhoneSubmit = useCallback(() => {
+  function onCompanyMobilePhoneSubmit(): void {
     companyMobilePhoneRef.current?.submitForm();
-  }, []);
+  }
 
   // Função para deletar um order_product
   const handleDeleteOrderProductItem = useCallback(
     async (order_product_id: string) => {
-      checkToken();
       await api
         .delete(`/orders-products/${order_product_id}`)
         .then(() => {
@@ -1915,10 +1965,14 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           );
 
           // Envia atualização para o component searchResults
-          toUpdateSearchResults({
+          setUpdatesToSendToSearchResults({
+            ...updatesToSendToSearchResults,
             order_id,
-            order_product_delete: order_product_id,
+            update_database: true,
           });
+
+          // Define que o banco de dados deve ser atualizado
+          setOrderUpdated(true);
 
           addToast({
             type: 'success',
@@ -1932,7 +1986,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           });
         });
     },
-    [addToast, checkToken, orderData, order_id, toUpdateSearchResults]
+    [addToast, orderData, order_id, updatesToSendToSearchResults]
   );
 
   // Função para somar o valor total do pedido baseado nos orders_products
@@ -1985,9 +2039,11 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     ]
   );
 
-  const handleOpenSplitPaymentWay = useCallback(() => {
+  // Função para abrir o parcelamento
+  function handleOpenSplitPaymentWay(): void {
     overlapSplitPaymentWayOpen(!splitPaymentWayOpen);
-  }, [overlapSplitPaymentWayOpen, splitPaymentWayOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }
 
   // Função que atualiza o pedido no banco de dados
   const handleSubmitOrderToUpdate = useCallback(async () => {
@@ -2024,7 +2080,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       });
   }, [addToast, orderData, orderOpen, order_id, overlapOrderOpen]);
 
-  // Função que atualiza o pedido no banco de dados
+  // Função que atualiza cadastro do cliente através do pedido no banco de dados
   const handleSubmitCompanyToUpdate = useCallback(async () => {
     await api
       .patch<CompanyData>(`/companies/${orderData.company.id}`, {
@@ -2064,6 +2120,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       // Se houve alteração no pedido vai atualizar
       if (orderUpdated && !companyUpdated) {
         handleSubmitOrderToUpdate(); // Atualiza o pedido
+
+        // Envia atualização para o component searchResults
+        toUpdateSearchResults(updatesToSendToSearchResults);
       }
 
       // Se houve alteração no cliente vai atualizar
@@ -2081,6 +2140,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       if (!orderUpdated && !companyUpdated) {
         overlapOrderOpen(!orderOpen); // Fecha o component
       }
+
+      // Limpa o estado updatesToSendToSearchResults
+      setUpdatesToSendToSearchResults({} as UpdateSearchResultsData);
     }
     // Se houver erros avisa o usuário para corrigir
     else {
@@ -2098,6 +2160,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     companyUpdated,
     checkToken,
     handleSubmitOrderToUpdate,
+    toUpdateSearchResults,
+    updatesToSendToSearchResults,
     handleSubmitCompanyToUpdate,
     overlapOrderOpen,
     orderOpen,
@@ -2849,7 +2913,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                       <>
                         <PaymentWay
                           paymentWay={orderData.payment_way as string}
+                          statusBilling={!!orderData?.status_billing}
                         >
+                          {!orderData.payment_way && (
+                            <InputLabel>
+                              Selecione uma forma de pagamento
+                            </InputLabel>
+                          )}
                           <FormControl className={formControl}>
                             <Select
                               value={orderData.payment_way}
@@ -2906,24 +2976,33 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                               <br />
                             </p>
                           )}
-                        <PaymentMethod>
-                          <Select
-                            value={
-                              orderData.payment_method
-                                ? orderData.payment_method.id
-                                : ''
-                            }
-                            defaultValue=""
-                            displayEmpty
-                            onChange={handleSelectPaymentMethod}
-                          >
-                            <MenuItem value="">&nbsp;</MenuItem>
-                            {paymentMethods.map((payment) => (
-                              <MenuItem value={payment.id} key={payment.id}>
-                                {payment.name as string}
-                              </MenuItem>
-                            ))}
-                          </Select>
+                        <PaymentMethod
+                          paymentMethod={!!orderData.payment_method}
+                        >
+                          {!orderData.payment_method && (
+                            <InputLabel>
+                              Selecione um meio de pagamento
+                            </InputLabel>
+                          )}
+                          <FormControl className={formControl}>
+                            <Select
+                              value={
+                                orderData.payment_method
+                                  ? orderData.payment_method.id
+                                  : ''
+                              }
+                              defaultValue=""
+                              displayEmpty
+                              onChange={handleSelectPaymentMethod}
+                            >
+                              <MenuItem value="">&nbsp;</MenuItem>
+                              {paymentMethods.map((payment) => (
+                                <MenuItem value={payment.id} key={payment.id}>
+                                  {payment.name as string}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
                         </PaymentMethod>
                       </>
                     )}
@@ -2932,7 +3011,28 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                         !!orderData.status_billing)) && (
                       <>
                         {orderData.payment_way ? (
-                          <p>{orderData.payment_way as string}</p>
+                          <PaymentWay
+                            paymentWay={orderData.payment_way as string}
+                            statusBilling={!!orderData?.status_billing}
+                          >
+                            <p>{orderData.payment_way as string}</p>
+
+                            {orderData.payment_way === 'Parcelado' && (
+                              <button
+                                className="split-payment-way"
+                                type="button"
+                                onClick={handleOpenSplitPaymentWay}
+                              >
+                                <MaterialTooltip
+                                  title="Ver parcelamento"
+                                  arrow
+                                  placement="top"
+                                >
+                                  <MdOpenInNew className={mdOpenInNew} />
+                                </MaterialTooltip>
+                              </button>
+                            )}
+                          </PaymentWay>
                         ) : (
                           <br />
                         )}
@@ -2949,21 +3049,6 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                           <p>
                             <br />
                           </p>
-                        )}
-                        {orderData.payment_way === 'Parcelado' && (
-                          <button
-                            className="split-payment-way"
-                            type="button"
-                            onClick={handleOpenSplitPaymentWay}
-                          >
-                            <MaterialTooltip
-                              title="Ver parcelamento"
-                              arrow
-                              placement="top"
-                            >
-                              <MdOpenInNew className={mdOpenInNew} />
-                            </MaterialTooltip>
-                          </button>
                         )}
                       </>
                     )}
