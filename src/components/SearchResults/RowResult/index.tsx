@@ -1,4 +1,4 @@
-import React, { useCallback, memo } from 'react';
+import React, { useCallback } from 'react';
 import { IconBaseProps } from 'react-icons';
 import {
   FaCheckCircle,
@@ -270,4 +270,4 @@ const RowResult: React.FC<RowResultProps> = ({
   );
 };
 
-export default memo(RowResult);
+export default RowResult;

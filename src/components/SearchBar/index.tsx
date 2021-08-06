@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   InputLabel,
   Select,
@@ -608,4 +608,4 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
   );
 };
 
-export default memo(SearchBar);
+export default SearchBar;
