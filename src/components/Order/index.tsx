@@ -2000,7 +2000,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     return productsValues && productsValues > 0
       ? formatValueCurrency(productsValues)
       : formatValueCurrency(0);
-  }, [orderData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    orderData,
+    updateOrderProduct,
+    addNewOrderProduct,
+    orderData.orders_products,
+  ]);
 
   // Função para definir estado com o order_product selecionado
   const handleSelectProduct = useCallback(
