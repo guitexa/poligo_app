@@ -3,21 +3,20 @@ import React, {
   ChangeEvent,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
+import Select from '@material-ui/core/Select';
+import MenuItem from '@material-ui/core/MenuItem';
+import FormControl from '@material-ui/core/FormControl';
+import InputLabel from '@material-ui/core/InputLabel';
 import {
-  Select,
-  MenuItem,
-  FormControl,
-  createStyles,
-  makeStyles,
-  Theme,
-  createMuiTheme,
   ThemeProvider,
-  InputLabel,
-} from '@material-ui/core';
+  createTheme,
+  makeStyles,
+  createStyles,
+  Theme,
+} from '@material-ui/core/styles';
 import {
   FaPlus,
   FaRegCheckCircle,
@@ -26,17 +25,23 @@ import {
   FaTimes,
   FaTrashAlt,
   FaCalendarAlt,
-  FaDivide,
 } from 'react-icons/fa';
 import { BiCalendarX } from 'react-icons/bi';
 import { GoAlert } from 'react-icons/go';
 import { RiDraftFill } from 'react-icons/ri';
 import { IoMdThumbsDown } from 'react-icons/io';
 import { MdOpenInNew } from 'react-icons/md';
-import { HiOutlineRefresh, HiRefresh } from 'react-icons/hi';
+import { HiOutlineRefresh } from 'react-icons/hi';
 import { Form } from '@unform/web';
 import { FormHandles } from '@unform/core';
-import { formatISO, isValid, parseISO, isBefore, endOfDay } from 'date-fns';
+import {
+  formatISO,
+  isValid,
+  parseISO,
+  isBefore,
+  endOfDay,
+  startOfDay,
+} from 'date-fns';
 import {
   formatToCNPJ,
   formatToCPF,
@@ -49,11 +54,13 @@ import {
 } from 'brazilian-values';
 import isEmail from 'validator/es/lib/isEmail';
 
-import formatValue from '../../utils/formatValue';
-import formatValueCurrency from '../../utils/formatValueCurrency';
-import convertDate from '../../utils/convertDate';
-import isCEI from '../../utils/isCEI';
-import convertToCEI from '../../utils/convertToCEI';
+import {
+  formatValue,
+  formatValueCurrency,
+  convertDate,
+  isCEI,
+  convertToCEI,
+} from '../../utils';
 
 import { useToast } from '../../hooks/toast';
 import { useOverlap } from '../../hooks/overlap';
@@ -69,13 +76,13 @@ import InputAsText from '../InputAsText';
 import InputAsTextWithMask from '../InputAsTextWithMask';
 import HeaderButton from '../HeaderButton';
 
+import { UpdateSearchResultsData } from '../SearchResults';
 import {
-  OrderData,
-  OrderProductData,
-  CompanyData,
-  PaymentMethodData,
-  UpdateSearchResultsData,
-} from '../SearchResults';
+  IPaymentMethod,
+  ICompany,
+  IOrderProduct,
+  IOrder,
+} from '../../interfaces';
 
 import {
   OrderOverlap,
@@ -94,7 +101,7 @@ import {
   ProductsOrderContent,
   TitleRow,
   ProductRow,
-  StatusProductItem,
+  PaymentTypeProductItem,
   TitleProductName,
   TitleProductDescription,
   TitleProductValue,
@@ -131,34 +138,28 @@ interface OrderProps {
 
 const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Armazena o pedido recebido ao fazer a busca na API
-  const [orderData, setOrderData] = useState<OrderData>({} as OrderData);
+  const [orderData, setOrderData] = useState<IOrder>({} as IOrder);
 
   // Armazena o order_product selecionado para ser alterado ou visualizado
-  const [
-    selectedOrderProduct,
-    setSelectedOrderProduct,
-  ] = useState<OrderProductData>({} as OrderProductData);
+  const [selectedOrderProduct, setSelectedOrderProduct] =
+    useState<IOrderProduct>({} as IOrderProduct);
 
   // Armazena o order_product atualizado para atualizar o pedido e também o searchResults
-  const [
-    updateOrderProduct,
-    setUpdateOrderProduct,
-  ] = useState<OrderProductData>({} as OrderProductData);
+  const [updateOrderProduct, setUpdateOrderProduct] = useState<IOrderProduct>(
+    {} as IOrderProduct
+  );
 
   // Armazena o order_product criado para atualizar o pedido e o searchResults
-  const [
-    addNewOrderProduct,
-    setAddNewOrderProduct,
-  ] = useState<OrderProductData>({} as OrderProductData);
+  const [addNewOrderProduct, setAddNewOrderProduct] = useState<IOrderProduct>(
+    {} as IOrderProduct
+  );
 
   // Armazena se houve alguma atualização no pedido
   const [orderUpdated, setOrderUpdated] = useState(false);
 
   // Armazena se houve alguma atualização para enviar ao SearchResults
-  const [
-    updatesToSendToSearchResults,
-    setUpdatesToSendToSearchResults,
-  ] = useState<UpdateSearchResultsData>({} as UpdateSearchResultsData);
+  const [updatesToSendToSearchResults, setUpdatesToSendToSearchResults] =
+    useState<UpdateSearchResultsData>({} as UpdateSearchResultsData);
 
   // Armazena se houve alguma atualização no cliente
   const [companyUpdated, setCompanyUpdated] = useState(false);
@@ -167,7 +168,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   const [counterErrors, setCounterErrors] = useState<string[]>([]);
 
   // Armazena dos meios de pagamentos cadastrados
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodData[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<IPaymentMethod[]>([]);
+
+  // Armazena os splitsPaymentWay cadastrados no banco de dados
+  const [splitsPaymentWay, setSplitsPaymentWay] = useState(false);
 
   const deliveryConditionsRef = useRef<FormHandles>(null);
   const technicalObsRef = useRef<FormHandles>(null);
@@ -267,7 +271,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     mdOpenInNew,
   } = useStyles();
 
-  const orderMaterialTheme = createMuiTheme({
+  const orderMaterialTheme = createTheme({
     palette: {
       primary: {
         main: color,
@@ -440,7 +444,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   useEffect(() => {
     checkToken();
     api
-      .get<OrderData>(`/orders/${order_id}`)
+      .get<IOrder>(`/orders/${order_id}`)
       .then((response) => {
         const {
           company,
@@ -455,6 +459,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           payment_method,
           orders_products,
           total_value,
+          splits_payment_way,
           ...rest
         } = response.data;
 
@@ -482,6 +487,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             formatted_due_date: due_date
               ? formatToDate(parseISO(due_date))
               : '',
+            total_value,
+            formatted_total_value: total_value
+              ? formatValueCurrency(Number(total_value.replace(/[,]/gi, '.')))
+              : formatValueCurrency(0),
+            number_total_value: total_value
+              ? Number(total_value.replace(/[,]/gi, '.'))
+              : 0,
             payment_method,
             company: {
               ...company,
@@ -498,13 +510,18 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                 : '',
             },
             seller,
-            total_value: formatValueCurrency(Number(total_value)),
             orders_products: orders_products?.sort((a, b) => {
               if (a.created_at < b.created_at) return -1;
               if (a.created_at > b.created_at) return 1;
               return 0;
             }),
+            splits_payment_way,
           });
+        }
+
+        if (splits_payment_way?.length) {
+          // Indica que existe splitsPaymentWay cadastrados no banco de dados
+          setSplitsPaymentWay(true);
         }
       })
       .catch(() => {
@@ -517,6 +534,124 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order_id]);
 
+  // Lógica comentada para não atualizar a coluna product_payment_type dos orders_products
+  // const handleChangePaymentTypeProductItem = useCallback(
+  //   (order_product_id) => {
+  //     if (orderData.orders_products) {
+  //       // Busca o order_product pelo ID
+  //       const getOrderProductIndex = orderData.orders_products?.findIndex(
+  //         (e) => e.id === order_product_id
+  //       );
+
+  //       // Armazena o order_product encontrado
+  //       const orderProduct = orderData.orders_products[getOrderProductIndex];
+
+  //       if (orderData.payment_way === 'Parcelado') {
+  //         if (orderProduct.product.name === 'Contrato de Assessoria') {
+  //           // Se for um Contrato de Assessoria então define o padrão que é Recorrente
+  //           orderProduct.product_payment_type = 'Recorrente';
+  //         } else {
+  //           // Se for outro produto então define o padrão que é Parcelado
+  //           orderProduct.product_payment_type = 'Parcelado';
+  //         }
+  //       }
+  //       // Qualquer forma de pagamento que não seja Parcelado limpa o tipo do order_product
+  //       else if (orderData.payment_way !== 'Parcelado') {
+  //         orderProduct.product_payment_type = '';
+  //       }
+
+  //       // Atualiza o banco de dados
+  //       // ESSA CHAMADA À API DEVE OCORRER NO BACKEND AO ATUALIZAR A ORDER
+  //       // await api.patch(`/orders-products/${order_product_id}`, {
+  //       //   product_payment_type: orderProduct.product_payment_type,
+  //       // });
+  //     }
+  //   },
+  //   [orderData]
+  // );
+
+  // Função para calcular o valor total do pedido
+  const updateTotalValueBasedOnOrderProducts = useCallback(async () => {
+    // Calcula o valor total dos products
+    const productsValues = orderData?.orders_products
+      ?.map((product) => Number(product.product_value))
+      .reduce((accumulator, productValue) => {
+        return accumulator + productValue;
+      }, 0);
+
+    // Verifica se existe orders_products para fazer o cálculo
+    if (productsValues && productsValues > 0) {
+      // Busca a taxa do meio de pagamento selecionado
+      // Lógica comentada para não realizar o cálculo de juros
+      // const interestRate = orderData.payment_method?.interest_rate;
+
+      // Calcula o valor total adicionando o valor da taxa
+      const productsValuesWithInterestRate = productsValues;
+      // Lógica comentada para não realizar o cálculo de juros
+      // const productsValuesWithInterestRate =
+      //   (100 * productsValues) / (100 - Number(interestRate || 0));
+
+      // Armazena o valor recebido no estado
+      orderData.formatted_total_value = formatValueCurrency(
+        productsValuesWithInterestRate
+      );
+
+      const databaseTotalValueFormat = String(
+        productsValuesWithInterestRate
+      ).replace(/[/.]/gi, ',');
+
+      // Verifica se houve alteração no valor para atualizar o banco de dados
+      if (orderData.total_value !== databaseTotalValueFormat) {
+        // Armazena o valor recebido no estado
+        orderData.total_value = databaseTotalValueFormat;
+        orderData.number_total_value = Number(
+          databaseTotalValueFormat.replace(/[,]/gi, '.')
+        );
+
+        // Define que o banco de dados deve ser atualizado
+        setOrderUpdated(true);
+
+        // Envia atualização para o component searchResults
+        setUpdatesToSendToSearchResults({
+          ...updatesToSendToSearchResults,
+          order_id,
+          update_database: true,
+        });
+      }
+    }
+    // Se não for encontrado nenhum orders_product então o valor total será zero
+    else {
+      // Armazena o valor recebido no estado
+      orderData.formatted_total_value = formatValueCurrency(0);
+
+      // Armazena o valor recebido no estado
+      orderData.total_value = '0';
+
+      // Define que o banco de dados deve ser atualizado
+      setOrderUpdated(true);
+    }
+
+    if (orderData.payment_way === 'Parcelado') {
+      // Se houve alteração no valor total, verifica se existe parcelamentos para serem excluídos
+      if (orderData.splits_payment_way?.length || splitsPaymentWay) {
+        // Exclui os parcelamentos deste pedido no banco de dados, se houver
+        await api.delete(`/splits-payment-way/${order_id}`);
+      }
+
+      // Limpa o estado
+      setOrderData({
+        ...orderData,
+        due_date: null,
+        formatted_due_date: '',
+        payment_method: null,
+        payment_way: '',
+      });
+
+      // Limpa o estado
+      setSplitsPaymentWay(false);
+    }
+  }, [orderData, order_id, splitsPaymentWay, updatesToSendToSearchResults]);
+
   // Se houver updateOrderProduct significa que algum order_product foi atualizado
   useEffect(() => {
     if (updateOrderProduct.id && orderData.orders_products) {
@@ -526,22 +661,45 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       );
 
       if (getOrderIndex >= 0 && orderData.orders_products[getOrderIndex]) {
-        // Armazena o valor recebido no estado
-        orderData.orders_products[getOrderIndex] = updateOrderProduct;
+        // Lógica comentada para não atualizar a coluna product_payment_type dos orders_products
+        // Se o payment_way for Parcelado então vai atualizar o product_payment_type
+        // if (orderData.payment_way === 'Parcelado') {
+        //   handleChangePaymentTypeProductItem(updateOrderProduct.id);
+        // }
 
-        // Envia atualização para o component searchResults
-        setUpdatesToSendToSearchResults({
-          ...updatesToSendToSearchResults,
-          order_id,
-          update_database: true,
-        });
+        if (
+          updateOrderProduct.product.name !==
+            orderData.orders_products[getOrderIndex].product.name ||
+          updateOrderProduct.product_description !==
+            orderData.orders_products[getOrderIndex].product_description ||
+          updateOrderProduct.product_value !==
+            orderData.orders_products[getOrderIndex].product_value
+        ) {
+          if (
+            updateOrderProduct.product_value !==
+            orderData.orders_products[getOrderIndex].product_value
+          ) {
+            // Armazena o valor recebido no estado
+            orderData.orders_products[getOrderIndex] = updateOrderProduct;
 
-        // Define que o banco de dados deve ser atualizado
-        setOrderUpdated(true);
+            // Força a atualização do valor total do pedido
+            updateTotalValueBasedOnOrderProducts();
+          } else {
+            // Armazena o valor recebido no estado
+            orderData.orders_products[getOrderIndex] = updateOrderProduct;
+          }
+
+          // Envia atualização para o component searchResults
+          setUpdatesToSendToSearchResults({
+            ...updatesToSendToSearchResults,
+            order_id,
+            update_database: true,
+          });
+        }
       }
 
       // Limpa o estado
-      setUpdateOrderProduct({} as OrderProductData); // Limpa o estado
+      setUpdateOrderProduct({} as IOrderProduct); // Limpa o estado
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [updateOrderProduct]);
@@ -555,6 +713,15 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         addNewOrderProduct,
       ];
 
+      // Lógica comentada para não atualizar a coluna product_payment_type dos orders_products
+      // Se o payment_way for Parcelado então vai atualizar o product_payment_type
+      // if (orderData.payment_way === 'Parcelado') {
+      //   handleChangePaymentTypeProductItem(addNewOrderProduct.id);
+      // }
+
+      // Força a atualização do valor total do pedido
+      updateTotalValueBasedOnOrderProducts();
+
       // Envia atualização para o component searchResults
       setUpdatesToSendToSearchResults({
         ...updatesToSendToSearchResults,
@@ -562,11 +729,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         update_database: true,
       });
 
-      // Define que o banco de dados deve ser atualizado
-      setOrderUpdated(true);
-
       // Limpa o estado
-      setAddNewOrderProduct({} as OrderProductData);
+      setAddNewOrderProduct({} as IOrderProduct);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addNewOrderProduct]);
@@ -574,7 +738,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
   // Função que busca os métodos de pagamento cadastrados no banco de dados
   useEffect(() => {
     api
-      .get<PaymentMethodData[]>('/payment-methods')
+      .get<IPaymentMethod[]>('/payment-methods')
       .then((response) => {
         setPaymentMethods(response.data);
       })
@@ -596,12 +760,37 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           // Se não possui CNPJ/CPF/CEI define um erro
           addToast({
             type: 'error',
-            description:
-              'Não é possível aprovar um pedido sem CNPJ ou CPF ou CEI',
+            description: 'Digite um CNPJ ou CPF ou CEI',
           });
 
           companyCnpjCpfRef.current?.setErrors({
             companyCnpjCpfData: 'CNPJ/CPF/CEI inválido',
+          });
+
+          return;
+        }
+
+        // Verifica se o pedido possui forma de pagamento
+        if (!orderData.payment_way && orderData.number_total_value > 0) {
+          // Se não possui forma de pagamento
+          addToast({
+            type: 'error',
+            description: 'Selecione uma forma de pagamento',
+          });
+
+          return;
+        }
+
+        // Verifica se o pedido possui meio de pagamento
+        if (
+          !orderData.payment_method &&
+          orderData.payment_way !== 'Parcelado' &&
+          orderData.number_total_value > 0
+        ) {
+          // Se não possui meio de pagamento
+          addToast({
+            type: 'error',
+            description: 'Selecione um meio de pagamento',
           });
 
           return;
@@ -612,10 +801,33 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           // Se não possui serviço define um erro
           addToast({
             type: 'error',
-            description: 'Não é possível aprovar um pedido sem serviço',
+            description: 'Insira pelo menos um serviço',
           });
 
           return;
+        }
+
+        if (orderData.due_date) {
+          // Separa os valores de ano, mês e dia da data de vencimento
+          const year = new Date(orderData.due_date).getFullYear();
+          const month = new Date(orderData.due_date).getMonth();
+          const day = new Date(orderData.due_date).getDate();
+
+          // Verifica se a data de vencimento é menor que hoje
+          if (isBefore(endOfDay(new Date(year, month, day)), Date.now())) {
+            dueDateRef.current?.setErrors({
+              dueDateData:
+                'Insira uma data de vencimento igual ou maior que hoje',
+            });
+
+            addToast({
+              type: 'error',
+              description:
+                'Insira uma data de vencimento igual ou maior que hoje',
+            });
+
+            return;
+          }
         }
 
         // Armazena o valor recebido no estado
@@ -638,13 +850,14 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       // Se o status for Cancelado vai atualizar a API direto
       else if (e.target.value === 'Cancelado') {
         await api
-          .patch<OrderData>(`/orders/${order_id}`, {
+          .patch<IOrder>(`/orders/${order_id}`, {
             status_order: e.target.value,
           })
           .then(() => {
             // Armazena o valor recebido no estado
             orderData.status_order = e.target.value;
 
+            // Verifica os demais status se estiver como Aguardando limpa
             if (orderData.status_delivery === 'Aguardando') {
               orderData.status_delivery = '';
             }
@@ -670,13 +883,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             });
           });
       }
-      // Se o valor recebido for diferente de 'Aprovado' e diferente de 'Cancelado' atualiza apenas o status
+      // Se o valor recebido for diferente de 'Aprovado' e diferente de 'Cancelado' atualiza o status
       else {
         // Armazena o valor recebido no estado
-        setOrderData({
-          ...orderData,
-          status_order: e.target.value,
-        });
+        orderData.status_order = e.target.value;
 
         // Envia atualização para o component searchResults
         setUpdatesToSendToSearchResults({
@@ -698,7 +908,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       // Se o status for Cancelado vai atualizar a API direto
       if (e.target.value === 'Cancelado') {
         await api
-          .patch<OrderData>(`/orders/${order_id}`, {
+          .patch<IOrder>(`/orders/${order_id}`, {
             status_delivery: e.target.value,
           })
           .then(() => {
@@ -866,7 +1076,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       // Se o status for Cancelado vai atualizar a API direto
       else if (e.target.value === 'Cancelado') {
         await api
-          .patch<OrderData>(`/orders/${order_id}`, {
+          .patch<IOrder>(`/orders/${order_id}`, {
             status_billing: e.target.value,
           })
           .then(() => {
@@ -914,7 +1124,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       // Se o status for Cancelado vai atualizar a API direto
       else if (e.target.value === 'Cancelado') {
         await api
-          .patch<OrderData>(`/orders/${order_id}`, {
+          .patch<IOrder>(`/orders/${order_id}`, {
             status_payment: e.target.value,
           })
           .then(() => {
@@ -1009,7 +1219,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             orderData.requested_delivery_date = formatISO(
               newRequestedDeliveryDateData
             );
-            orderData.formatted_requested_delivery_date = requestedDeliveryDateData;
+            orderData.formatted_requested_delivery_date =
+              requestedDeliveryDateData;
 
             // Define que o banco de dados deve ser atualizado
             setOrderUpdated(true);
@@ -1177,7 +1388,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       else if (orderData.formatted_delivery_date === deliveryDateData) {
         // Limpa os erros
         deliveryDateRef.current?.setErrors({});
-        setCounterErrors((state) => state.filter((e) => e !== 'deliveryDate'));
+        setCounterErrors((state) =>
+          state.filter((err) => err !== 'deliveryDate')
+        );
       }
     },
     [addToast, counterErrors, orderData, order_id, updatesToSendToSearchResults]
@@ -1273,7 +1486,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
 
             // Limpa os erros
             dueDateRef.current?.setErrors({});
-            setCounterErrors((state) => state.filter((e) => e !== 'dueDate'));
+            setCounterErrors((state) =>
+              state.filter((err) => err !== 'dueDate')
+            );
           } else {
             // Se é uma data inválida define um erro
             dueDateRef.current?.setErrors({
@@ -1310,7 +1525,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
 
           // Limpa os erros
           dueDateRef.current?.setErrors({});
-          setCounterErrors((state) => state.filter((e) => e !== 'dueDate'));
+          setCounterErrors((state) => state.filter((err) => err !== 'dueDate'));
         } else {
           // Se possui uma forma de pagamento define um erro
           dueDateRef.current?.setErrors({
@@ -1327,7 +1542,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       else if (orderData.formatted_due_date === dueDateData) {
         // Limpa os erros
         dueDateRef.current?.setErrors({});
-        setCounterErrors((state) => state.filter((e) => e !== 'dueDate'));
+        setCounterErrors((state) => state.filter((err) => err !== 'dueDate'));
       }
     },
     [addToast, counterErrors, orderData, order_id, updatesToSendToSearchResults]
@@ -1340,82 +1555,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
 
   // Função para atualizar a forma de pagamento
   const updatePaymentWay = useCallback(
-    (e: ChangeEvent<{ value: unknown }>) => {
-      // Verifica se está no módulo Comercial e se tem permissão para alterar
-      if (
-        ((from === 'Comercial' &&
-          !orderData.status_billing &&
-          !orderData.status_payment) ||
-          (from === 'Comercial' && user.permissions === 'Admin')) &&
-        e.target.value === 'À vista'
-      ) {
-        // Envia a data de hoje como sugestão inicial
-        submitDueDate({
-          dueDateData: formatToDate(new Date(Date.now())),
-        });
-      } else if (
-        ((from === 'Comercial' &&
-          !orderData.status_billing &&
-          !orderData.status_payment) ||
-          (from === 'Comercial' && user.permissions === 'Admin')) &&
-        e.target.value === 'Faturado'
-      ) {
-        // Define a data do próximo vencimento conforme cadastro do cliente
-        // Armazena o valor recebido no estado
-        orderData.due_date = formatISO(new Date(2300, 1, 1));
-        orderData.formatted_due_date = '01/01/2300';
-      } else if (
-        ((from === 'Comercial' &&
-          !orderData.status_billing &&
-          !orderData.status_payment) ||
-          (from === 'Comercial' && user.permissions === 'Admin')) &&
-        e.target.value === 'Parcelado'
-      ) {
-        overlapSplitPaymentWayOpen(!splitPaymentWayOpen);
-        // Define a data recebida na tela de parcelamento
-        // Armazena o valor recebido no estado
-        orderData.due_date = formatISO(new Date(2500, 1, 1));
-        orderData.formatted_due_date = '11/11/2500';
-      } else if (
-        ((from === 'Comercial' &&
-          !orderData.status_billing &&
-          !orderData.status_payment) ||
-          (from === 'Comercial' && user.permissions === 'Admin')) &&
-        !e.target.value
-      ) {
-        // Limpa o estado
-        orderData.due_date = null;
-        orderData.formatted_due_date = '';
-      } else {
-        // overlapSplitPaymentWayViewOpen(!splitPaymentWayViewOpen);
-      }
-      // Armazena o valor recebido no estado
-      orderData.payment_way = e.target.value;
-
-      setUpdatesToSendToSearchResults({
-        ...updatesToSendToSearchResults,
-        order_id,
-      });
-
-      // Define que o banco de dados deve ser atualizado
-      setOrderUpdated(true);
-    },
-    [
-      from,
-      orderData,
-      order_id,
-      overlapSplitPaymentWayOpen,
-      splitPaymentWayOpen,
-      submitDueDate,
-      updatesToSendToSearchResults,
-      user.permissions,
-    ]
-  );
-
-  // Função para atualizar o meio de pagamento
-  const handleSelectPaymentMethod = useCallback(
-    (e: ChangeEvent<{ value: unknown }>) => {
-      // if (orderData.payment_method) {
+    async (e: ChangeEvent<{ value: unknown }>) => {
+      const payment_way = e.target.value as string;
       // Verifica se está no módulo Comercial e se tem permissão para alterar
       if (
         (from === 'Comercial' &&
@@ -1423,28 +1564,110 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           !orderData.status_payment) ||
         (from === 'Comercial' && user.permissions === 'Admin')
       ) {
-        const [payMethod] = paymentMethods.filter(
+        if (payment_way === 'À vista') {
+          // Envia a data de hoje como sugestão inicial
+          submitDueDate({
+            dueDateData: formatToDate(new Date(startOfDay(Date.now()))),
+          });
+        } else if (payment_way === 'Faturado') {
+          // Define a data do próximo vencimento conforme cadastro do cliente
+          // Armazena o valor recebido no estado
+          orderData.due_date = formatISO(new Date(2300, 1, 1));
+          orderData.formatted_due_date = '01/01/1500';
+        } else if (payment_way === 'Parcelado') {
+          // Abre o modal para cadastrar o parcelamento
+          overlapSplitPaymentWayOpen(!splitPaymentWayOpen);
+
+          // Limpa o estado
+          orderData.due_date = null;
+          orderData.formatted_due_date = '';
+          orderData.payment_method = null;
+        } else if (!payment_way) {
+          // Limpa o estado
+          orderData.due_date = null;
+          orderData.formatted_due_date = '';
+          orderData.payment_method = null;
+        }
+
+        if ((payment_way !== 'Parcelado' || !payment_way) && splitsPaymentWay) {
+          // Exclui os parcelamentos deste pedido no banco de dados, se houver
+          await api.delete(`/splits-payment-way/${order_id}`);
+
+          // Limpa o estado
+          setSplitsPaymentWay(false);
+        }
+
+        // Armazena o valor recebido no estado
+        setOrderData({
+          ...orderData,
+          payment_way,
+        });
+
+        // Define que o banco de dados deve ser atualizado
+        setOrderUpdated(true);
+      }
+
+      // Lógica comentada para não atualizar a coluna product_payment_type dos orders_products
+      // Define o tipo dos orders_products
+      // orderData.orders_products?.forEach((order_product) => {
+      //   handleChangePaymentTypeProductItem(order_product.id);
+      // });
+    },
+    [
+      from,
+      orderData,
+      order_id,
+      overlapSplitPaymentWayOpen,
+      splitPaymentWayOpen,
+      splitsPaymentWay,
+      submitDueDate,
+      user.permissions,
+    ]
+  );
+
+  // Função para atualizar o meio de pagamento
+  const handleSelectPaymentMethod = useCallback(
+    (e: ChangeEvent<{ value: unknown }>) => {
+      // Verifica se está no módulo Comercial e se tem permissão para alterar
+      if (
+        (from === 'Comercial' &&
+          !orderData.status_billing &&
+          !orderData.status_payment) ||
+        (from === 'Comercial' && user.permissions === 'Admin')
+      ) {
+        // Busca no array o meio de pagamento selecionado
+        const payMethod = paymentMethods.find(
           (item) => item.id === e.target.value
         );
 
         // Armazena o valor recebido no estado
         orderData.payment_method = payMethod;
 
+        // Envia atualização para o component searchResults
         setUpdatesToSendToSearchResults({
           ...updatesToSendToSearchResults,
           order_id,
         });
 
+        // Força a atualização do valor total do pedido
+        updateTotalValueBasedOnOrderProducts();
+
+        // Limpa os erros
+        companyNameRef.current?.setErrors({});
+        setCounterErrors((state) =>
+          state.filter((err) => err !== 'paymentMethod')
+        );
+
         // Define que o banco de dados deve ser atualizado
         setOrderUpdated(true);
       }
-      // }
     },
     [
       from,
       orderData,
       order_id,
       paymentMethods,
+      updateTotalValueBasedOnOrderProducts,
       updatesToSendToSearchResults,
       user.permissions,
     ]
@@ -1479,13 +1702,17 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
 
           // Limpa os erros
           companyNameRef.current?.setErrors({});
-          setCounterErrors((state) => state.filter((e) => e !== 'companyName'));
+          setCounterErrors((state) =>
+            state.filter((err) => err !== 'companyName')
+          );
         }
         // Verifica se o valor recebido é igual ao cadastrado e limpa possíveis erros
         else if (orderData?.company.name === clearCompanyNameData) {
           // Limpa os erros
           companyNameRef.current?.setErrors({});
-          setCounterErrors((state) => state.filter((e) => e !== 'companyName'));
+          setCounterErrors((state) =>
+            state.filter((err) => err !== 'companyName')
+          );
         }
       }
       // Se não houver valor recebido será definido um erro
@@ -1844,7 +2071,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
 
         // Limpa os erros
         companyPhoneRef.current?.setErrors({});
-        setCounterErrors((state) => state.filter((e) => e !== 'companyPhone'));
+        setCounterErrors((state) =>
+          state.filter((err) => err !== 'companyPhone')
+        );
       }
     },
     [addToast, counterErrors, orderData]
@@ -1971,8 +2200,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             update_database: true,
           });
 
-          // Define que o banco de dados deve ser atualizado
-          setOrderUpdated(true);
+          // Força a atualização do valor total do pedido
+          updateTotalValueBasedOnOrderProducts();
 
           addToast({
             type: 'success',
@@ -1986,31 +2215,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           });
         });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [addToast, orderData, order_id, updatesToSendToSearchResults]
   );
 
-  // Função para somar o valor total do pedido baseado nos orders_products
-  const totalValue = useMemo((): string => {
-    const productsValues = orderData?.orders_products
-      ?.map((product) => Number(product.product_value))
-      .reduce((accumulator, productValue) => {
-        return accumulator + productValue;
-      }, 0);
-
-    return productsValues && productsValues > 0
-      ? formatValueCurrency(productsValues)
-      : formatValueCurrency(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    orderData,
-    updateOrderProduct,
-    addNewOrderProduct,
-    orderData.orders_products,
-  ]);
-
   // Função para definir estado com o order_product selecionado
   const handleSelectProduct = useCallback(
-    (order_product: OrderProductData) => {
+    (order_product: IOrderProduct) => {
       setSelectedOrderProduct(order_product);
 
       // Verifica se pode editar o order_product ou apenas visualizar
@@ -2045,10 +2256,25 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }
 
+  // Lógica comentada para não atualizar a coluna product_payment_type dos orders_products
+  // Função para trocar o tipo do pagamento do order_product
+  // const formatPaymentTypeProductItem = useCallback(
+  //   (val: string | undefined): IconBaseProps | undefined => {
+  //     if (val === 'Parcelado') {
+  //       return <FaDivide className="faDividePay" />;
+  //     }
+  //     if (val === 'Recorrente') {
+  //       return <HiRefresh className="hiRefreshPay" />;
+  //     }
+  //     return undefined;
+  //   },
+  //   []
+  // );
+
   // Função que atualiza o pedido no banco de dados
   const handleSubmitOrderToUpdate = useCallback(async () => {
     await api
-      .patch<OrderData>(`/orders/${order_id}`, {
+      .patch<IOrder>(`/orders/${order_id}`, {
         status_order: orderData?.status_order,
         approved_at: orderData?.approved_at,
         status_delivery: orderData?.status_delivery,
@@ -2059,9 +2285,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         technical_obs: orderData?.technical_obs,
         requested_delivery_date: orderData?.requested_delivery_date,
         delivery_date: orderData?.delivery_date,
-        payment_way: orderData?.payment_way,
+        payment_way:
+          orderData.payment_way === 'Parcelado' && !splitsPaymentWay
+            ? ''
+            : orderData?.payment_way,
         due_date: orderData?.due_date,
         payment_method_id: orderData.payment_method?.id || null,
+        total_value: orderData.total_value,
       })
       .then(() => {
         addToast({
@@ -2070,7 +2300,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         });
 
         setOrderUpdated(false); // Limpa do estado
-        overlapOrderOpen(!orderOpen); // Fecha o component
+        overlapOrderOpen(false); // Fecha o component
       })
       .catch(() => {
         addToast({
@@ -2078,12 +2308,12 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           description: '#0210 - Erro ao atualizar o pedido',
         });
       });
-  }, [addToast, orderData, orderOpen, order_id, overlapOrderOpen]);
+  }, [addToast, orderData, order_id, overlapOrderOpen, splitsPaymentWay]);
 
   // Função que atualiza cadastro do cliente através do pedido no banco de dados
   const handleSubmitCompanyToUpdate = useCallback(async () => {
     await api
-      .patch<CompanyData>(`/companies/${orderData.company.id}`, {
+      .patch<ICompany>(`/companies/${orderData.company.id}`, {
         name: orderData.company?.name,
         cnpj_cpf: orderData.company?.cnpj_cpf,
         contact_name: orderData.company?.contact_name,
@@ -2098,7 +2328,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         });
 
         setCompanyUpdated(false); // Limpa do estado
-        overlapOrderOpen(!orderOpen); // Fecha o component
+        overlapOrderOpen(false); // Fecha o component
       })
       .catch(() => {
         addToast({
@@ -2106,7 +2336,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           description: '#0220 - Erro ao atualizar o cadastro do cliente',
         });
       });
-  }, [addToast, orderData.company, orderOpen, overlapOrderOpen]);
+  }, [addToast, orderData.company, overlapOrderOpen]);
 
   // Função que faz validações ao fechar a order
   const handleCloseOrder = useCallback(() => {
@@ -2120,14 +2350,16 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
       // Se houve alteração no pedido vai atualizar
       if (orderUpdated && !companyUpdated) {
         handleSubmitOrderToUpdate(); // Atualiza o pedido
-
-        // Envia atualização para o component searchResults
-        toUpdateSearchResults(updatesToSendToSearchResults);
       }
 
       // Se houve alteração no cliente vai atualizar
       if (!orderUpdated && companyUpdated) {
         handleSubmitCompanyToUpdate(); // Atualiza o cliente
+      }
+
+      if (updatesToSendToSearchResults.order_id) {
+        // Envia atualização para o component searchResults
+        toUpdateSearchResults(updatesToSendToSearchResults);
       }
 
       // Se houve alteração no pedido e no cliente vai atualizar os dois
@@ -2153,21 +2385,21 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     }
   }, [
     newOrderOpen,
-    counterErrors,
-    addToast,
+    counterErrors.length,
     overlapNewOrderOpen,
+    checkToken,
     orderUpdated,
     companyUpdated,
-    checkToken,
-    handleSubmitOrderToUpdate,
-    toUpdateSearchResults,
     updatesToSendToSearchResults,
+    handleSubmitOrderToUpdate,
     handleSubmitCompanyToUpdate,
+    toUpdateSearchResults,
     overlapOrderOpen,
     orderOpen,
+    addToast,
   ]);
 
-  // Mensagem que aparece para o usuário se ele tentar fechar o navegador ao invés de fechar o pedido
+  // Impede o usuário de fechar/atualizar o navegador sem salvar as informações
   window.onbeforeunload = () => {
     return companyUpdated || orderUpdated
       ? 'Se você sair desta página você irá perder suas alterações.'
@@ -2178,7 +2410,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     <OrderOverlap>
       {splitPaymentWayOpen && (
         <ModalOverlap>
-          <SplitPaymentWay color={color} order_id={order_id} />
+          <SplitPaymentWay
+            color={color}
+            order_id={order_id}
+            order_total_value={orderData.number_total_value}
+            hasSplitsPaymentWay={splitsPaymentWay}
+            updateSplitsPaymentWay={(e) => setSplitsPaymentWay(e)}
+          />
         </ModalOverlap>
       )}
       {newProductOpen && (
@@ -2188,7 +2426,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             orderProduct={selectedOrderProduct}
             order_id={order_id}
             setSelectedOrderProduct={() => {
-              setSelectedOrderProduct({} as OrderProductData);
+              setSelectedOrderProduct({} as IOrderProduct);
             }}
             updateOrderProduct={(e) => setUpdateOrderProduct(e)}
             addNewOrderProduct={(e) => setAddNewOrderProduct(e)}
@@ -2393,7 +2631,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                     <p>
                       {orderData.seller.name ? orderData.seller.name : <br />}
                     </p>
-                    <p>{from !== 'TechnicalArea' ? totalValue : <br />}</p>
+                    <p>
+                      {from !== 'TechnicalArea' ? (
+                        orderData.formatted_total_value
+                      ) : (
+                        <br />
+                      )}
+                    </p>
                     <p>
                       {orderData.created_at ? orderData.created_at : <br />}
                     </p>
@@ -2909,108 +3153,127 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                     <p>Status financeiro:</p>
                   </TitlesForm>
                   <DataForm>
-                    {from === 'Comercial' && !orderData.status_billing && (
-                      <>
-                        <PaymentWay
-                          paymentWay={orderData.payment_way as string}
-                          statusBilling={!!orderData?.status_billing}
-                        >
-                          {!orderData.payment_way && (
-                            <InputLabel>
-                              Selecione uma forma de pagamento
-                            </InputLabel>
-                          )}
-                          <FormControl className={formControl}>
-                            <Select
-                              value={orderData.payment_way}
-                              defaultValue=""
-                              displayEmpty
-                              onChange={updatePaymentWay}
-                            >
-                              <MenuItem value="">&nbsp;</MenuItem>
-                              <MenuItem value="À vista">À vista</MenuItem>
-                              <MenuItem value="Faturado">Faturado</MenuItem>
-                              <MenuItem value="Parcelado">Parcelado</MenuItem>
-                            </Select>
-                          </FormControl>
-                          {orderData.payment_way === 'Parcelado' && (
-                            <button
-                              className="split-payment-way"
-                              type="button"
-                              onClick={handleOpenSplitPaymentWay}
-                            >
-                              <MaterialTooltip
-                                title="Ver parcelamento"
-                                arrow
-                                placement="top"
+                    {from === 'Comercial' &&
+                      !orderData.status_billing &&
+                      orderData.number_total_value > 0 && (
+                        <>
+                          <PaymentWay
+                            paymentWay={orderData.payment_way as string}
+                            statusBilling={!!orderData?.status_billing}
+                          >
+                            {!orderData.payment_way && (
+                              <InputLabel>
+                                Selecione uma forma de pagamento
+                              </InputLabel>
+                            )}
+                            <FormControl className={formControl}>
+                              <Select
+                                value={orderData.payment_way}
+                                defaultValue=""
+                                displayEmpty
+                                onChange={updatePaymentWay}
                               >
-                                <MdOpenInNew className={mdOpenInNew} />
-                              </MaterialTooltip>
-                            </button>
-                          )}
-                        </PaymentWay>
-                        {orderData?.formatted_due_date &&
-                          orderData?.payment_way === 'À vista' && (
-                            <Form ref={dueDateRef} onSubmit={submitDueDate}>
-                              <InputAsTextWithMask
-                                name="dueDateData"
-                                onBlur={onDueDateSubmit}
-                                defaultValue={orderData.formatted_due_date}
-                                mask="99/99/9999"
-                                maskChar={null}
-                                styled={{ width: '6em' }}
-                              />
-                            </Form>
-                          )}
-                        {orderData?.formatted_due_date &&
-                          orderData?.payment_way === 'Faturado' && (
-                            <p>{orderData.formatted_due_date}</p>
-                          )}
-                        {orderData?.formatted_due_date &&
-                          orderData?.payment_way === 'Parcelado' && (
-                            <p>{orderData.formatted_due_date}</p>
-                          )}
-                        {!orderData?.formatted_due_date &&
-                          !orderData?.payment_way && (
+                                <MenuItem value="">&nbsp;</MenuItem>
+                                <MenuItem value="À vista">À vista</MenuItem>
+                                <MenuItem value="Faturado">Faturado</MenuItem>
+                                {orderData.number_total_value >= 100 && (
+                                  <MenuItem value="Parcelado">
+                                    Parcelado
+                                  </MenuItem>
+                                )}
+                              </Select>
+                            </FormControl>
+                            {orderData.payment_way === 'Parcelado' && (
+                              <button
+                                className="split-payment-way"
+                                type="button"
+                                onClick={handleOpenSplitPaymentWay}
+                              >
+                                <MaterialTooltip
+                                  title="Ver parcelamento"
+                                  arrow
+                                  placement="top"
+                                >
+                                  <MdOpenInNew className={mdOpenInNew} />
+                                </MaterialTooltip>
+                              </button>
+                            )}
+                          </PaymentWay>
+                          {orderData?.formatted_due_date &&
+                            orderData?.payment_way === 'À vista' && (
+                              <Form ref={dueDateRef} onSubmit={submitDueDate}>
+                                <InputAsTextWithMask
+                                  name="dueDateData"
+                                  onBlur={onDueDateSubmit}
+                                  defaultValue={orderData.formatted_due_date}
+                                  mask="99/99/9999"
+                                  maskChar={null}
+                                  styled={{ width: '6em' }}
+                                />
+                              </Form>
+                            )}
+                          {orderData?.formatted_due_date &&
+                            orderData?.payment_way === 'Faturado' && (
+                              <p>{orderData.formatted_due_date}</p>
+                            )}
+                          {orderData?.payment_way === 'Parcelado' && (
                             <p>
                               <br />
                             </p>
                           )}
-                        <PaymentMethod
-                          paymentMethod={!!orderData.payment_method}
-                        >
-                          {!orderData.payment_method && (
-                            <InputLabel>
-                              Selecione um meio de pagamento
-                            </InputLabel>
-                          )}
-                          <FormControl className={formControl}>
-                            <Select
-                              value={
-                                orderData.payment_method
-                                  ? orderData.payment_method.id
-                                  : ''
-                              }
-                              defaultValue=""
-                              displayEmpty
-                              onChange={handleSelectPaymentMethod}
+                          {!orderData?.formatted_due_date &&
+                            !orderData?.payment_way && (
+                              <p>
+                                <br />
+                              </p>
+                            )}
+                          {orderData?.payment_way === 'Parcelado' ? (
+                            <p>
+                              <br />
+                            </p>
+                          ) : (
+                            <PaymentMethod
+                              paymentMethod={!!orderData.payment_method}
                             >
-                              <MenuItem value="">&nbsp;</MenuItem>
-                              {paymentMethods.map((payment) => (
-                                <MenuItem value={payment.id} key={payment.id}>
-                                  {payment.name as string}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
-                        </PaymentMethod>
-                      </>
-                    )}
+                              {!orderData.payment_method && (
+                                <InputLabel>
+                                  Selecione um meio de pagamento
+                                </InputLabel>
+                              )}
+                              <FormControl className={formControl}>
+                                <Select
+                                  value={
+                                    orderData.payment_method
+                                      ? orderData.payment_method.id
+                                      : ''
+                                  }
+                                  defaultValue=""
+                                  displayEmpty
+                                  onChange={handleSelectPaymentMethod}
+                                >
+                                  <MenuItem value="">&nbsp;</MenuItem>
+                                  {paymentMethods.map((payment) => (
+                                    <MenuItem
+                                      value={payment.id}
+                                      key={payment.id}
+                                    >
+                                      {payment.name as string}
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                            </PaymentMethod>
+                          )}
+                        </>
+                      )}
                     {(from === 'Billing' ||
                       (from !== 'TechnicalArea' &&
-                        !!orderData.status_billing)) && (
+                        !!orderData.status_billing) ||
+                      (from !== 'TechnicalArea' &&
+                        orderData.number_total_value === 0)) && (
                       <>
-                        {orderData.payment_way ? (
+                        {orderData.payment_way &&
+                        orderData.number_total_value > 0 ? (
                           <PaymentWay
                             paymentWay={orderData.payment_way as string}
                             statusBilling={!!orderData?.status_billing}
@@ -3034,7 +3297,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                             )}
                           </PaymentWay>
                         ) : (
-                          <br />
+                          <p>
+                            <br />
+                          </p>
                         )}
                         <p>
                           {orderData?.formatted_due_date ? (
@@ -3273,28 +3538,17 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                   orderData.orders_products.length > 0 &&
                   orderData.orders_products.map((product) => (
                     <ProductRow color={color} key={product.id}>
-                      <StatusProductItem>
-                        <FormControl className={formControl}>
-                          <Select
-                            value={
-                              product.product.name === 'Contrato de Assessoria'
-                                ? '2'
-                                : ''
-                            }
-                            defaultValue=""
-                            displayEmpty
-                            onChange={() => {}}
-                          >
-                            <MenuItem value="">&nbsp;</MenuItem>
-                            <MenuItem value="1">
-                              <FaDivide className="faDividePay" />
-                            </MenuItem>
-                            <MenuItem value="2">
-                              <HiRefresh className="hiRefreshPay" />
-                            </MenuItem>
-                          </Select>
-                        </FormControl>
-                      </StatusProductItem>
+                      <PaymentTypeProductItem
+                        type="button"
+                        onClick={() => handleSelectProduct(product)}
+                      >
+                        {/*
+                        Lógica comentada para não atualizar a coluna product_payment_type dos orders_products
+                        {orderData.payment_way === 'Parcelado' &&
+                          formatPaymentTypeProductItem(
+                            product.product_payment_type
+                          )} */}
+                      </PaymentTypeProductItem>
                       <ProductName
                         type="button"
                         onClick={() => handleSelectProduct(product)}

@@ -1,9 +1,9 @@
 import React from 'react';
 import { FaTimes } from 'react-icons/fa';
 import { useOverlap } from '../../hooks/overlap';
-import formatValueCurrency from '../../utils/formatValueCurrency';
+import { formatValueCurrency } from '../../utils';
 
-import { OrderProductData } from '../SearchResults';
+import { IOrderProduct } from '../../interfaces';
 
 import { ModalContainer, Header, Content, Background } from './styles';
 
@@ -11,7 +11,7 @@ interface ProductViewProps {
   // Recebe a cor do módulo a partir de qual módulo este component está sendo executado
   color: string;
   // Recebe as informações para serem exibidas
-  orderProduct: OrderProductData;
+  orderProduct: IOrderProduct;
   // A partir de qual módulo este component está sendo executado
   from: string;
 }

@@ -1,10 +1,7 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { Autocomplete, createFilterOptions } from '@material-ui/lab';
-import {
-  ThemeProvider,
-  createMuiTheme,
-  TextField as OriginalTextField, // Nome alterado pois foi utilizado o TextField do unform-material-ui também
-} from '@material-ui/core';
+import { ThemeProvider, createTheme } from '@material-ui/core/styles';
+import { TextField as OriginalTextField } from '@material-ui/core'; // Nome alterado pois foi utilizado o TextField do unform-material-ui também
 import { TextField } from 'unform-material-ui';
 import { Form } from '@unform/web';
 import { FormHandles } from '@unform/core';
@@ -27,6 +24,7 @@ import InputMask, { Props as InputProps } from 'react-input-mask';
 import { useToast } from '../../hooks/toast';
 import { useAuth } from '../../hooks/auth';
 import { useOverlap } from '../../hooks/overlap';
+import { useOrdersSearch } from '../../hooks/orders_search';
 
 import HeaderButton from '../HeaderButton';
 import Order from '../Order';
@@ -135,12 +133,9 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
 
   const { addToast } = useToast();
   const { user, checkToken } = useAuth();
-  const {
-    newOrderOpen,
-    overlapNewOrderOpen,
-    overlapOrderOpen,
-    orderOpen,
-  } = useOverlap();
+  const { newOrderOpen, overlapNewOrderOpen, overlapOrderOpen, orderOpen } =
+    useOverlap();
+  const { toUpdateSearchResults } = useOrdersSearch();
 
   const companyCnpjRef = useRef<FormHandles>(null);
   const companyCpfRef = useRef<FormHandles>(null);
@@ -149,7 +144,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
   const companyPhoneRef = useRef<FormHandles>(null);
   const companyMobilePhoneRef = useRef<FormHandles>(null);
 
-  const newOrderMaterialTheme = createMuiTheme({
+  const newOrderMaterialTheme = createTheme({
     palette: {
       primary: {
         main: color,
@@ -799,6 +794,11 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
 
               setConfirmDataOpen(false); // Fecha o component de confirmação
               overlapOrderOpen(true); // Abre a order criada
+
+              toUpdateSearchResults({
+                order_id: orderResponse.data.id,
+                update_database: true,
+              });
             })
             .catch(() => {
               addToast({
@@ -843,6 +843,11 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
 
               setConfirmDataOpen(false); // Fecha o component de confirmação
               overlapOrderOpen(true); // Abre a order criada
+
+              toUpdateSearchResults({
+                order_id: orderResponse.data.id,
+                update_database: true,
+              });
             })
             .catch(() => {
               addToast({
@@ -859,17 +864,18 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
         });
     }
   }, [
-    addToast,
     companyCnpj,
     companyCpf,
-    companyEmail,
-    companyMobilePhone,
-    companyName.name,
     companyNameContact,
     companyPhone,
+    companyMobilePhone,
     companies,
-    overlapOrderOpen,
+    companyName.name,
+    companyEmail,
     user.id,
+    addToast,
+    overlapOrderOpen,
+    toUpdateSearchResults,
   ]);
 
   // Função para transitar entre as questões com PageUp
@@ -1091,6 +1097,51 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
     []
   );
 
+  // Função para lidar com o fechamento deste component
+  const handleCloseWindow = useCallback(() => {
+    if (
+      !companyName.name &&
+      !companyCnpj &&
+      !companyCpf &&
+      !companyNameContact &&
+      !companyEmail &&
+      !companyPhone &&
+      !companyMobilePhone
+    ) {
+      overlapNewOrderOpen(false); // Fecha este component
+    } else {
+      // eslint-disable-next-line no-alert
+      const checkBeforeClose = window.confirm(
+        'Tem certeza que deseja fechar sem salvar?'
+      );
+      if (checkBeforeClose) {
+        overlapNewOrderOpen(false); // Fecha este component
+      }
+    }
+  }, [
+    companyCnpj,
+    companyCpf,
+    companyEmail,
+    companyMobilePhone,
+    companyName.name,
+    companyNameContact,
+    companyPhone,
+    overlapNewOrderOpen,
+  ]);
+
+  // Impede o usuário de fechar/atualizar o navegador sem salvar as informações
+  window.onbeforeunload = () => {
+    return companyName.name ||
+      companyCnpj ||
+      companyCpf ||
+      companyNameContact ||
+      companyEmail ||
+      companyPhone ||
+      companyMobilePhone
+      ? 'Se você sair desta página você irá perder suas alterações.'
+      : null;
+  };
+
   return (
     <>
       {orderOpen && orderId && (
@@ -1101,7 +1152,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
       <NewOrderOverlap>
         <HeaderButton
           show={newOrderOpen && !orderOpen}
-          handleClick={(e) => overlapNewOrderOpen(!e)}
+          handleClick={() => handleCloseWindow()}
           type="button"
           icon={FaTimes}
           color={color}

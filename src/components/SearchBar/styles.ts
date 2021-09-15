@@ -16,12 +16,12 @@ export const Container = styled.div<ContainerProps>`
   right: 0;
   left: 0;
   padding: 0 15px;
-  background: #fff;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   z-index: 0;
   overflow: hidden;
+  background: #fff;
 
   .MuiInput-underline::after,
   .MuiInput-underline:hover:not(.Mui-disabled)::before {
@@ -41,7 +41,7 @@ export const Status = styled.div<StatusProps>`
 
   .MuiListItem-root.Mui-selected,
   .MuiListItem-root.Mui-selected:hover {
-    background-color: #222;
+    background: #222;
   }
 
   .MuiFormControl-root {
@@ -65,7 +65,7 @@ export const Status = styled.div<StatusProps>`
 
   .MuiInputBase-input {
     font-size: 0.9rem;
-    height: 1.55em;
+    height: 1.6em;
     padding: 0px 30px 0 4px;
     margin-bottom: -3px;
     display: flex;
@@ -75,6 +75,7 @@ export const Status = styled.div<StatusProps>`
   .MuiInputLabel-formControl {
     transform: translate(1px, 24px) scale(1.1);
   }
+
   .MuiInputLabel-shrink {
     transform: ${({ value }) =>
       value

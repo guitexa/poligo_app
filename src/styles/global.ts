@@ -36,7 +36,7 @@ export default createGlobalStyle`
   }
   ::-webkit-scrollbar-track {
     border: 7.5px solid white;
-    background-color: #ccc;
+    background: #ccc;
   }
   ::-webkit-scrollbar-thumb:hover {
     background: #222;

@@ -1,14 +1,13 @@
 import React from 'react';
-import { TextField } from '@material-ui/core';
+import TextField from '@material-ui/core/TextField';
 import Autocomplete from '@material-ui/lab/Autocomplete';
 import parse from 'autosuggest-highlight/parse';
 import match from 'autosuggest-highlight/match';
 
-import { User } from '../../../hooks/auth';
-import { BankAccount } from '../../SearchResults';
+import { IUser, IBankAccount } from '../../../interfaces';
 import { Container } from './styles';
 
-type GenericType = User | BankAccount;
+type GenericType = IUser | IBankAccount;
 
 interface AutoCompleteProps {
   color: string;

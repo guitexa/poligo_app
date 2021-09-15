@@ -10,7 +10,7 @@ interface InputProps {
 
 export const Container = styled.div<InputProps>`
   width: 100%;
-  background-color: #fff;
+  background: #fff;
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -32,7 +32,7 @@ export const Container = styled.div<InputProps>`
     width: 100%;
     min-width: 50px;
     color: #222;
-    background-color: transparent;
+    background: transparent;
     flex: 1;
     padding: 10px 0 9px 0;
     border: none;

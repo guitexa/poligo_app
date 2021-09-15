@@ -15,12 +15,8 @@ import SearchResults from '../../components/SearchResults';
 import { NewOrderOverlap, Container } from './styles';
 
 const Comercial: React.FC = () => {
-  const {
-    orderOpen,
-    newOrderOpen,
-    overlapNewOrderOpen,
-    closeAllOverlaps,
-  } = useOverlap();
+  const { orderOpen, newOrderOpen, overlapNewOrderOpen, closeAllOverlaps } =
+    useOverlap();
   const { push } = useHistory();
   const { user, checkToken } = useAuth();
   const {

@@ -8,17 +8,12 @@ interface HeaderProps {
   color: string;
 }
 
-interface PaymentMethodProps {
+interface SelectProps {
   color: string;
   value: boolean;
 }
 
-interface RadioLabelProps {
-  checked: boolean;
-}
-
 interface DateProps {
-  color: string;
   isFilled: boolean;
 }
 
@@ -61,7 +56,7 @@ export const Header = styled.div<HeaderProps>`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 
   strong {
     font-size: 20px;
@@ -97,15 +92,12 @@ export const Header = styled.div<HeaderProps>`
 
 export const Content = styled.div<ContentProps>`
   width: 100%;
-
-  form {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 10px;
-  }
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-bottom: 10px;
+  align-items: flex-start;
 
   .MuiRadio-colorSecondary.Mui-checked {
     color: ${({ color }) => color};
@@ -116,7 +108,7 @@ export const Content = styled.div<ContentProps>`
   }
 
   .MuiIconButton-colorSecondary:hover {
-    background-color: #f8f8f8;
+    background: #f8f8f8;
   }
 
   .MuiInput-underline:hover:not(.Mui-disabled)::before {
@@ -124,19 +116,64 @@ export const Content = styled.div<ContentProps>`
   }
 `;
 
-export const PaymentType = styled.div`
+export const PaymentType = styled.div<SelectProps>`
   display: flex;
-  align-items: center;
-`;
+  justify-content: center;
+  padding: 0 10px 15px 10px;
+  width: 100%;
 
-export const RadioLabel = styled.div<RadioLabelProps>`
-  color: ${({ checked }) => (checked ? '#000' : '#999')};
-  padding-right: 10px;
+  div:nth-child(1) {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  label {
+    line-height: 0px;
+    margin-left: 2px;
+    font-size: 1rem;
+  }
+
+  .MuiInputLabel-formControl {
+    transform: translate(1px, 30.5px) scale(1);
+  }
+
+  .MuiInputLabel-shrink {
+    transform: ${({ value }) =>
+      value
+        ? 'translate(0px, 13px) scale(0.7)'
+        : 'translate(1px, 24px) scale(1)'};
+  }
+
+  .MuiInputBase-input {
+    font-size: 1rem;
+    height: 1.8em;
+    line-height: 1.8em;
+    padding: 0px 30px 0 3px;
+  }
+
+  .MuiListItem-root.Mui-selected,
+  .MuiListItem-root.Mui-selected:hover {
+    background: #222;
+  }
+
+  .MuiFormControl-root {
+    width: 100%;
+    margin: 0;
+  }
+
+  .MuiSelect-icon {
+    margin-right: 2px;
+  }
+
+  .MuiSelect-select:focus {
+    background: transparent;
+  }
 `;
 
 export const PaymentContent = styled.div`
   width: 100%;
   display: flex;
+  margin-bottom: 15px;
 `;
 
 export const EnterPayment = styled.div`
@@ -144,7 +181,7 @@ export const EnterPayment = styled.div`
   display: flex;
   flex-direction: column;
   padding-right: 10px;
-  margin-right: 10px;
+  margin: 10px 10px 10px 0;
   border-right: 1px dashed #888;
 `;
 
@@ -152,6 +189,7 @@ export const DividedPayment = styled.div`
   width: 100%;
   display: flex;
   flex-direction: column;
+  margin: 10px 0;
 `;
 
 export const SecondaryContent = styled.div`
@@ -164,7 +202,7 @@ export const PrimaryContent = styled.div`
   display: flex;
 `;
 
-export const PaymentMethod = styled.div<PaymentMethodProps>`
+export const PaymentMethod = styled.div<SelectProps>`
   display: flex;
   flex: 1;
   margin: 10px;
@@ -175,23 +213,27 @@ export const PaymentMethod = styled.div<PaymentMethodProps>`
     font-size: 1rem;
   }
 
+  .MuiInputLabel-formControl {
+    transform: translate(1px, 30.5px) scale(1);
+  }
+
   .MuiInputLabel-shrink {
     transform: ${({ value }) =>
       value
-        ? 'translate(0px, 6px) scale(0.7)'
-        : 'translate(1px, 24px) scale(1)'};
+        ? 'translate(0px, 13px) scale(0.7)'
+        : 'translate(1px, 30.5px) scale(1)'};
   }
 
   .MuiInputBase-input {
     font-size: 1rem;
-    height: 1.9em;
+    height: 1.8em;
+    line-height: 1.8em;
     padding: 0px 30px 0 3px;
-    margin-bottom: -2px;
   }
 
   .MuiListItem-root.Mui-selected,
   .MuiListItem-root.Mui-selected:hover {
-    background-color: #222;
+    background: #222;
   }
 
   .MuiFormControl-root {
@@ -200,20 +242,15 @@ export const PaymentMethod = styled.div<PaymentMethodProps>`
   }
 
   .MuiSelect-icon {
-    top: calc(50% - 15px);
     margin-right: 2px;
   }
 
   .MuiSelect-select:focus {
     background: transparent;
   }
-
-  .MuiSelect-select.MuiSelect-select {
-    margin-bottom: -8px;
-  }
 `;
 
-export const DividedQuantity = styled.div<PaymentMethodProps>`
+export const SplitNumber = styled.div<SelectProps>`
   width: 20%;
   margin: 10px;
 
@@ -223,23 +260,27 @@ export const DividedQuantity = styled.div<PaymentMethodProps>`
     font-size: 1rem;
   }
 
+  .MuiInputLabel-formControl {
+    transform: translate(1px, 30.5px) scale(1);
+  }
+
   .MuiInputLabel-shrink {
     transform: ${({ value }) =>
       value
-        ? 'translate(0px, 6px) scale(0.7)'
-        : 'translate(1px, 24px) scale(1)'};
+        ? 'translate(0px, 13px) scale(0.7)'
+        : 'translate(1px, 30.5px) scale(1)'};
   }
 
   .MuiInputBase-input {
     font-size: 1rem;
-    height: 1.9em;
+    height: 1.8em;
+    line-height: 1.8em;
     padding: 0px 30px 0 3px;
-    margin-bottom: -2px;
   }
 
   .MuiListItem-root.Mui-selected,
   .MuiListItem-root.Mui-selected:hover {
-    background-color: #222;
+    background: #222;
   }
 
   .MuiFormControl-root {
@@ -248,16 +289,11 @@ export const DividedQuantity = styled.div<PaymentMethodProps>`
   }
 
   .MuiSelect-icon {
-    top: calc(50% - 15px);
     margin-right: 2px;
   }
 
   .MuiSelect-select:focus {
     background: transparent;
-  }
-
-  .MuiSelect-select.MuiSelect-select {
-    margin-bottom: -8px;
   }
 `;
 
@@ -272,7 +308,7 @@ export const Value = styled.div`
   }
 
   .MuiInputLabel-formControl {
-    transform: translate(1px, 17.5px) scale(1);
+    transform: translate(1px, 18px) scale(1);
   }
 
   .MuiInputLabel-shrink {
@@ -281,9 +317,9 @@ export const Value = styled.div`
 
   .MuiInputBase-input {
     font-size: 1rem;
-    height: 1.9em;
+    height: 1.8em;
+    line-height: 1.8em;
     padding: 0px 30px 0 3px;
-    margin-bottom: -2px;
   }
 
   .MuiInputBase-root {
@@ -319,7 +355,7 @@ export const Value = styled.div`
   }
 `;
 
-export const Date = styled.div<DateProps>`
+export const DateField = styled.div<DateProps>`
   width: 140px;
   margin: 10px;
 
@@ -330,7 +366,7 @@ export const Date = styled.div<DateProps>`
   }
 
   .MuiInputLabel-formControl {
-    transform: translate(1px, 17.5px) scale(1);
+    transform: translate(1px, 18px) scale(1);
   }
 
   .MuiInputLabel-shrink {
@@ -348,21 +384,17 @@ export const Date = styled.div<DateProps>`
 
   .MuiInputBase-input {
     font-size: 1rem;
-    height: 1.9em;
-    /* padding: 0px 30px 0 3px; */
-    padding: ${({ isFilled }) => (isFilled ? '0 30px 0 3px' : '0 0 0 3px')};
-    margin-bottom: -2px;
+    height: 1.8em;
+    line-height: 1.8em;
+    padding: ${({ isFilled }) => (isFilled ? '0 28px 0 3px' : '0 0 0 3px')};
   }
 
   .MuiInputBase-root {
     margin-top: 4px;
-    /* width: calc(100% + 28px); */
     width: ${({ isFilled }) => (isFilled ? 'calc(100% + 28px)' : '100%')};
   }
 
   .MuiIconButton-root {
-    /* padding: 3px;
-    margin: 0 0px 1px 2px; */
     padding: ${({ isFilled }) => (isFilled ? '3px' : '6px')};
     margin: ${({ isFilled }) => (isFilled ? '0 0px 1px 2px' : '0 -3px 0 0')};
     display: ${({ isFilled }) => (isFilled ? 'none' : 'flex')};
@@ -379,13 +411,25 @@ export const Date = styled.div<DateProps>`
 `;
 
 export const TotalValue = styled.div<TotalValueProps>`
-  background: ${({ color }) => color};
-  color: #fff;
-  border-radius: 4px;
-  border: none;
-  padding: 8px 15px;
-  transition: all 0.2s;
-  margin-top: 10px;
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  cursor: default;
+  margin: -38px -40px -30px 20px;
+
+  div {
+    background: ${({ color }) => color};
+    opacity: 0.7;
+    color: #fff;
+    border-radius: 4px 0 3.5px 0;
+    border: none;
+    padding: 14px 15px;
+    transition: all 0.2s;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
 
   p:nth-child(1) {
     font-size: 0.8rem;

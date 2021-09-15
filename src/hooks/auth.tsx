@@ -2,15 +2,9 @@ import React, { createContext, useCallback, useState, useContext } from 'react';
 import decode from 'jwt-decode';
 import { fromUnixTime, isAfter } from 'date-fns';
 
-import api from '../services/api';
+import { IUser } from '../interfaces';
 
-// Interface do usuário recebido
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  permissions: string;
-}
+import api from '../services/api';
 
 // Interface do token recebido
 interface TokenDecode {
@@ -29,8 +23,8 @@ interface SignInPasswordCredencials {
   password: string;
 }
 
-interface AuthContextData {
-  user: User;
+interface AuthContextProps {
+  user: IUser;
   token: string;
   signInMail(email: SignInMailCredencials): Promise<void>;
   signInPassword(credentials: SignInPasswordCredencials): Promise<void>;
@@ -38,11 +32,11 @@ interface AuthContextData {
   checkToken(): void;
 }
 
-const AuthContext = createContext<AuthContextData>({} as AuthContextData);
+const AuthContext = createContext<AuthContextProps>({} as AuthContextProps);
 
 export const AuthProvider: React.FC = ({ children }) => {
   // Armazena o usuário recebido ao fazer o signInMail
-  const [user, setUser] = useState<User>({} as User);
+  const [user, setUser] = useState<IUser>({} as IUser);
 
   // Armazena o token recebido ao fazer o signInPassword
   const [token, setToken] = useState(() => {
@@ -94,7 +88,7 @@ export const AuthProvider: React.FC = ({ children }) => {
     localStorage.removeItem('@Poligo:token');
 
     setToken(''); // Limpa o estado
-    setUser({} as User); // Limpa o estado
+    setUser({} as IUser); // Limpa o estado
   }, []);
 
   // Função para verificar se o token está valido
@@ -115,7 +109,7 @@ export const AuthProvider: React.FC = ({ children }) => {
     // Se o token estiver dentro da data de validade verifica se existe usuário
     else {
       // Busca na API a lista de usuários cadastrados
-      const userResponse = await api.get<User[]>('/users');
+      const userResponse = await api.get<IUser[]>('/users');
 
       // Busca na lista de usuários o usuário correspondente a este token
       const findUser = userResponse.data.find(
@@ -150,7 +144,7 @@ export const AuthProvider: React.FC = ({ children }) => {
   );
 };
 
-export function useAuth(): AuthContextData {
+export function useAuth(): AuthContextProps {
   const context = useContext(AuthContext);
 
   return context;

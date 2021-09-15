@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useState } from 'react';
 
-interface OverlapContextData {
+interface OverlapContextProps {
   orderOpen: boolean;
   newOrderOpen: boolean;
   newProductOpen: boolean;
@@ -14,8 +14,8 @@ interface OverlapContextData {
   closeAllOverlaps(): void;
 }
 
-const OverlapContext = createContext<OverlapContextData>(
-  {} as OverlapContextData
+const OverlapContext = createContext<OverlapContextProps>(
+  {} as OverlapContextProps
 );
 
 export const OverlapProvider: React.FC = ({ children }) => {
@@ -85,7 +85,7 @@ export const OverlapProvider: React.FC = ({ children }) => {
   );
 };
 
-export function useOverlap(): OverlapContextData {
+export function useOverlap(): OverlapContextProps {
   const context = useContext(OverlapContext);
 
   return context;

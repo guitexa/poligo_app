@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
+import Select from '@material-ui/core/Select';
+import MenuItem from '@material-ui/core/MenuItem';
+import FormControl from '@material-ui/core/FormControl';
+import InputLabel from '@material-ui/core/InputLabel';
 import {
-  InputLabel,
-  Select,
-  MenuItem,
-  FormControl,
-  createStyles,
-  makeStyles,
-  Theme,
-  createMuiTheme,
   ThemeProvider,
-} from '@material-ui/core';
+  createTheme,
+  makeStyles,
+  createStyles,
+  Theme,
+} from '@material-ui/core/styles';
 import {
   FaCheckCircle,
   FaRegCheckCircle,
@@ -26,14 +26,15 @@ import { IoMdThumbsDown } from 'react-icons/io';
 import api from '../../services/api';
 import { useOrdersSearch } from '../../hooks/orders_search';
 import { useFinancialsSearch } from '../../hooks/financials_search';
-import { useAuth, User } from '../../hooks/auth';
+import { useAuth } from '../../hooks/auth';
 import { useToast } from '../../hooks/toast';
+
+import { IOrder, IUser, IBankAccount, IFinancial } from '../../interfaces';
 
 import Date from './Date';
 import Text from './Text';
 import AutoComplete from './AutoComplete';
 import Number from './Number';
-import { OrderData, BankAccount, FinancialData } from '../SearchResults';
 
 import { Container, Status } from './styles';
 
@@ -46,12 +47,14 @@ interface SearchBarProps {
 
 const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
   // Armazena os vendedores cadastrados no banco de dados
-  const [sellers, setSellers] = useState<User[]>([]);
+  const [sellers, setSellers] = useState<IUser[]>([]);
   // Armazena os técnicos cadastrados no banco de dados
-  const [technicals, setTechnicals] = useState<(User | null | undefined)[]>([]);
+  const [technicals, setTechnicals] = useState<(IUser | null | undefined)[]>(
+    []
+  );
   // Armazena as contas bancárias cadastrados no banco de dados
   const [bankAccounts, setBankAccounts] = useState<
-    (BankAccount | null | undefined)[]
+    (IBankAccount | null | undefined)[]
   >([]);
 
   const ordersSearch = useOrdersSearch();
@@ -64,7 +67,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
     checkToken();
     if (from === 'Comercial' || from === 'Billing') {
       api
-        .get<OrderData[]>('/orders/')
+        .get<IOrder[]>('/orders/')
         .then((response) => {
           setSellers(
             response.data
@@ -84,7 +87,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
         });
     } else if (from === 'TechnicalArea') {
       api
-        .get<OrderData[]>('/orders/')
+        .get<IOrder[]>('/orders/')
         .then((response) => {
           setTechnicals(
             response.data
@@ -104,7 +107,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
         });
     } else if (from === 'Financial') {
       api
-        .get<FinancialData[]>('/financials/')
+        .get<IFinancial[]>('/financials/')
         .then((response) => {
           setBankAccounts(
             response.data
@@ -126,7 +129,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ color, from }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const searchBarMaterialTheme = createMuiTheme({
+  const searchBarMaterialTheme = createTheme({
     palette: {
       primary: {
         main: color,

@@ -38,7 +38,7 @@ export const Container = styled.div<ContainerProps>`
 
   .MuiInputBase-input {
     font-size: 0.8rem;
-    height: 1.95em;
+    height: 2em;
     padding: 0px 25px 0 4px;
     margin-bottom: -1px;
   }

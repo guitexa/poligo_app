@@ -4,12 +4,13 @@ import { FiUser, FiMail, FiLock, FiArrowLeft } from 'react-icons/fi';
 import { Form } from '@unform/web';
 import { FormHandles } from '@unform/core';
 import * as Yup from 'yup';
-import { MenuItem, ThemeProvider, createMuiTheme } from '@material-ui/core';
+import { ThemeProvider, createTheme } from '@material-ui/core/styles';
+import MenuItem from '@material-ui/core/MenuItem';
 import { Select } from 'unform-material-ui';
 
 import { useToast } from '../../hooks/toast';
 import api from '../../services/api';
-import getValidationErrors from '../../utils/getValidationErrors';
+import { getValidationErrors } from '../../utils';
 
 import Logo from '../../assets/logo.svg';
 
@@ -37,7 +38,7 @@ const SignUp: React.FC = () => {
 
   const { addToast } = useToast();
 
-  const signUpMaterialTheme = createMuiTheme({
+  const signUpMaterialTheme = createTheme({
     palette: {
       primary: {
         main: '#222',

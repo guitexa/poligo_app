@@ -1,30 +1,23 @@
-import React, {
-  useState,
-  ChangeEvent,
-  useCallback,
-  useEffect,
-  useRef,
-} from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createFilterOptions, Autocomplete } from '@material-ui/lab';
 import parse from 'autosuggest-highlight/parse';
 import match from 'autosuggest-highlight/match';
 import { ThemeProvider } from '@material-ui/styles';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as themeAugmentation from '@material-ui/lab/themeAugmentation';
-import {
-  createMuiTheme,
-  Grid,
-  IconButton,
-  TextField as OriginalTextField,
-} from '@material-ui/core';
+import Grid from '@material-ui/core/Grid';
+import IconButton from '@material-ui/core/IconButton';
+import { createTheme } from '@material-ui/core/styles';
+import { TextField as OriginalTextField } from '@material-ui/core'; // Nome alterado pois foi utilizado o TextField do unform-material-ui também
 import NumberFormat from 'react-number-format';
-import { Close } from '@material-ui/icons';
+import Close from '@material-ui/icons/Close';
 import { FaTimes } from 'react-icons/fa';
 import { Form } from '@unform/web';
 import { FormHandles } from '@unform/core';
 import { TextField } from 'unform-material-ui';
 
-import { OrderProductData } from '../SearchResults';
+import { IOrderProduct } from '../../interfaces';
+
 import Button from '../Button';
 import DisabledButton from '../DisabledButton';
 
@@ -55,7 +48,9 @@ interface ProductData {
 
 // Interface para referenciar os dados inseridos nos inputs
 interface InputData {
-  descriptionData: string;
+  descriptionData?: string;
+  id?: string;
+  name?: string;
 }
 
 // Interface da função de máscara do input Value
@@ -85,6 +80,7 @@ function NumberFormatCustom(props: NumberFormatCustomProps): JSX.Element {
       decimalSeparator=","
       isNumericString
       fixedDecimalScale
+      allowNegative={false}
       prefix="R$ "
       decimalScale={2}
     />
@@ -95,15 +91,15 @@ interface NewProductProps {
   // Recebe a cor do módulo a partir de qual módulo este component está sendo executado
   color: string;
   // Recebe opcionalmente o orderProduct, se receber indica atualização
-  orderProduct?: OrderProductData;
+  orderProduct?: IOrderProduct;
   // Se receber o order_id para ser utilizado quando precisar criar uma nova order_product
   order_id: string;
   // Limpa o order_product após o fechamento deste component
   setSelectedOrderProduct(e: string): void;
   // Envia atualização para os components order e searchResults
-  updateOrderProduct(data: OrderProductData): void;
+  updateOrderProduct(data: IOrderProduct): void;
   // Envia o order_product recém criado para os components order e searchResults
-  addNewOrderProduct(data: OrderProductData): void;
+  addNewOrderProduct(data: IOrderProduct): void;
 }
 
 const NewProduct: React.FC<NewProductProps> = ({
@@ -116,10 +112,14 @@ const NewProduct: React.FC<NewProductProps> = ({
 }) => {
   // Armazena os products cadastrados no banco de dados
   const [products, setProducts] = useState<ProductData[]>([]);
+
   // Armazena o product selecionado pelo usuário
   const [selectedProduct, setSelectedProduct] = useState<ProductData>(
     {} as ProductData
   );
+
+  // Armazena se houve alguma atualização no product
+  const [productUpdated, setProductUpdated] = useState(false);
 
   const { addToast } = useToast();
   const { checkToken } = useAuth();
@@ -127,7 +127,7 @@ const NewProduct: React.FC<NewProductProps> = ({
 
   const descriptionRef = useRef<FormHandles>(null);
 
-  const newProductMaterialTheme = createMuiTheme({
+  const newProductMaterialTheme = createTheme({
     palette: {
       primary: {
         main: color,
@@ -196,17 +196,19 @@ const NewProduct: React.FC<NewProductProps> = ({
   }, []);
 
   // Se houver orderProduct indica atualização
-  useEffect(() => {
-    if (orderProduct?.product) {
-      setSelectedProduct({
-        id: orderProduct.product.id,
-        name: orderProduct.product.name,
-        description: orderProduct.product_description,
-        value: orderProduct.product_value,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderProduct]);
+  if (
+    !selectedProduct.id &&
+    !selectedProduct.name &&
+    !selectedProduct.value &&
+    orderProduct?.product
+  ) {
+    setSelectedProduct({
+      id: orderProduct.product.id,
+      name: orderProduct.product.name,
+      description: orderProduct.product_description,
+      value: orderProduct.product_value,
+    });
+  }
 
   // Função para adicionar um novo produto
   const handleAddNewProduct = useCallback(
@@ -234,25 +236,67 @@ const NewProduct: React.FC<NewProductProps> = ({
           name: name.trimStart().trimEnd(),
         });
       }
+
+      // Define que o banco de dados deve ser atualizado
+      setProductUpdated(true);
     },
     [products, selectedProduct]
   );
-
   // Função para lidar com o fechamento deste component
   const handleCloseWindow = useCallback(() => {
-    overlapNewProductOpen(false); // Fecha este component
-    setSelectedProduct({} as ProductData); // Limpa o estado
-    setSelectedOrderProduct(''); // Limpa o estado
-  }, [overlapNewProductOpen, setSelectedOrderProduct]);
+    if (!productUpdated) {
+      overlapNewProductOpen(false); // Fecha este component
+      setSelectedProduct({} as ProductData); // Limpa o estado
+      setSelectedOrderProduct(''); // Limpa o estado
+    } else {
+      // eslint-disable-next-line no-alert
+      const checkBeforeClose = window.confirm(
+        'Tem certeza que deseja fechar sem salvar?'
+      );
+      if (checkBeforeClose) {
+        overlapNewProductOpen(false); // Fecha este component
+        setSelectedProduct({} as ProductData); // Limpa o estado
+        setSelectedOrderProduct(''); // Limpa o estado
+      }
+    }
+  }, [overlapNewProductOpen, productUpdated, setSelectedOrderProduct]);
+
+  // Função para selecionar um product existente
+  const handleSelectProduct = useCallback(
+    ({ id, name }: InputData) => {
+      if (id !== undefined && name !== undefined) {
+        setSelectedProduct({
+          ...selectedProduct,
+          id,
+          name,
+        });
+        // Define que o banco de dados deve ser atualizado
+        setProductUpdated(true);
+      }
+    },
+    [selectedProduct]
+  );
+
+  // Função para trocar o valor do order_product
+  const handleChangeValue = useCallback(
+    (value: string) => {
+      setSelectedProduct({
+        ...selectedProduct,
+        value,
+      });
+
+      // Define que o banco de dados deve ser atualizado
+      setProductUpdated(true);
+    },
+    [selectedProduct]
+  );
 
   // Função que cria um novo order_product ou atualiza um existente e/ou cria um novo product
   const handleSubmit = useCallback(
     async ({ descriptionData }: InputData) => {
       const clearDescriptionData = descriptionData
-        .trimEnd()
-        .trimStart()
-        .split(/\s+/)
-        .join(' ');
+        ? descriptionData.trimEnd().trimStart().split(/\s+/).join(' ')
+        : '';
 
       // Verifica se existe orderProduct para atualizar
       if (orderProduct?.product) {
@@ -261,7 +305,7 @@ const NewProduct: React.FC<NewProductProps> = ({
           checkToken();
           // Faz a atualização do order_product existente utilizando um product existente
           await api
-            .patch<OrderProductData>(`/orders-products/${orderProduct.id}`, {
+            .patch<IOrderProduct>(`/orders-products/${orderProduct.id}`, {
               product_id: selectedProduct.id,
               product_description: clearDescriptionData,
               product_value: selectedProduct.value,
@@ -270,7 +314,12 @@ const NewProduct: React.FC<NewProductProps> = ({
               // Envia o response para atualizar os components order e searchResults
               updateOrderProduct(orderProductResponse.data);
 
-              handleCloseWindow(); // Fecha este component
+              // Define que o banco de dados foi atualizado
+              setProductUpdated(false);
+
+              overlapNewProductOpen(false); // Fecha este component
+              setSelectedProduct({} as ProductData); // Limpa o estado
+              setSelectedOrderProduct(''); // Limpa o estado
 
               addToast({
                 type: 'success',
@@ -309,21 +358,23 @@ const NewProduct: React.FC<NewProductProps> = ({
                 },
               ]);
 
-              // Faz a atualização do order_product
+              // Faz a atualização do order_product utilizando um product recém criado
               api
-                .patch<OrderProductData>(
-                  `/orders-products/${orderProduct.id}`,
-                  {
-                    product_id: productResponse.data.id, // Utiliza o ID do product recém criado
-                    product_description: clearDescriptionData,
-                    product_value: selectedProduct.value,
-                  }
-                )
+                .patch<IOrderProduct>(`/orders-products/${orderProduct.id}`, {
+                  product_id: productResponse.data.id, // Utiliza o ID do product recém criado
+                  product_description: clearDescriptionData,
+                  product_value: selectedProduct.value,
+                })
                 .then((orderProductResponse) => {
                   // Envia o response para atualizar os components order e searchResults
                   updateOrderProduct(orderProductResponse.data);
 
-                  handleCloseWindow(); // Fecha este component
+                  // Define que o banco de dados foi atualizado
+                  setProductUpdated(false);
+
+                  overlapNewProductOpen(false); // Fecha este component
+                  setSelectedProduct({} as ProductData); // Limpa o estado
+                  setSelectedOrderProduct(''); // Limpa o estado
 
                   addToast({
                     type: 'success',
@@ -351,7 +402,7 @@ const NewProduct: React.FC<NewProductProps> = ({
         checkToken();
         // Cria um novo order_product utilizando um product existente
         await api
-          .post<OrderProductData>(`/orders-products/${order_id}`, {
+          .post<IOrderProduct>(`/orders-products/${order_id}`, {
             product_id: selectedProduct.id,
             product_description: clearDescriptionData,
             product_value: selectedProduct.value,
@@ -360,7 +411,12 @@ const NewProduct: React.FC<NewProductProps> = ({
             // Envia o order_product criado para atualizar a order e o searchResults
             addNewOrderProduct(orderProductResponse.data);
 
-            handleCloseWindow(); // Fecha este component
+            // Define que o banco de dados foi atualizado
+            setProductUpdated(false);
+
+            overlapNewProductOpen(false); // Fecha este component
+            setSelectedProduct({} as ProductData); // Limpa o estado
+            setSelectedOrderProduct(''); // Limpa o estado
 
             addToast({
               type: 'success',
@@ -400,9 +456,9 @@ const NewProduct: React.FC<NewProductProps> = ({
               },
             ]);
 
-            // Cria um novo order_product
+            // Cria um novo order_product com o novo product recém criado
             api
-              .post<OrderProductData>(`/orders-products/${order_id}`, {
+              .post<IOrderProduct>(`/orders-products/${order_id}`, {
                 product_id: productResponse.data.id, // Utiliza o ID do product recém criado
                 // product_id: selectedProduct.id, // Utiliza o ID do product recém criado
                 product_description: clearDescriptionData,
@@ -412,7 +468,12 @@ const NewProduct: React.FC<NewProductProps> = ({
                 // Envia o order_product criado para atualizar a order e o searchResults
                 addNewOrderProduct(orderProductResponse.data);
 
-                handleCloseWindow(); // Fecha este component
+                // Define que o banco de dados foi atualizado
+                setProductUpdated(false);
+
+                overlapNewProductOpen(false); // Fecha este component
+                setSelectedProduct({} as ProductData); // Limpa o estado
+                setSelectedOrderProduct(''); // Limpa o estado
 
                 addToast({
                   type: 'success',
@@ -439,302 +500,152 @@ const NewProduct: React.FC<NewProductProps> = ({
       addNewOrderProduct,
       addToast,
       checkToken,
-      handleCloseWindow,
       orderProduct,
       order_id,
+      overlapNewProductOpen,
       products,
       selectedProduct,
+      setSelectedOrderProduct,
       updateOrderProduct,
     ]
   );
 
   return (
     <>
-      {/* Verifica se existe orderProduct para carregar os dados */}
-      {orderProduct?.product && (
-        <ThemeProvider theme={newProductMaterialTheme}>
-          <ModalContainer>
-            <Header color={color}>
+      <ThemeProvider theme={newProductMaterialTheme}>
+        <ModalContainer>
+          <Header color={color}>
+            {orderProduct?.product ? (
               <strong>ALTERAR SERVIÇO</strong>
-              <button type="button" onClick={() => handleCloseWindow()}>
-                <FaTimes />
-              </button>
-            </Header>
-            <Content color={color}>
-              <Form ref={descriptionRef} onSubmit={handleSubmit}>
-                <Product>
-                  <Autocomplete
-                    openText=""
-                    clearText=""
-                    clearOnBlur={false}
-                    handleHomeEndKeys={false}
-                    id="input-selectedProduct"
-                    value={selectedProduct}
-                    getOptionSelected={(option, value) =>
-                      option.name === value.name
-                    }
-                    onChange={(event, newProduct) => {
-                      if (newProduct?.inputValue) {
-                        // Adiciona um novo produto
-                        handleAddNewProduct(newProduct.inputValue);
-                      } else if (newProduct) {
-                        // Seleciona um existente
-                        setSelectedProduct({
-                          ...selectedProduct,
-                          id: newProduct.id,
-                          name: newProduct.name,
-                        });
-                      }
-                      if (!newProduct) {
-                        // Remove o ID do input
-                        setSelectedProduct({
-                          ...selectedProduct,
-                          id: '',
-                          name: '',
-                        });
-                      }
-                    }}
-                    filterOptions={(options, params) => {
-                      const filtered = filter(options, params) as ProductData[];
-
-                      if (params.inputValue !== '') {
-                        filtered.push({
-                          inputValue: params.inputValue,
-                          name: `Adicionar ${params.inputValue}`,
-                          value: '',
-                        });
-                      }
-
-                      return filtered;
-                    }}
-                    options={products}
-                    noOptionsText=""
-                    getOptionLabel={({ name, inputValue }) => {
-                      if (inputValue) {
-                        return inputValue;
-                      }
-                      return name || '';
-                    }}
-                    renderInput={(params) => (
-                      <OriginalTextField
-                        {...params}
-                        autoFocus
-                        label="Serviço"
-                      />
-                    )}
-                    renderOption={({ name }, { inputValue }) => {
-                      const matches = match(name, inputValue);
-                      const parts = parse(name, matches);
-
-                      return (
-                        <div>
-                          {parts.map(({ highlight, text }) => (
-                            <span
-                              key={text}
-                              style={{ fontWeight: highlight ? 700 : 400 }}
-                            >
-                              {text}
-                            </span>
-                          ))}
-                        </div>
-                      );
-                    }}
-                  />
-                </Product>
-                <Description>
-                  <TextField
-                    name="descriptionData"
-                    placeholder="Descrição do serviço"
-                    multiline
-                    defaultValue={selectedProduct.description}
-                    rowsMax={5}
-                  />
-                </Description>
-                <Value>
-                  <Grid container spacing={1} alignItems="flex-end">
-                    <Grid item>
-                      <OriginalTextField
-                        label="Valor"
-                        value={selectedProduct.value}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                          setSelectedProduct({
-                            ...selectedProduct,
-                            value: e.target.value,
-                          });
-                        }}
-                        InputProps={{
-                          inputComponent: NumberFormatCustom as any,
-                        }}
-                      />
-                    </Grid>
-                    <Grid item>
-                      {selectedProduct.value && (
-                        <IconButton
-                          onClick={() => {
-                            setSelectedProduct({
-                              ...selectedProduct,
-                              value: '',
-                            });
-                          }}
-                        >
-                          <Close />
-                        </IconButton>
-                      )}
-                    </Grid>
-                  </Grid>
-                </Value>
-                {selectedProduct.name?.length > 0 && selectedProduct.value ? (
-                  <Button>Alterar</Button>
-                ) : (
-                  <DisabledButton>Alterar</DisabledButton>
-                )}
-              </Form>
-            </Content>
-          </ModalContainer>
-        </ThemeProvider>
-      )}
-      {/* Se não existe orderProduct os campos estarão em branco */}
-      {order_id && !orderProduct?.product && (
-        <ThemeProvider theme={newProductMaterialTheme}>
-          <ModalContainer>
-            <Header color={color}>
+            ) : (
               <strong>ADICIONAR SERVIÇO</strong>
-              <button type="button" onClick={() => handleCloseWindow()}>
-                <FaTimes />
-              </button>
-            </Header>
-            <Content color={color}>
-              <Form ref={descriptionRef} onSubmit={handleSubmit}>
-                <Product>
-                  <Autocomplete
-                    openText=""
-                    clearText=""
-                    clearOnBlur={false}
-                    handleHomeEndKeys={false}
-                    value={selectedProduct}
-                    getOptionSelected={(option, value) =>
-                      option.name === value.name
+            )}
+            <button type="button" onClick={() => handleCloseWindow()}>
+              <FaTimes />
+            </button>
+          </Header>
+          <Content color={color}>
+            <Form ref={descriptionRef} onSubmit={handleSubmit}>
+              <Product>
+                <Autocomplete
+                  openText=""
+                  clearText=""
+                  clearOnBlur={false}
+                  handleHomeEndKeys={false}
+                  id="input-selectedProduct"
+                  value={selectedProduct}
+                  getOptionSelected={(option, value) =>
+                    option.name === value.name
+                  }
+                  onChange={(event, newProduct) => {
+                    if (newProduct?.inputValue) {
+                      //
+                      handleAddNewProduct(newProduct.inputValue);
+                    } else if (newProduct) {
+                      // Seleciona um existente
+                      handleSelectProduct({
+                        id: newProduct.id,
+                        name: newProduct.name,
+                      });
                     }
-                    onChange={(event, newProduct) => {
-                      if (newProduct?.inputValue) {
-                        // Adiciona um novo serviço
-                        handleAddNewProduct(newProduct.inputValue);
-                      } else if (newProduct) {
-                        // Seleciona um existente
-                        setSelectedProduct({
-                          ...selectedProduct,
-                          id: newProduct.id,
-                          name: newProduct.name,
-                        });
-                      }
-                      if (!newProduct) {
-                        // Limpou o input
-                        setSelectedProduct({
-                          ...selectedProduct,
-                          id: '',
-                          name: '',
-                        });
-                      }
-                    }}
-                    filterOptions={(options, params) => {
-                      const filtered = filter(options, params) as ProductData[];
+                    if (!newProduct) {
+                      // Remove o ID do input
+                      handleSelectProduct({
+                        id: '',
+                        name: '',
+                      });
+                    }
+                  }}
+                  filterOptions={(options, params) => {
+                    const filtered = filter(options, params) as ProductData[];
 
-                      if (params.inputValue !== '') {
-                        filtered.push({
-                          inputValue: params.inputValue,
-                          name: `Adicionar ${params.inputValue}`,
-                          value: '',
-                        });
-                      }
+                    if (params.inputValue !== '') {
+                      filtered.push({
+                        inputValue: params.inputValue,
+                        name: `Adicionar ${params.inputValue}`,
+                        value: '',
+                      });
+                    }
 
-                      return filtered;
-                    }}
-                    options={products}
-                    noOptionsText=""
-                    getOptionLabel={({ name, inputValue }) => {
-                      if (inputValue) {
-                        return inputValue;
-                      }
-                      return name || '';
-                    }}
-                    renderInput={(params) => (
-                      <OriginalTextField
-                        {...params}
-                        autoFocus
-                        label="Serviço"
-                      />
-                    )}
-                    renderOption={({ name }, { inputValue }) => {
-                      const matches = match(name, inputValue);
-                      const parts = parse(name, matches);
+                    return filtered;
+                  }}
+                  options={products}
+                  noOptionsText=""
+                  getOptionLabel={({ name, inputValue }) => {
+                    if (inputValue) {
+                      return inputValue;
+                    }
+                    return name || '';
+                  }}
+                  renderInput={(params) => (
+                    <OriginalTextField {...params} autoFocus label="Serviço" />
+                  )}
+                  renderOption={({ name }, { inputValue }) => {
+                    const matches = match(name, inputValue);
+                    const parts = parse(name, matches);
 
-                      return (
-                        <div>
-                          {parts.map(({ highlight, text }) => (
-                            <span
-                              key={text}
-                              style={{ fontWeight: highlight ? 700 : 400 }}
-                            >
-                              {text}
-                            </span>
-                          ))}
-                        </div>
-                      );
-                    }}
-                  />
-                </Product>
-                <Description>
-                  <TextField
-                    name="descriptionData"
-                    placeholder="Descrição do serviço"
-                    multiline
-                    defaultValue={selectedProduct.description}
-                    rowsMax={5}
-                  />
-                </Description>
-                <Value>
-                  <Grid container spacing={1} alignItems="flex-end">
-                    <Grid item>
-                      <OriginalTextField
-                        label="Valor"
-                        value={selectedProduct.value}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                          setSelectedProduct({
-                            ...selectedProduct,
-                            value: e.target.value,
-                          });
-                        }}
-                        InputProps={{
-                          inputComponent: NumberFormatCustom as any,
-                        }}
-                      />
-                    </Grid>
-                    <Grid item>
-                      {selectedProduct.value && (
-                        <IconButton
-                          onClick={() => {
-                            setSelectedProduct({
-                              ...selectedProduct,
-                              value: '',
-                            });
-                          }}
-                        >
-                          <Close />
-                        </IconButton>
-                      )}
-                    </Grid>
+                    return (
+                      <div>
+                        {parts.map(({ highlight, text }) => (
+                          <span
+                            key={text}
+                            style={{ fontWeight: highlight ? 700 : 400 }}
+                          >
+                            {text}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  }}
+                />
+              </Product>
+              <Description>
+                <TextField
+                  name="descriptionData"
+                  placeholder="Descrição do serviço"
+                  multiline
+                  defaultValue={selectedProduct.description}
+                  rowsMax={5}
+                />
+              </Description>
+              <Value>
+                <Grid container spacing={1} alignItems="flex-end">
+                  <Grid item>
+                    <OriginalTextField
+                      label="Valor"
+                      value={selectedProduct.value}
+                      onChange={(e) =>
+                        handleChangeValue(e.target.value as string)
+                      }
+                      InputProps={{
+                        inputComponent: NumberFormatCustom as any,
+                      }}
+                    />
                   </Grid>
-                </Value>
-                {selectedProduct.name?.length > 0 && selectedProduct.value ? (
-                  <Button>Adicionar</Button>
+                  <Grid item>
+                    {selectedProduct.value && (
+                      <IconButton onClick={() => handleChangeValue('')}>
+                        <Close />
+                      </IconButton>
+                    )}
+                  </Grid>
+                </Grid>
+              </Value>
+              {orderProduct?.product ? (
+                selectedProduct.name && selectedProduct.value ? (
+                  <Button>Atualizar</Button>
                 ) : (
-                  <DisabledButton>Adicionar</DisabledButton>
-                )}
-              </Form>
-            </Content>
-          </ModalContainer>
-        </ThemeProvider>
-      )}
+                  <DisabledButton>Atualizar</DisabledButton>
+                )
+              ) : selectedProduct.name && selectedProduct.value ? (
+                <Button>Adicionar</Button>
+              ) : (
+                <DisabledButton>Adicionar</DisabledButton>
+              )}
+            </Form>
+          </Content>
+        </ModalContainer>
+      </ThemeProvider>
       <Background />
     </>
   );

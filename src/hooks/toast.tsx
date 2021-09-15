@@ -9,12 +9,12 @@ export interface ToastContent {
   description: string;
 }
 
-export interface ToastContextData {
+export interface ToastContextProps {
   addToast(content: ToastContent): void;
   handleClose(): void;
 }
 
-const ToastContext = createContext<ToastContextData>({} as ToastContextData);
+const ToastContext = createContext<ToastContextProps>({} as ToastContextProps);
 
 export const ToastProvider: React.FC = ({ children }) => {
   // Armazena se o component está aberto ou fechado
@@ -50,7 +50,7 @@ export const ToastProvider: React.FC = ({ children }) => {
   );
 };
 
-export function useToast(): ToastContextData {
+export function useToast(): ToastContextProps {
   const context = useContext(ToastContext);
 
   return context;

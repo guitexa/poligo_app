@@ -75,43 +75,44 @@ const RowResult: React.FC<RowResultProps> = ({
   category,
 }) => {
   // Função para exibir os ícones de status conforme valor recebido
-  const formatOrderStatus = useCallback((val: string | unknown):
-    | IconBaseProps
-    | undefined => {
-    if (val === 'Rascunho') {
-      return <RiDraftFill className="riDraftFill" />;
-    }
-    if (val === 'Aguardando') {
-      return <FaRegClock className="faRegClock" />;
-    }
-    if (val === 'Agendado') {
-      return <FaCalendarAlt className="faCalendarAlt" />;
-    }
-    if (val === 'Execução') {
-      return <HiOutlineRefresh className="hiRefresh" />;
-    }
-    if (val === 'Reprovado') {
-      return <IoMdThumbsDown className="ioThumbsDown" />;
-    }
-    if (val === 'Concluído') {
-      return <FaRegCheckCircle className="faGrayCheck" />;
-    }
-    if (
-      val === 'Aprovado' ||
-      val === 'Pago' ||
-      val === 'Entregue' ||
-      val === 'Faturado'
-    ) {
-      return <FaCheckCircle className="faGreenCheck" />;
-    }
-    if (val === 'Pendência') {
-      return <GoAlert className="goAlert" />;
-    }
-    if (val === 'Cancelado') {
-      return <FaTimes className="faTimes" />;
-    }
-    return undefined;
-  }, []);
+  const formatOrderStatus = useCallback(
+    (val: string | unknown): IconBaseProps | undefined => {
+      if (val === 'Rascunho') {
+        return <RiDraftFill className="riDraftFill" />;
+      }
+      if (val === 'Aguardando') {
+        return <FaRegClock className="faRegClock" />;
+      }
+      if (val === 'Agendado') {
+        return <FaCalendarAlt className="faCalendarAlt" />;
+      }
+      if (val === 'Execução') {
+        return <HiOutlineRefresh className="hiRefresh" />;
+      }
+      if (val === 'Reprovado') {
+        return <IoMdThumbsDown className="ioThumbsDown" />;
+      }
+      if (val === 'Concluído') {
+        return <FaRegCheckCircle className="faGrayCheck" />;
+      }
+      if (
+        val === 'Aprovado' ||
+        val === 'Pago' ||
+        val === 'Entregue' ||
+        val === 'Faturado'
+      ) {
+        return <FaCheckCircle className="faGreenCheck" />;
+      }
+      if (val === 'Pendência') {
+        return <GoAlert className="goAlert" />;
+      }
+      if (val === 'Cancelado') {
+        return <FaTimes className="faTimes" />;
+      }
+      return undefined;
+    },
+    []
+  );
 
   const financialStatusReturn = useCallback(
     ({
@@ -212,7 +213,7 @@ const RowResult: React.FC<RowResultProps> = ({
           <TextFlex flex="0.8">{companyName}</TextFlex>
           <TextFlex flex="1">{products}</TextFlex>
           <TextWidth>{seller}</TextWidth>
-          {value && value !== '0,00' ? (
+          {value ? (
             <Value>
               R$
               <div>{value}</div>

@@ -36,11 +36,11 @@ export const Content = styled.div`
     padding: 40px 25px;
     border-radius: 5px;
     transition: all 0.5s;
-    background-color: #ffffff15;
+    background: #ffffff15;
     border: 1px solid #ffffff50;
 
     &:hover {
-      background-color: #ffffff30;
+      background: #ffffff30;
       border: 1px solid #ffffff60;
     }
 

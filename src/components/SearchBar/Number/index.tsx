@@ -1,6 +1,9 @@
 import React from 'react';
-import { IconButton, Grid, TextField } from '@material-ui/core';
-import { Close, Search } from '@material-ui/icons';
+import IconButton from '@material-ui/core/IconButton';
+import Grid from '@material-ui/core/Grid';
+import TextField from '@material-ui/core/TextField';
+import Search from '@material-ui/icons/Search';
+import Close from '@material-ui/icons/Close';
 
 import { Container } from './styles';
 

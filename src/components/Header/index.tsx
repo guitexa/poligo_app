@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { MdSettings } from 'react-icons/md';
@@ -26,6 +26,17 @@ const Header: React.FC<HeaderProps> = ({ title, color, children }) => {
 
   // Armazena se o menu está aberto ou fechado
   const [menuIsOpen, setMenuIsOpen] = useState(false);
+
+  // Função para sair o POLIGO
+  const handleExitPoligo = useCallback(() => {
+    // eslint-disable-next-line no-alert
+    const checkBeforeExit = window.confirm(
+      'Você deseja realmente sair do POLIGO?'
+    );
+    if (checkBeforeExit) {
+      signOut();
+    }
+  }, [signOut]);
 
   return (
     <>
@@ -105,7 +116,7 @@ const Header: React.FC<HeaderProps> = ({ title, color, children }) => {
               </div>
             </Link>
           )}
-          <button type="button" id="exit" onClick={signOut}>
+          <button type="button" id="exit" onClick={() => handleExitPoligo()}>
             <img src={IconExit} alt="" />
             <p className="title">Sair</p>
           </button>

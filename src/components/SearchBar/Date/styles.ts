@@ -6,11 +6,6 @@ interface ContainerProps {
 }
 
 export const Container = styled.div<ContainerProps>`
-  .MuiInput-underline::after,
-  .MuiInput-underline:hover:not(.Mui-disabled)::before {
-    border-color: ${({ color }) => color};
-  }
-
   width: 9.5%;
   max-width: 100px;
 

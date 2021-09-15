@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useState } from 'react';
 
 import { UpdateSearchResultsData } from '../components/SearchResults';
 
-interface FinancialsSearchContextData {
+interface FinancialsSearchContextProps {
   due_date: Date | null;
   replan_date: Date | null;
   gross_value: string;
@@ -26,8 +26,8 @@ interface FinancialsSearchContextData {
   toUpdateSearchResults(data: UpdateSearchResultsData): void;
 }
 
-const FinancialsSearchContext = createContext<FinancialsSearchContextData>(
-  {} as FinancialsSearchContextData
+const FinancialsSearchContext = createContext<FinancialsSearchContextProps>(
+  {} as FinancialsSearchContextProps
 );
 
 export const FinancialsSearchProvider: React.FC = ({ children }) => {
@@ -51,10 +51,8 @@ export const FinancialsSearchProvider: React.FC = ({ children }) => {
   const [status_financial, setStatusFinancial] = useState('');
 
   // Armazena as alterações enviadas para atualizar os resultados na tela de pesquisa
-  const [
-    updateSearchResults,
-    setUpdateSearchResults,
-  ] = useState<UpdateSearchResultsData>({} as UpdateSearchResultsData);
+  const [updateSearchResults, setUpdateSearchResults] =
+    useState<UpdateSearchResultsData>({} as UpdateSearchResultsData);
 
   // Função para alterar a pesquisa da data de vencimento do lançamento financeiro
   const searchDueDate = useCallback((date: Date | null): void => {
@@ -194,7 +192,7 @@ export const FinancialsSearchProvider: React.FC = ({ children }) => {
   );
 };
 
-export function useFinancialsSearch(): FinancialsSearchContextData {
+export function useFinancialsSearch(): FinancialsSearchContextProps {
   const context = useContext(FinancialsSearchContext);
 
   return context;

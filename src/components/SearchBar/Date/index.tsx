@@ -4,8 +4,9 @@ import {
   MuiPickersUtilsProvider,
   KeyboardDatePicker,
 } from '@material-ui/pickers';
-import { IconButton, Grid } from '@material-ui/core';
-import { Close } from '@material-ui/icons';
+import IconButton from '@material-ui/core/IconButton';
+import Grid from '@material-ui/core/Grid';
+import Close from '@material-ui/icons/Close';
 
 import { Container } from './styles';
 
@@ -38,9 +39,6 @@ const Date: React.FC<DateProps> = ({
               format="dd/MM/yyyy"
               value={value}
               onChange={(e) => onChange(e)}
-              KeyboardButtonProps={{
-                'aria-label': 'change date',
-              }}
             />
           </MuiPickersUtilsProvider>
         </Grid>

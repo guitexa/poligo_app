@@ -6,7 +6,7 @@ import * as Yup from 'yup';
 
 import { useToast } from '../../hooks/toast';
 import { useAuth } from '../../hooks/auth';
-import getValidationErrors from '../../utils/getValidationErrors';
+import { getValidationErrors } from '../../utils';
 
 import Logo from '../../assets/logo.svg';
 

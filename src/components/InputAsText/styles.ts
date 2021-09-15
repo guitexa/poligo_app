@@ -32,7 +32,7 @@ export const Container = styled.div<InputProps>`
     width: 100%;
     min-width: 50px;
     color: #222;
-    background-color: transparent;
+    background: transparent;
     flex: 1;
     border: none;
     font-size: 13px;

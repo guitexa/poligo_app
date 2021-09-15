@@ -57,10 +57,10 @@ export const Container = styled.div`
   left: 0;
   width: 100vw;
   bottom: 0;
-  background: #fff;
   font-size: 13px;
   overflow: hidden;
   z-index: 100;
+  background: #fff;
 `;
 
 export const PrimaryContent = styled.div<PrimaryContentProps>`
@@ -184,7 +184,7 @@ export const Status = styled.div`
 
   .MuiListItem-root.Mui-selected,
   .MuiListItem-root.Mui-selected:hover {
-    background-color: #222;
+    background: #222;
   }
 
   .MuiFormControl-root {
@@ -218,32 +218,18 @@ export const Status = styled.div`
   }
 `;
 
-export const StatusProductItem = styled.div`
-  .MuiFormControl-root {
-    width: 35px;
-    margin: 0;
-    height: 23px;
-  }
-
-  .MuiInput-underline::before,
-  .MuiInput-underline::after,
-  .MuiInput-underline:hover,
-  .MuiInput-underline:hover:not(.Mui-disabled)::before {
-    border: none;
-  }
-
-  .MuiInputBase-input {
-    margin: 0;
-    padding: 0 10px;
-  }
-
-  .MuiSelect-icon {
-    display: none;
-  }
-
-  .MuiSelect-select:focus {
-    background: transparent;
-  }
+export const PaymentTypeProductItem = styled.button`
+  margin: 0;
+  width: 35px;
+  padding: 0 12px;
+  height: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  background: transparent;
 `;
 
 export const PaymentWay = styled.div<PaymentWayProps>`
@@ -272,7 +258,7 @@ export const PaymentWay = styled.div<PaymentWayProps>`
   }
 
   .MuiFormLabel-root {
-    transform: translate(0, 8px) scale(1);
+    transform: translate(-2px, 9px) scale(1);
   }
 
   .split-payment-way {
@@ -287,7 +273,7 @@ export const PaymentWay = styled.div<PaymentWayProps>`
 
   .MuiListItem-root.Mui-selected,
   .MuiListItem-root.Mui-selected:hover {
-    background-color: #222;
+    background: #222;
   }
 
   .MuiFormControl-root {
@@ -326,7 +312,7 @@ export const PaymentMethod = styled.div<PaymentMethodProps>`
 
   .MuiListItem-root.Mui-selected,
   .MuiListItem-root.Mui-selected:hover {
-    background-color: #222;
+    background: #222;
   }
 
   label {
@@ -337,7 +323,7 @@ export const PaymentMethod = styled.div<PaymentMethodProps>`
   }
 
   .MuiFormLabel-root {
-    transform: translate(0, 8px) scale(1);
+    transform: translate(-2px, 9px) scale(1);
   }
 
   .MuiFormControl-root {
@@ -374,7 +360,6 @@ export const PaymentMethod = styled.div<PaymentMethodProps>`
 export const DeliveryData = styled.div`
   width: 50%;
   padding: 15px;
-  height: 120px;
   border-bottom: 1px solid #999;
   border-right: 1px solid #999;
   display: flex;
@@ -385,7 +370,6 @@ export const DeliveryData = styled.div`
 export const BillingData = styled.div`
   width: 50%;
   padding: 15px;
-  height: 120px;
   border-bottom: 1px solid #999;
   display: flex;
   justify-content: center;
@@ -443,8 +427,7 @@ export const ProductRow = styled.div<ProductRowProps>`
 
   .faDividePay,
   .hiRefreshPay {
-    color: #000;
-    margin-top: 4px;
+    color: #888;
   }
 
   .hiRefreshPay {

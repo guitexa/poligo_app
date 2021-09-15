@@ -3,12 +3,14 @@ import { parseISO, isValid } from 'date-fns';
 import { FiChevronDown } from 'react-icons/fi';
 import { formatToDate } from 'brazilian-values';
 
-import formatValue from '../../utils/formatValue';
+import { formatValue } from '../../utils';
 import { useOrdersSearch } from '../../hooks/orders_search';
 import { useFinancialsSearch } from '../../hooks/financials_search';
 import { useOverlap } from '../../hooks/overlap';
-import { useAuth, User } from '../../hooks/auth';
+import { useAuth } from '../../hooks/auth';
 import { useToast } from '../../hooks/toast';
+
+import { IOrderProduct, IOrder, IUser, IFinancial } from '../../interfaces';
 
 import Order from '../Order';
 import RowResult from './RowResult';
@@ -22,115 +24,6 @@ import {
   LoadMore,
 } from './styles';
 
-// Interface do company
-export interface CompanyData {
-  id: string;
-  name: string;
-  cnpj_cpf?: string;
-  formatted_cnpj_cpf?: string;
-  contact_name: string;
-  email?: string;
-  phone: string;
-  formatted_phone?: string;
-  mobile?: string;
-  formatted_mobile?: string;
-}
-
-// Interface do produto
-interface ProductData {
-  id: string;
-  name: string;
-}
-
-// Interface do método de pagamento
-export interface PaymentMethodData {
-  id: string;
-  name: string | unknown;
-  split_max: string;
-  split_interval: string;
-  first_payment: string;
-  interest_rate: string;
-}
-
-// Interface do order_product
-export interface OrderProductData {
-  id: string;
-  product: ProductData;
-  product_description: string;
-  product_value: string;
-  created_at: string;
-}
-
-// Interface do pedido
-export interface OrderData {
-  id: string;
-  order_number: number;
-  status_order:
-    | 'Rascunho'
-    | 'Aguardando'
-    | 'Reprovado'
-    | 'Aprovado'
-    | 'Cancelado'
-    | string
-    | unknown;
-  approved_at?: string | null;
-  formatted_approved_at?: string;
-  delivery_conditions?: string;
-  technical_obs?: string;
-  requested_delivery_date?: string | null;
-  formatted_requested_delivery_date?: string;
-  delivery_date?: string | null;
-  formatted_delivery_date?: string;
-  status_delivery?:
-    | 'Aguardando'
-    | 'Agendado'
-    | 'Execução'
-    | 'Concluído'
-    | 'Entregue'
-    | 'Pendência'
-    | 'Cancelado'
-    | unknown;
-  payment_way?: '' | 'À vista' | 'Faturado' | 'Parcelado' | unknown;
-  payment_method?: PaymentMethodData;
-  due_date?: string | null;
-  formatted_due_date?: string;
-  status_billing?: '' | 'Aguardando' | 'Faturado' | 'Cancelado' | unknown;
-  status_payment?: 'Aguardando' | 'Pago' | 'Vencido' | 'Cancelado' | unknown;
-  created_at: string;
-  company: CompanyData;
-  seller: User;
-  technical?: User;
-  total_value?: string | number;
-  orders_products?: OrderProductData[];
-  formatted_orders_products?: string[];
-}
-
-export interface BankAccount {
-  name: string;
-}
-
-// Interface do lançamento financeiro
-export interface FinancialData {
-  id: string;
-  cost_type: string;
-  order: OrderData;
-  due_date: string;
-  replan_date: string;
-  gross_value?: number;
-  gross_value_string: string;
-  formatted_gross_value: string;
-  net_value?: number;
-  net_value_string: string;
-  formatted_net_value: string;
-  paid_date?: string;
-  paid_value?: number;
-  paid_value_string?: string;
-  formatted_paid_value?: string;
-  company: CompanyData;
-  category: string;
-  bank_account: BankAccount;
-}
-
 // Interface do estado de atualização dos resultados
 export interface UpdateSearchResultsData {
   order_id: string;
@@ -140,11 +33,11 @@ export interface UpdateSearchResultsData {
   status_payment?: string | unknown;
   delivery_date?: string | undefined;
   due_date?: string | undefined;
-  technical?: User | null;
+  technical?: IUser | null;
   company_id?: string;
   company_name?: string;
   update_database?: boolean;
-  total_value?: string | number;
+  total_value?: number;
 }
 
 interface SearchResultsProps {
@@ -158,20 +51,16 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
   // Armazena o order_id quando uma order é aberta
   const [orderIdOpen, setOrderIdOpen] = useState('');
   // Armazena os resultados da pesquisa dos pedidos
-  const [searchOrdersResults, setSearchOrdersResults] = useState<OrderData[]>(
-    []
-  );
+  const [searchOrdersResults, setSearchOrdersResults] = useState<IOrder[]>([]);
   // Armazena os resultados da pesquisa dos pedidos com erros
-  const [searchErrorsResults, setSearchErrorsResults] = useState<OrderData[]>(
-    []
-  );
+  const [searchErrorsResults, setSearchErrorsResults] = useState<IOrder[]>([]);
   // Armazena os resultados da pesquisa dos lançamentos financeiros que vencem na data corrente
-  const [searchTodayResults, setSearchTodayResults] = useState<FinancialData[]>(
+  const [searchTodayResults, setSearchTodayResults] = useState<IFinancial[]>(
     []
   );
   // // Armazena os resultados da pesquisa dos lançamentos financeiros
   const [searchFinancialsResults, setSearchFinancialsResults] = useState<
-    FinancialData[]
+    IFinancial[]
   >([]);
   // Define qual a quantidade de resultados que deverá aparecer em tela
   const [take, setTake] = useState(50);
@@ -227,6 +116,12 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
         ) {
           searchOrdersResults[getOrderIndex].status_payment =
             ordersSearch.updateSearchResults.status_payment;
+        }
+
+        if (ordersSearch.updateSearchResults.total_value) {
+          searchOrdersResults[getOrderIndex].total_value = formatValue(
+            ordersSearch.updateSearchResults.total_value
+          );
         }
 
         // Verifica se recebeu ordersSearch.delivery_date para ser atualizado
@@ -304,7 +199,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
 
   // Função para formatar os nomes de produtos para serem exibidos
   const formatOrdersProducts = useCallback(
-    (orders_products: OrderProductData[]): string[] => {
+    (orders_products: IOrderProduct[]): string[] => {
       // Ordena os itens do array por order de criação e formata com vírgula
       const productsToString = orders_products
         .sort((a, b) => {
@@ -321,24 +216,6 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
         productsToString.push(lastItemFormatted);
 
       return productsToString || [];
-    },
-    []
-  );
-
-  // Função para formatar o valor total do pedido para ser exibido
-  const formatTotalValue = useCallback(
-    (orders_products: OrderProductData[]): string => {
-      // Faz a soma de todos os valores dos orders_products deste pedido
-      const productsValues = orders_products
-        .map((e) => Number(e.product_value))
-        .reduce((accumulator, productValue) => {
-          return accumulator + productValue;
-        }, 0);
-
-      // Se houver valores realiza a formatação
-      return productsValues && productsValues > 0
-        ? formatValue(productsValues)
-        : formatValue(0);
     },
     []
   );
@@ -367,7 +244,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
       ) {
         checkToken();
         api
-          .get<OrderData[]>('/orders/', {
+          .get<IOrder[]>('/orders/', {
             params: {
               take,
               from,
@@ -380,6 +257,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
                 approved_at,
                 delivery_date,
                 orders_products,
+                total_value,
                 ...rest
               } = result;
 
@@ -390,7 +268,8 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
                 delivery_date:
                   delivery_date && formatToDate(parseISO(delivery_date)),
                 total_value:
-                  orders_products && formatTotalValue(orders_products),
+                  total_value &&
+                  formatValue(Number(total_value.replace(/[,]/gi, '.'))),
                 formatted_orders_products:
                   orders_products && formatOrdersProducts(orders_products),
               };
@@ -407,7 +286,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
 
         // Realiza uma pesquisa filtrando apenas pedidos com erro
         api
-          .get<OrderData[]>('/orders/errors', {
+          .get<IOrder[]>('/orders/errors', {
             params: {
               take: 10,
               from,
@@ -420,6 +299,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
                 approved_at,
                 delivery_date,
                 orders_products,
+                total_value,
                 ...rest
               } = result;
 
@@ -430,7 +310,8 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
                 delivery_date:
                   delivery_date && formatToDate(parseISO(delivery_date)),
                 total_value:
-                  orders_products && formatTotalValue(orders_products),
+                  total_value &&
+                  formatValue(Number(total_value.replace(/[,]/gi, '.'))),
                 formatted_orders_products:
                   orders_products && formatOrdersProducts(orders_products),
               };
@@ -469,7 +350,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
       ) {
         checkToken();
         api
-          .get<OrderData[]>('/search-orders/', {
+          .get<IOrder[]>('/search-orders/', {
             params: {
               approved_at: ordersSearch.approved_at,
               created_at: ordersSearch.created_at,
@@ -493,6 +374,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
                 approved_at,
                 delivery_date,
                 orders_products,
+                total_value,
                 ...rest
               } = result;
 
@@ -503,7 +385,8 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
                 delivery_date:
                   delivery_date && formatToDate(parseISO(delivery_date)),
                 total_value:
-                  orders_products && formatTotalValue(orders_products),
+                  total_value &&
+                  formatValue(Number(total_value.replace(/[,]/gi, '.'))),
                 formatted_orders_products:
                   orders_products && formatOrdersProducts(orders_products),
               };
@@ -539,7 +422,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
       ) {
         checkToken();
         api
-          .get<FinancialData[]>('/financials/', {
+          .get<IFinancial[]>('/financials/', {
             params: {
               take,
               from,
@@ -583,7 +466,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
 
         // Realiza uma pesquisa filtrando apenas lançamentos financeiros com vencimento para o dia corrente
         api
-          .get<FinancialData[]>('/financials/today', {
+          .get<IFinancial[]>('/financials/today', {
             params: {
               take: 10,
               from,
@@ -622,7 +505,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
       ) {
         checkToken();
         api
-          .get<FinancialData[]>('/search-financials/', {
+          .get<IFinancial[]>('/search-financials/', {
             params: {
               due_date: financialsSearch.due_date,
               replan_date: financialsSearch.replan_date,
@@ -651,31 +534,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    ordersSearch.approved_at,
-    ordersSearch.created_at,
-    ordersSearch.company_name,
-    ordersSearch.delivery_date,
-    ordersSearch.seller,
-    ordersSearch.products,
-    ordersSearch.status_billing,
-    ordersSearch.status_delivery,
-    ordersSearch.status_order,
-    ordersSearch.technical,
-    ordersSearch.total_value,
-    financialsSearch.due_date,
-    financialsSearch.replan_date,
-    financialsSearch.gross_value,
-    financialsSearch.net_value,
-    financialsSearch.paid_date,
-    financialsSearch.paid_value,
-    financialsSearch.company_name,
-    financialsSearch.bank_account,
-    financialsSearch.status_financial,
-    take,
-    from,
-    updateResults,
-  ]);
+  }, [ordersSearch, financialsSearch, take, from, updateResults]);
 
   // Função para abrir um pedido baseado no order_id recebido
   const handleOpenOrder = useCallback(
@@ -715,7 +574,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
                 {/* Verifica se a origem é o Comercial */}
                 {searchErrorsResults &&
                   from === 'Comercial' &&
-                  searchErrorsResults.map((search: OrderData) => (
+                  searchErrorsResults.map((search: IOrder) => (
                     <RowResult
                       from={from}
                       color={color}
@@ -733,7 +592,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
                 {/* Verifica se a origem é o TechnicalArea */}
                 {searchErrorsResults &&
                   from === 'TechnicalArea' &&
-                  searchErrorsResults.map((search: OrderData) => (
+                  searchErrorsResults.map((search: IOrder) => (
                     <RowResult
                       from={from}
                       color={color}
@@ -751,7 +610,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
                 {/* Verifica se a origem é o Billing */}
                 {searchErrorsResults &&
                   from === 'Billing' &&
-                  searchErrorsResults.map((search: OrderData) => (
+                  searchErrorsResults.map((search: IOrder) => (
                     <RowResult
                       from={from}
                       color={color}
@@ -773,7 +632,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
         {from === 'Comercial' && (
           <Content>
             {searchOrdersResults &&
-              searchOrdersResults.map((search: OrderData) => (
+              searchOrdersResults.map((search: IOrder) => (
                 <RowResult
                   from={from}
                   color={color}
@@ -801,7 +660,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
         {from === 'TechnicalArea' && (
           <Content>
             {searchOrdersResults &&
-              searchOrdersResults.map((search: OrderData) => (
+              searchOrdersResults.map((search: IOrder) => (
                 <RowResult
                   from={from}
                   color={color}
@@ -829,7 +688,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
         {from === 'Billing' && (
           <Content>
             {searchOrdersResults &&
-              searchOrdersResults.map((search: OrderData) => (
+              searchOrdersResults.map((search: IOrder) => (
                 <RowResult
                   from={from}
                   color={color}
@@ -869,7 +728,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
             <SeparatedContent>
               <div>
                 {searchTodayResults &&
-                  searchTodayResults.map((search: FinancialData) => (
+                  searchTodayResults.map((search: IFinancial) => (
                     <RowResult
                       from={from}
                       color={color}
@@ -893,7 +752,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ color, from }) => {
         {from === 'Financial' && (
           <Content>
             {searchFinancialsResults &&
-              searchFinancialsResults.map((search: FinancialData) => (
+              searchFinancialsResults.map((search: IFinancial) => (
                 <RowResult
                   from={from}
                   color={color}

@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useState } from 'react';
 
 import { UpdateSearchResultsData } from '../components/SearchResults';
 
-interface OrdersSearchContextData {
+interface OrdersSearchContextProps {
   approved_at: Date | null;
   created_at: Date | null;
   delivery_date: Date | null;
@@ -30,8 +30,8 @@ interface OrdersSearchContextData {
   toUpdateSearchResults(data: UpdateSearchResultsData): void;
 }
 
-const OrdersSearchContext = createContext<OrdersSearchContextData>(
-  {} as OrdersSearchContextData
+const OrdersSearchContext = createContext<OrdersSearchContextProps>(
+  {} as OrdersSearchContextProps
 );
 
 export const OrdersSearchProvider: React.FC = ({ children }) => {
@@ -59,10 +59,8 @@ export const OrdersSearchProvider: React.FC = ({ children }) => {
   const [status_billing, setStatusBilling] = useState('');
 
   // Armazena as alterações enviadas para atualizar os resultados na tela de pesquisa
-  const [
-    updateSearchResults,
-    setUpdateSearchResults,
-  ] = useState<UpdateSearchResultsData>({} as UpdateSearchResultsData);
+  const [updateSearchResults, setUpdateSearchResults] =
+    useState<UpdateSearchResultsData>({} as UpdateSearchResultsData);
 
   // Função para alterar a pesquisa da data de aprovação do pedido
   const searchApprovedAt = useCallback((date: Date | null): void => {
@@ -228,7 +226,7 @@ export const OrdersSearchProvider: React.FC = ({ children }) => {
   );
 };
 
-export function useOrdersSearch(): OrdersSearchContextData {
+export function useOrdersSearch(): OrdersSearchContextProps {
   const context = useContext(OrdersSearchContext);
 
   return context;
