@@ -46,7 +46,7 @@ export const Header = styled.div<HeaderProps>`
 
   strong {
     font-size: 20px;
-    padding-top: 10px;
+    padding: 10px 30px;
   }
 
   button {
@@ -90,7 +90,7 @@ export const Content = styled.div`
     strong {
       text-transform: uppercase;
       font-size: 12px;
-      line-height: 25px;
+      line-height: 15px;
     }
   }
 `;

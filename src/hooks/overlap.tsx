@@ -6,11 +6,13 @@ interface OverlapContextProps {
   newProductOpen: boolean;
   productViewOpen: boolean;
   splitPaymentWayOpen: boolean;
+  splitPaymentWayViewOpen: boolean;
   overlapOrderOpen(state: boolean): void;
   overlapNewOrderOpen(state: boolean): void;
   overlapNewProductOpen(state: boolean): void;
   overlapProductViewOpen(state: boolean): void;
   overlapSplitPaymentWayOpen(state: boolean): void;
+  overlapSplitPaymentWayViewOpen(state: boolean): void;
   closeAllOverlaps(): void;
 }
 
@@ -27,8 +29,10 @@ export const OverlapProvider: React.FC = ({ children }) => {
   const [newProductOpen, setNewProductOpen] = useState(false);
   // Armazena se o component ProductView está aberto
   const [productViewOpen, setProductViewOpen] = useState(false);
-  // Armazena se o component ProductView está aberto
+  // Armazena se o component SplitPaymentWay está aberto
   const [splitPaymentWayOpen, setSplitPaymentWayOpen] = useState(false);
+  // Armazena se o component SplitPaymentWayView está aberto
+  const [splitPaymentWayViewOpen, setSplitPaymentWayViewOpen] = useState(false);
 
   // Função para fechar todos os overlaps
   const closeAllOverlaps = useCallback(() => {
@@ -64,6 +68,11 @@ export const OverlapProvider: React.FC = ({ children }) => {
     setSplitPaymentWayOpen(!splitPaymentWayOpen);
   }, [splitPaymentWayOpen]);
 
+  // Função para alterar o estado do component SplitPaymentWayView
+  const overlapSplitPaymentWayViewOpen = useCallback(() => {
+    setSplitPaymentWayViewOpen(!splitPaymentWayViewOpen);
+  }, [splitPaymentWayViewOpen]);
+
   return (
     <OverlapContext.Provider
       value={{
@@ -72,11 +81,13 @@ export const OverlapProvider: React.FC = ({ children }) => {
         newProductOpen,
         productViewOpen,
         splitPaymentWayOpen,
+        splitPaymentWayViewOpen,
         overlapOrderOpen,
         overlapNewOrderOpen,
         overlapNewProductOpen,
         overlapProductViewOpen,
         overlapSplitPaymentWayOpen,
+        overlapSplitPaymentWayViewOpen,
         closeAllOverlaps,
       }}
     >

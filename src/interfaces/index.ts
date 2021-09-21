@@ -6,6 +6,7 @@ import IOrder from './IOrder';
 import IOrderProduct from './IOrderProduct';
 import IProduct from './IProduct';
 import ISplitPaymentWay from './ISplitPaymentWay';
+import ISplitsPaymentWay from './ISplitsPaymentWay';
 import IUser from './IUser';
 
 export type {
@@ -17,5 +18,6 @@ export type {
   IOrderProduct,
   IProduct,
   ISplitPaymentWay,
+  ISplitsPaymentWay,
   IUser,
 };

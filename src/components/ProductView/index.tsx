@@ -35,10 +35,12 @@ const ProductView: React.FC<ProductViewProps> = ({
             </button>
           </Header>
           <Content>
-            <div>
-              <strong>Descrição:</strong>
-              <p>{orderProduct.product_description}</p>
-            </div>
+            {orderProduct.product_description && (
+              <div>
+                <strong>Descrição:</strong>
+                <p>{orderProduct.product_description}</p>
+              </div>
+            )}
             {from !== 'TechnicalArea' && (
               <div>
                 <strong>Valor:</strong>

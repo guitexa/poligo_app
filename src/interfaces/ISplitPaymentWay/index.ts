@@ -6,7 +6,7 @@ export default interface ISplitPaymentWay {
   split_number?: string;
   payment_way?: string;
   split_value: number;
-  split_due_date?: Date | null;
+  split_due_date?: string;
   formatted_split_due_date?: string | null;
   payment_method?: IPaymentMethod | null;
 }

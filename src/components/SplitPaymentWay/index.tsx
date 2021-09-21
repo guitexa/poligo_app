@@ -29,6 +29,8 @@ import {
   subBusinessDays,
   startOfDay,
   isAfter,
+  parseISO,
+  formatISO,
 } from 'date-fns';
 import { formatValueCurrency } from '../../utils';
 
@@ -38,7 +40,11 @@ import api from '../../services/api';
 
 import { useToast } from '../../hooks/toast';
 import { useOverlap } from '../../hooks/overlap';
-import { ISplitPaymentWay, IPaymentMethod } from '../../interfaces';
+import {
+  ISplitPaymentWay,
+  ISplitsPaymentWay,
+  IPaymentMethod,
+} from '../../interfaces';
 
 import {
   ModalContainer,
@@ -92,18 +98,6 @@ function NumberFormatCustom(props: NumberFormatCustomProps): JSX.Element {
   );
 }
 
-interface SplitsPaymentWay {
-  payment_way?: string;
-  splits?: ISplitPaymentWay[];
-  enter_due_date?: Date | null;
-  enter_value?: string;
-  enter_payment_method?: IPaymentMethod | null;
-  splits_quantity: number;
-  split_due_date?: Date | null;
-  split_value: number;
-  split_payment_method?: IPaymentMethod | null;
-}
-
 interface SplitPaymentWayProps {
   // Recebe a cor do módulo a partir de qual módulo este component está sendo executado
   color: string;
@@ -125,8 +119,8 @@ const SplitPaymentWay: React.FC<SplitPaymentWayProps> = ({
   updateSplitsPaymentWay,
 }) => {
   // Armazena os splitsPaymentWay cadastrados no banco de dados
-  const [splitsPaymentWay, setSplitsPaymentWay] = useState<SplitsPaymentWay>(
-    {} as SplitsPaymentWay
+  const [splitsPaymentWay, setSplitsPaymentWay] = useState<ISplitsPaymentWay>(
+    {} as ISplitsPaymentWay
   );
 
   // Armazena dos meios de pagamentos cadastrados
@@ -187,11 +181,11 @@ const SplitPaymentWay: React.FC<SplitPaymentWayProps> = ({
         // Monta toda a estrutura do parcelamento com sugestões iniciais
         setSplitsPaymentWay({
           payment_way,
-          enter_due_date: new Date(startOfDay(Date.now())),
+          enter_due_date: formatISO(new Date(startOfDay(Date.now()))),
           enter_value: String(order_total_value / 2), // Sugestão: 50% do valor do pedido
           enter_payment_method: payMethod,
           splits_quantity: 2,
-          split_due_date: new Date(year, month, 1),
+          split_due_date: formatISO(new Date(year, month, 1)),
           split_value: order_total_value / 4, // Sugestão: 50% do valor do pedido
           split_payment_method: payMethod,
         });
@@ -203,7 +197,7 @@ const SplitPaymentWay: React.FC<SplitPaymentWayProps> = ({
         setSplitsPaymentWay({
           payment_way,
           splits_quantity: 2,
-          split_due_date: new Date(year, month, 1),
+          split_due_date: formatISO(new Date(year, month, 1)),
           split_value: order_total_value / 2,
           split_payment_method: payMethod,
         });
@@ -255,20 +249,22 @@ const SplitPaymentWay: React.FC<SplitPaymentWayProps> = ({
 
               if (firstSplit && firstSplit.split_due_date) {
                 // Define a data limite para o pagamento da entrada, que é 1 dia antes da 1ª parcela
-                setMaxEnterDate(subBusinessDays(firstSplit.split_due_date, 1));
+                setMaxEnterDate(
+                  subBusinessDays(parseISO(firstSplit.split_due_date), 1)
+                );
               }
 
               // Define no estado os valores encontrados na API
               setSplitsPaymentWay({
                 payment_way: firstSplit.payment_way,
                 splits,
-                enter_due_date: enter_payment?.split_due_date,
+                enter_due_date: String(enter_payment?.split_due_date),
                 enter_value: enter_payment
                   ? String(enter_payment.split_value)
                   : undefined,
                 enter_payment_method: enter_payment?.payment_method,
                 splits_quantity: splits.length,
-                split_due_date: firstSplit.split_due_date,
+                split_due_date: String(firstSplit.split_due_date),
                 split_value: firstSplit.split_value,
                 split_payment_method: firstSplit.payment_method,
               });
@@ -374,7 +370,7 @@ const SplitPaymentWay: React.FC<SplitPaymentWayProps> = ({
         setSplitsPaymentWay({
           ...splitsPaymentWay,
           payment_way,
-          enter_due_date: null,
+          enter_due_date: '',
           enter_value: '',
           enter_payment_method: null,
         });
@@ -402,7 +398,7 @@ const SplitPaymentWay: React.FC<SplitPaymentWayProps> = ({
         setSplitsPaymentWay({
           ...splitsPaymentWay,
           payment_way,
-          enter_due_date: new Date(Date.now()),
+          enter_due_date: formatISO(new Date(Date.now())),
           enter_payment_method,
         });
 
@@ -497,9 +493,10 @@ const SplitPaymentWay: React.FC<SplitPaymentWayProps> = ({
       // Armazena o valor recebido no estado
       setSplitsPaymentWay({
         ...splitsPaymentWay,
-        enter_due_date: enter_due_date
-          ? startOfDay(enter_due_date)
-          : enter_due_date,
+        enter_due_date:
+          enter_due_date !== null
+            ? formatISO(startOfDay(enter_due_date))
+            : null,
       });
 
       if (enter_due_date && isValid(enter_due_date)) {
@@ -543,9 +540,10 @@ const SplitPaymentWay: React.FC<SplitPaymentWayProps> = ({
       // Armazena o valor recebido no estado
       setSplitsPaymentWay({
         ...splitsPaymentWay,
-        split_due_date: split_due_date
-          ? startOfDay(split_due_date)
-          : split_due_date,
+        split_due_date:
+          split_due_date !== null
+            ? formatISO(startOfDay(split_due_date))
+            : null,
       });
 
       if (split_due_date && isValid(split_due_date)) {

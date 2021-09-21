@@ -111,6 +111,7 @@ import {
   PaymentWay,
   PaymentMethod,
 } from './styles';
+import SplitPaymentWayView from '../SplitPaymentWayView';
 
 interface InputData {
   deliveryConditionsData?: string;
@@ -191,11 +192,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     productViewOpen,
     newOrderOpen,
     splitPaymentWayOpen,
+    splitPaymentWayViewOpen,
     overlapOrderOpen,
     overlapNewProductOpen,
     overlapProductViewOpen,
     overlapNewOrderOpen,
     overlapSplitPaymentWayOpen,
+    overlapSplitPaymentWayViewOpen,
   } = useOverlap();
   const { addToast } = useToast();
   const { user, checkToken } = useAuth();
@@ -2230,7 +2233,9 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           !orderData.status_delivery &&
           !orderData.status_billing &&
           !orderData.status_payment) ||
-        (from === 'Comercial' && user.permissions === 'Admin')
+        (from === 'Comercial' &&
+          user.permissions === 'Admin' &&
+          orderData.payment_way !== 'Parcelado')
       ) {
         overlapNewProductOpen(!newProductOpen);
       } else {
@@ -2240,9 +2245,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
     [
       from,
       newProductOpen,
-      orderData.status_billing,
-      orderData.status_delivery,
-      orderData.status_payment,
+      orderData,
       overlapNewProductOpen,
       overlapProductViewOpen,
       productViewOpen,
@@ -2252,7 +2255,12 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
 
   // Função para abrir o parcelamento
   function handleOpenSplitPaymentWay(): void {
-    overlapSplitPaymentWayOpen(!splitPaymentWayOpen);
+    // Verifica se pode editar o split_payment_way ou apenas visualizar
+    if (orderData.status_order === 'Aprovado') {
+      overlapSplitPaymentWayViewOpen(!splitPaymentWayViewOpen);
+    } else {
+      overlapSplitPaymentWayOpen(!splitPaymentWayOpen);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }
 
@@ -2419,6 +2427,15 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           />
         </ModalOverlap>
       )}
+      {splitPaymentWayViewOpen && (
+        <ModalOverlap>
+          <SplitPaymentWayView
+            color={color}
+            order_id={order_id}
+            order_total_value={orderData.number_total_value}
+          />
+        </ModalOverlap>
+      )}
       {newProductOpen && (
         <ModalOverlap>
           <NewProduct
@@ -2449,7 +2466,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
               orderOpen &&
               !splitPaymentWayOpen &&
               !newProductOpen &&
-              !productViewOpen
+              !productViewOpen &&
+              !splitPaymentWayViewOpen
             }
             handleClick={() => handleCloseOrder()}
             type="button"
@@ -2461,7 +2479,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
             <ThemeProvider theme={orderMaterialTheme}>
               <PrimaryContent
                 isBlurred={
-                  splitPaymentWayOpen || newProductOpen || productViewOpen
+                  splitPaymentWayOpen ||
+                  newProductOpen ||
+                  productViewOpen ||
+                  splitPaymentWayViewOpen
                 }
               >
                 <CompanyContainer>
@@ -2693,7 +2714,11 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                           >
                             <MenuItem
                               value="Rascunho"
-                              disabled={user.permissions !== 'Admin'}
+                              disabled={
+                                user.permissions !== 'Admin' ||
+                                (orderData.status_order === 'Aprovado' &&
+                                  orderData.payment_way === 'Parcelado')
+                              }
                             >
                               <RiDraftFill className={riDraftFill} />
                               Rascunho
@@ -2701,9 +2726,11 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                             <MenuItem
                               value="Aguardando"
                               disabled={
-                                orderData.status_order !== 'Rascunho' &&
-                                orderData.status_order !== 'Aguardando' &&
-                                user.permissions !== 'Admin'
+                                (orderData.status_order !== 'Rascunho' &&
+                                  orderData.status_order !== 'Aguardando' &&
+                                  user.permissions !== 'Admin') ||
+                                (orderData.status_order === 'Aprovado' &&
+                                  orderData.payment_way === 'Parcelado')
                               }
                             >
                               <FaRegClock className={faRegClock} />
@@ -2712,10 +2739,12 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                             <MenuItem
                               value="Reprovado"
                               disabled={
-                                orderData.status_order !== 'Rascunho' &&
-                                orderData.status_order !== 'Aguardando' &&
-                                orderData.status_order !== 'Reprovado' &&
-                                user.permissions !== 'Admin'
+                                (orderData.status_order !== 'Rascunho' &&
+                                  orderData.status_order !== 'Aguardando' &&
+                                  orderData.status_order !== 'Reprovado' &&
+                                  user.permissions !== 'Admin') ||
+                                (orderData.status_order === 'Aprovado' &&
+                                  orderData.payment_way === 'Parcelado')
                               }
                             >
                               <IoMdThumbsDown className={ioThumbsDown} />
@@ -2764,14 +2793,19 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
               </PrimaryContent>
               <SecondaryContent
                 isBlurred={
-                  splitPaymentWayOpen || newProductOpen || productViewOpen
+                  splitPaymentWayOpen ||
+                  newProductOpen ||
+                  productViewOpen ||
+                  splitPaymentWayViewOpen
                 }
               >
                 {((from === 'Comercial' &&
                   !orderData.status_delivery &&
                   !orderData.status_billing &&
                   !orderData.status_payment) ||
-                  (from === 'Comercial' && user.permissions === 'Admin')) && (
+                  (from === 'Comercial' &&
+                    user.permissions === 'Admin' &&
+                    orderData.payment_way !== 'Parcelado')) && (
                   <AddProductButton
                     type="button"
                     color={color}
@@ -3521,7 +3555,10 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
               </SecondaryContent>
               <ProductsOrderContent
                 isBlurred={
-                  splitPaymentWayOpen || newProductOpen || productViewOpen
+                  splitPaymentWayOpen ||
+                  newProductOpen ||
+                  productViewOpen ||
+                  splitPaymentWayViewOpen
                 }
               >
                 <TitleRow>
@@ -3578,7 +3615,8 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                             !orderData.status_billing &&
                             !orderData.status_payment) ||
                             (from === 'Comercial' &&
-                              user.permissions === 'Admin')) && (
+                              user.permissions === 'Admin' &&
+                              orderData.payment_way !== 'Parcelado')) && (
                             <div>
                               <button
                                 className="delete-product"
