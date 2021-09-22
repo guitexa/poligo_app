@@ -629,6 +629,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
 
       // Armazena o valor recebido no estado
       orderData.total_value = '0';
+      orderData.number_total_value = 0;
 
       // Define que o banco de dados deve ser atualizado
       setOrderUpdated(true);
@@ -773,6 +774,17 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           return;
         }
 
+        // Verifica se o pedido possui algum serviço cadastrado
+        if (!orderData.orders_products?.length) {
+          // Se não possui serviço define um erro
+          addToast({
+            type: 'error',
+            description: 'Insira pelo menos um serviço',
+          });
+
+          return;
+        }
+
         // Verifica se o pedido possui forma de pagamento
         if (!orderData.payment_way && orderData.number_total_value > 0) {
           // Se não possui forma de pagamento
@@ -799,12 +811,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
           return;
         }
 
-        // Verifica se o pedido possui algum serviço cadastrado
-        if (!orderData.orders_products?.length) {
-          // Se não possui serviço define um erro
+        // Verifica se existe parcelas criadas
+        if (orderData.payment_way === 'Parcelado' && !splitsPaymentWay) {
+          // Se não possui meio de pagamento
           addToast({
             type: 'error',
-            description: 'Insira pelo menos um serviço',
+            description:
+              'Não existe parcelas criadas para a forma de pagamento selecionado',
           });
 
           return;
@@ -902,7 +915,13 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
         setOrderUpdated(true);
       }
     },
-    [addToast, orderData, order_id, updatesToSendToSearchResults]
+    [
+      addToast,
+      orderData,
+      order_id,
+      splitsPaymentWay,
+      updatesToSendToSearchResults,
+    ]
   );
 
   // Função para atualizar o status da área técnica e/ou o técnico executante
