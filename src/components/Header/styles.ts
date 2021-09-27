@@ -115,6 +115,7 @@ export const Menu = styled.div<MenuProps>`
     visibility: ${({ menuIsOpen }) => (menuIsOpen ? 'visible' : 'hidden')};
     transition: 0.2s all;
     padding-top: 1px;
+    cursor: default;
 
     a {
       display: inline-flex;
@@ -196,4 +197,5 @@ export const Cover = styled.button<CoverProps>`
   visibility: ${({ menuIsOpen }) => (menuIsOpen ? 'visible' : 'hidden')};
   outline: none;
   border: none;
+  cursor: default;
 `;
