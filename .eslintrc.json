@@ -45,6 +45,8 @@
     "@typescript-eslint/no-explicit-any": "off",
     "no-nested-ternary": "off",
     "import/no-duplicate-imports": "off",
+    "react/require-default-props": "off",
+    "react/no-unused-prop-types": "off",
     "@typescript-eslint/explicit-function-return-type": [
       "error",
       {

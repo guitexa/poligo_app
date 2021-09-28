@@ -132,7 +132,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
   const [confirmDataHasOpened, setConfirmDataHasOpened] = useState(false);
 
   const { addToast } = useToast();
-  const { user, checkToken } = useAuth();
+  const { user } = useAuth();
   const { newOrderOpen, overlapNewOrderOpen, overlapOrderOpen, orderOpen } =
     useOverlap();
   const { toUpdateSearchResults } = useOrdersSearch();
@@ -183,7 +183,6 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
 
   // Busca na API os clientes cadastrados e armazena no estado companies
   useEffect(() => {
-    checkToken();
     api
       .get<CompanyData[]>('/companies')
       .then((response) => {
@@ -195,8 +194,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ color, from }) => {
           description: '#0140 - Erro ao carregar as empresas cadastradas',
         });
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [addToast]);
 
   // Função para atrasar a exibição do botão de criar pedido
   // O objetivo é fazer com que o usuário realmente confirme os dados antes

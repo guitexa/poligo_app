@@ -2529,7 +2529,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                         <Form ref={companyNameRef} onSubmit={submitCompanyName}>
                           <InputAsText
                             name="companyNameData"
-                            onBlur={onCompanyNameSubmit}
+                            onBlur={() => onCompanyNameSubmit()}
                             defaultValue={orderData.company.name}
                           />
                         </Form>
@@ -2541,7 +2541,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                           orderData.company.cnpj_cpf.length > 11 ? (
                             <InputAsText
                               name="companyCnpjCpfData"
-                              onBlur={onCompanyCnpjCpfSubmit}
+                              onBlur={() => onCompanyCnpjCpfSubmit()}
                               defaultValue={
                                 orderData.company.formatted_cnpj_cpf
                               }
@@ -2551,7 +2551,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                           ) : (
                             <InputAsText
                               name="companyCnpjCpfData"
-                              onBlur={onCompanyCnpjCpfSubmit}
+                              onBlur={() => onCompanyCnpjCpfSubmit()}
                               defaultValue={
                                 orderData.company.formatted_cnpj_cpf
                               }
@@ -2566,7 +2566,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                         >
                           <InputAsText
                             name="companyNameContactData"
-                            onBlur={onCompanyNameContactSubmit}
+                            onBlur={() => onCompanyNameContactSubmit()}
                             defaultValue={orderData.company.contact_name}
                           />
                         </Form>
@@ -2576,7 +2576,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                         >
                           <InputAsText
                             name="companyEmailData"
-                            onBlur={onCompanyEmailSubmit}
+                            onBlur={() => onCompanyEmailSubmit()}
                             defaultValue={orderData.company.email}
                           />
                         </Form>
@@ -2586,7 +2586,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                         >
                           <InputAsTextWithMask
                             name="companyPhoneData"
-                            onBlur={onCompanyPhoneSubmit}
+                            onBlur={() => onCompanyPhoneSubmit()}
                             defaultValue={orderData.company.formatted_phone}
                             mask="(99) 9999-9999"
                             maskChar={null}
@@ -2599,7 +2599,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                         >
                           <InputAsTextWithMask
                             name="companyMobilePhoneData"
-                            onBlur={onCompanyMobilePhoneSubmit}
+                            onBlur={() => onCompanyMobilePhoneSubmit()}
                             defaultValue={orderData.company.formatted_mobile}
                             mask="(99) 9 9999-9999"
                             maskChar={null}
@@ -2862,7 +2862,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                         >
                           <InputAsText
                             name="deliveryConditionsData"
-                            onBlur={onDeliveryConditionsSubmit}
+                            onBlur={() => onDeliveryConditionsSubmit()}
                             defaultValue={orderData.delivery_conditions}
                           />
                         </Form>
@@ -2873,7 +2873,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                           {orderData?.formatted_requested_delivery_date && (
                             <InputAsTextWithMask
                               name="requestedDeliveryDateData"
-                              onBlur={onRequestedDeliveryDateSubmit}
+                              onBlur={() => onRequestedDeliveryDateSubmit()}
                               defaultValue={
                                 orderData.formatted_requested_delivery_date
                               }
@@ -2885,7 +2885,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                           {!orderData?.formatted_requested_delivery_date && (
                             <InputAsTextWithMask
                               name="requestedDeliveryDateData"
-                              onBlur={onRequestedDeliveryDateSubmit}
+                              onBlur={() => onRequestedDeliveryDateSubmit()}
                               defaultValue={
                                 orderData.formatted_requested_delivery_date
                               }
@@ -2977,7 +2977,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                           {orderData?.formatted_delivery_date && (
                             <InputAsTextWithMask
                               name="deliveryDateData"
-                              onBlur={onDeliveryDateSubmit}
+                              onBlur={() => onDeliveryDateSubmit()}
                               defaultValue={orderData.formatted_delivery_date}
                               mask="99/99/9999"
                               maskChar={null}
@@ -2987,7 +2987,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                           {!orderData?.formatted_delivery_date && (
                             <InputAsTextWithMask
                               name="deliveryDateData"
-                              onBlur={onDeliveryDateSubmit}
+                              onBlur={() => onDeliveryDateSubmit()}
                               defaultValue={orderData.formatted_delivery_date}
                               mask="99/99/9999"
                               maskChar={null}
@@ -3189,7 +3189,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                         >
                           <InputAsText
                             name="technicalObsData"
-                            onBlur={onTechnicalObsSubmit}
+                            onBlur={() => onTechnicalObsSubmit()}
                             defaultValue={orderData.technical_obs}
                           />
                         </Form>
@@ -3257,7 +3257,7 @@ const Order: React.FC<OrderProps> = ({ color, order_id, from }) => {
                               <Form ref={dueDateRef} onSubmit={submitDueDate}>
                                 <InputAsTextWithMask
                                   name="dueDateData"
-                                  onBlur={onDueDateSubmit}
+                                  onBlur={() => onDueDateSubmit()}
                                   defaultValue={orderData.formatted_due_date}
                                   mask="99/99/9999"
                                   maskChar={null}
