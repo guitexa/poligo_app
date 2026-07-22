@@ -19,7 +19,7 @@
     "@unform/core": "^2.1.6",
     "@unform/web": "^2.1.6",
     "autosuggest-highlight": "^3.1.1",
-    "axios": "^0.21.1",
+    "axios": "^0.33.0",
     "brazilian-values": "^0.10.1",
     "date-fns": "^2.17.0",
     "jwt-decode": "^3.1.2",
